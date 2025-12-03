@@ -3,31 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Job Tracker Pro</title>
-    <!-- Tailwind CSS -->
+    <title>Job Tracker Platinum 8.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
                     colors: {
                         app: {
-                            bg: '#050b14',
-                            card: '#0f172a',
-                            lighter: '#1e293b',
-                            primary: '#3b82f6',
-                            success: '#10b981',
-                            warning: '#f59e0b',
-                            danger: '#ef4444',
-                            text: '#f8fafc',
-                            muted: '#94a3b8',
-                            border: '#1e293b'
+                            bg: '#050b14', card: '#0f172a', lighter: '#1e293b',  
+                            primary: '#3b82f6', text: '#f8fafc', muted: '#94a3b8',    
+                            border: '#1e293b', success: '#10b981', warning: '#f59e0b',
+                        }
+                    },
+                    animation: { 
+                        'fade-in': 'fadeIn 0.2s ease-out', 
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                        'grow-line': 'growLine 0.4s ease-out forwards'
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+                        growLine: { '0%': { height: '0%' }, '100%': { height: '100%' } },
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
                         }
                     }
                 }
@@ -36,69 +47,144 @@
     </script>
     <style>
         body { background-color: #050b14; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
-        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #050b14; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
         .fab-shadow { box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.5); }
         .nav-item.active { color: #3b82f6; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Toast Animation */
-        @keyframes slideUp {
-            from { transform: translate(-50%, 100%); opacity: 0; }
-            to { transform: translate(-50%, 0); opacity: 1; }
+        .custom-checkbox {
+            appearance: none; background-color: #1e293b; margin: 0; width: 1.25em; height: 1.25em; 
+            border: 1px solid #3b82f6; border-radius: 0.25em; display: grid; place-content: center; cursor: pointer;
         }
-        .toast { animation: slideUp 0.3s ease-out forwards; }
+        .custom-checkbox::before {
+            content: ""; width: 0.65em; height: 0.65em; transform: scale(0);
+            transition: 120ms transform ease-in-out; box-shadow: inset 1em 1em white;
+            transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked { background-color: #3b82f6; }
+        .custom-checkbox:checked::before { transform: scale(1); }
 
-        input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus {
-            -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
-            -webkit-text-fill-color: white !important;
-            transition: background-color 5000s ease-in-out 0s;
+        .custom-checkbox-green {
+            appearance: none; background-color: #064e3b; margin: 0; width: 1.25em; height: 1.25em; 
+            border: 1px solid #10b981; border-radius: 0.25em; display: grid; place-content: center; cursor: pointer;
+        }
+        .custom-checkbox-green::before {
+            content: ""; width: 0.65em; height: 0.65em; transform: scale(0);
+            transition: 120ms transform ease-in-out; box-shadow: inset 1em 1em white;
+            transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox-green:checked { background-color: #10b981; }
+        .custom-checkbox-green:checked::before { transform: scale(1); }
+        
+        /* Glass Effect */
+        .glass-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(30, 41, 59, 0.4) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Keypad Styling */
+        .keypad-btn {
+            width: 75px; height: 75px; border-radius: 50%;
+            background-color: #1e293b; color: white; font-size: 26px; font-weight: 500;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.1s;
+            user-select: none;
+            border: 1px solid #334155;
+        }
+        .keypad-btn:active { background-color: #3b82f6; border-color: #3b82f6; transform: scale(0.95); }
+        
+        .dot {
+            width: 14px; height: 14px; border-radius: 50%;
+            background-color: #334155; transition: all 0.2s ease;
+        }
+        .dot.active {
+            background-color: #3b82f6;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+            transform: scale(1.1);
         }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="h-screen flex flex-col overflow-hidden text-app-text">
 
-    <!-- MAIN CONTENT AREA -->
-    <main id="app-content" class="flex-1 overflow-y-auto pb-24 relative">
-        <!-- Views injected here -->
-    </main>
+    <main id="app-content" class="flex-1 overflow-y-auto pb-24 relative"></main>
 
-    <!-- TOAST NOTIFICATION CONTAINER -->
-    <div id="toast-container" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[60] flex flex-col gap-2 pointer-events-none w-full max-w-sm px-4"></div>
-
-    <!-- FLOATING ACTION BUTTON -->
     <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
         <button onclick="toggleFabMenu()" class="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl fab-shadow transition-transform active:scale-95">
-            <i class="fa-solid fa-plus transition-transform duration-300" id="fab-icon"></i>
+            <i class="fa-solid fa-bars transition-transform duration-300" id="fab-icon"></i>
         </button>
     </div>
 
-    <!-- FAB MENU -->
-    <div id="fab-menu" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-40 hidden flex-col gap-3 items-center">
-        <button onclick="router.navigate('new-job'); toggleFabMenu()" class="bg-app-card border border-app-border text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 w-48 hover:bg-app-lighter transition-colors">
-            <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-briefcase"></i></div>
-            New Job
-        </button>
-        <button onclick="router.navigate('new-contact'); toggleFabMenu()" class="bg-app-card border border-app-border text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 w-48 hover:bg-app-lighter transition-colors">
-            <div class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center"><i class="fa-solid fa-user-plus"></i></div>
-            New Contact
-        </button>
+    <div id="fab-menu" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-40 hidden flex-col items-center">
+        <div class="absolute bottom-[-10px] left-[17px] top-4 w-0.5 bg-gradient-to-t from-blue-500/50 to-pink-500/50 -z-10 rounded-full"></div>
+        
+        <div class="flex flex-col-reverse gap-3 w-72 pb-2">
+            
+            <button onclick="router.navigate('new-event'); toggleFabMenu()" class="relative bg-app-card border border-app-border text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-3 hover:bg-app-lighter transition-all animate-slide-up ml-8" style="animation-delay: 0s">
+                <div class="absolute left-[-24px] top-1/2 w-6 h-0.5 bg-blue-500/30"></div>
+                <div class="absolute left-[-26px] top-1/2 w-1.5 h-1.5 rounded-full bg-blue-500 transform -translate-y-1/2 shadow-[0_0_5px_rgba(59,130,246,0.8)]"></div>
+                <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center"><i class="fa-regular fa-calendar-plus"></i></div>
+                <div class="text-left"><span class="block text-sm font-semibold">New Event</span><span class="text-[10px] text-app-muted">Job, Quote, Holiday</span></div>
+            </button>
+
+            <button onclick="router.navigate('new-contact'); toggleFabMenu()" class="relative bg-app-card border border-app-border text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-3 hover:bg-app-lighter transition-all animate-slide-up ml-8" style="animation-delay: 0.03s">
+                <div class="absolute left-[-24px] top-1/2 w-6 h-0.5 bg-blue-500/30"></div>
+                <div class="absolute left-[-26px] top-1/2 w-1.5 h-1.5 rounded-full bg-blue-500 transform -translate-y-1/2 shadow-[0_0_5px_rgba(59,130,246,0.8)]"></div>
+                <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center"><i class="fa-solid fa-user-plus"></i></div>
+                <div class="text-left"><span class="block text-sm font-semibold">New Contact</span><span class="text-[10px] text-app-muted">Add Client</span></div>
+            </button>
+
+            <button onclick="window.open('https://elitewrapzuk.github.io/elitequoter/', '_blank'); toggleFabMenu()" class="relative bg-app-card border border-app-border text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-3 hover:bg-app-lighter transition-all animate-slide-up ml-8" style="animation-delay: 0.06s">
+                <div class="absolute left-[-24px] top-1/2 w-6 h-0.5 bg-amber-500/30"></div>
+                <div class="absolute left-[-26px] top-1/2 w-1.5 h-1.5 rounded-full bg-amber-500 transform -translate-y-1/2"></div>
+                <div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <div class="text-left"><span class="block text-sm font-semibold">New Quote</span><span class="text-[10px] text-app-muted">Elite Quoter</span></div>
+            </button>
+
+            <button onclick="window.open('https://elitewrapzuk.github.io/remotequoteform/', '_blank'); toggleFabMenu()" class="relative bg-app-card border border-app-border text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-3 hover:bg-app-lighter transition-all animate-slide-up ml-8" style="animation-delay: 0.09s">
+                <div class="absolute left-[-24px] top-1/2 w-6 h-0.5 bg-orange-500/30"></div>
+                <div class="absolute left-[-26px] top-1/2 w-1.5 h-1.5 rounded-full bg-orange-500 transform -translate-y-1/2"></div>
+                <div class="w-8 h-8 rounded-full bg-orange-500/20 text-orange-400 flex items-center justify-center"><i class="fa-solid fa-laptop-file"></i></div>
+                <div class="text-left"><span class="block text-sm font-semibold">Remote Quote</span><span class="text-[10px] text-app-muted">Customer Form</span></div>
+            </button>
+
+            <button onclick="window.open('https://elitewrapzuk.github.io/elitewrapzsignatures/', '_blank'); toggleFabMenu()" class="relative bg-app-card border border-app-border text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-3 hover:bg-app-lighter transition-all animate-slide-up ml-8" style="animation-delay: 0.12s">
+                <div class="absolute left-[-24px] top-1/2 w-6 h-0.5 bg-emerald-500/30"></div>
+                <div class="absolute left-[-26px] top-1/2 w-1.5 h-1.5 rounded-full bg-emerald-500 transform -translate-y-1/2"></div>
+                <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center"><i class="fa-solid fa-file-signature"></i></div>
+                <div class="text-left"><span class="block text-sm font-semibold">Signatures</span><span class="text-[10px] text-app-muted">Agreements</span></div>
+            </button>
+
+            <button onclick="window.open('https://elitewrapzuk.github.io/remotesignature/', '_blank'); toggleFabMenu()" class="relative bg-app-card border border-app-border text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-3 hover:bg-app-lighter transition-all animate-slide-up ml-8" style="animation-delay: 0.15s">
+                <div class="absolute left-[-24px] top-1/2 w-6 h-0.5 bg-teal-500/30"></div>
+                <div class="absolute left-[-26px] top-1/2 w-1.5 h-1.5 rounded-full bg-teal-500 transform -translate-y-1/2"></div>
+                <div class="w-8 h-8 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center"><i class="fa-solid fa-pen-to-square"></i></div>
+                <div class="text-left"><span class="block text-sm font-semibold">Remote Sign</span><span class="text-[10px] text-app-muted">Customer Link</span></div>
+            </button>
+
+            <button onclick="window.open('https://elitewrapzuk.github.io/eliteoptimiser/', '_blank'); toggleFabMenu()" class="relative bg-app-card border border-app-border text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-3 hover:bg-app-lighter transition-all animate-slide-up ml-8" style="animation-delay: 0.18s">
+                <div class="absolute left-[-24px] top-1/2 w-6 h-0.5 bg-pink-500/30"></div>
+                <div class="absolute left-[-26px] top-1/2 w-1.5 h-1.5 rounded-full bg-pink-500 transform -translate-y-1/2"></div>
+                <div class="w-8 h-8 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center"><i class="fa-solid fa-ruler-combined"></i></div>
+                <div class="text-left"><span class="block text-sm font-semibold">Optimiser</span><span class="text-[10px] text-app-muted">Material Planning</span></div>
+            </button>
+
+        </div>
     </div>
     
-    <!-- OVERLAY -->
-    <div id="fab-overlay" onclick="toggleFabMenu()" class="fixed inset-0 bg-black/60 z-30 hidden backdrop-blur-sm"></div>
+    <div id="fab-overlay" onclick="toggleFabMenu()" class="fixed inset-0 bg-black/80 z-30 hidden backdrop-blur-sm transition-opacity"></div>
 
-    <!-- BOTTOM NAV -->
     <nav class="fixed bottom-0 w-full bg-app-card border-t border-app-border h-[80px] pb-4 px-6 flex justify-between items-center z-20">
         <button onclick="router.navigate('today')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs active" data-target="today">
-            <i class="fa-solid fa-table-cells-large text-xl mb-0.5"></i> Today
+            <i class="fa-solid fa-table-cells-large text-xl mb-0.5"></i> Dashboard
         </button>
         <button onclick="router.navigate('calendar')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs" data-target="calendar">
             <i class="fa-regular fa-calendar text-xl mb-0.5"></i> Calendar
         </button>
-        <div class="w-12"></div> <!-- Spacer -->
+        <div class="w-12"></div>
         <button onclick="router.navigate('contacts')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs" data-target="contacts">
             <i class="fa-regular fa-user text-xl mb-0.5"></i> Contacts
         </button>
@@ -107,762 +193,709 @@
         </button>
     </nav>
 
-    <!-- HIDDEN FILE INPUT FOR CSV IMPORT -->
-    <input type="file" id="csvInput" accept=".csv" class="hidden" onchange="handleCSVUpload(this)">
+    <div id="toast" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-app-card border border-app-success/50 text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-3 translate-y-[-150%] transition-transform duration-300 w-max max-w-[90%]">
+        <i class="fa-solid fa-circle-check text-app-success"></i>
+        <span id="toast-msg" class="text-sm font-medium">Action successful</span>
+    </div>
 
-    <!-- LOGIC -->
     <script>
-        // --- DATA LAYER ---
+        // --- DATA MANAGEMENT ---
         const DB = {
-            jobs: [],
-            contacts: [],
-            // Expanded Status Config
-            statuses: {
-                'Scheduled': { color: 'bg-blue-500', icon: 'fa-calendar' },
-                'In Progress': { color: 'bg-orange-500', icon: 'fa-person-digging' },
-                'Completed': { color: 'bg-green-500', icon: 'fa-check' },
-                'Paid': { color: 'bg-emerald-600', icon: 'fa-dollar-sign' },
-                'Cancelled': { color: 'bg-red-500', icon: 'fa-xmark' }
-            },
-            user: { name: "Richard", email: "richarddyatess@gmail.com" },
+            jobs: [], contacts: [], user: { name: "Richard", email: "richarddyatess@gmail.com" },
+            settings: { monthlyGoal: 5000 },
+            secureNotes: "Gateway ID: 54 02 69 02 45 51\nEORI: GB045268219000",
             
             init() {
-                const savedJobs = localStorage.getItem('app_jobs');
-                const savedContacts = localStorage.getItem('app_contacts');
-                if (savedJobs) this.jobs = JSON.parse(savedJobs);
-                if (savedContacts) this.contacts = JSON.parse(savedContacts);
+                const sJ = localStorage.getItem('app_jobs');
+                const sC = localStorage.getItem('app_contacts');
+                const sN = localStorage.getItem('app_secure_notes');
+                const sS = localStorage.getItem('app_settings');
+                if (sJ) this.jobs = JSON.parse(sJ);
+                if (sC) this.contacts = JSON.parse(sC);
+                if (sN) this.secureNotes = sN;
+                if (sS) this.settings = JSON.parse(sS);
             },
-            
             save() {
                 localStorage.setItem('app_jobs', JSON.stringify(this.jobs));
                 localStorage.setItem('app_contacts', JSON.stringify(this.contacts));
+                localStorage.setItem('app_secure_notes', this.secureNotes);
+                localStorage.setItem('app_settings', JSON.stringify(this.settings));
             },
-
             addJob(job) {
-                this.jobs.push({ ...job, id: Date.now().toString() });
+                // Ensure default type is 'Job' if not set
+                job.type = job.type || 'Job';
+                this.jobs.push({ 
+                    ...job, 
+                    id: Date.now().toString(), 
+                    status: 'Scheduled', 
+                    checklist: [], 
+                    photos: [], 
+                    documents: [],
+                    price: job.price || 0,
+                    deposit: job.deposit || 0,
+                    durationDays: job.durationDays ? parseInt(job.durationDays) : 1, 
+                    depositPaid: false,
+                    fullPaymentPaid: false,
+                    agreementSigned: false,
+                    agreementNA: false,
+                    materialsOrdered: false,
+                    materialsDelivered: false
+                });
                 this.save();
-                Utils.toast('Job created successfully');
+                showToast('Event created successfully');
             },
-
-            updateJob(id, updates) {
-                const index = this.jobs.findIndex(j => j.id === id);
+            deleteJob(id) {
+                this.jobs = this.jobs.filter(j => j.id !== id);
+                this.save();
+                showToast('Event deleted');
+            },
+            addContact(c) { this.contacts.push({ ...c, id: Date.now().toString() }); this.save(); },
+            updateContact(c) {
+                const index = this.contacts.findIndex(x => x.id === c.id);
                 if (index !== -1) {
-                    this.jobs[index] = { ...this.jobs[index], ...updates };
+                    this.contacts[index] = c;
                     this.save();
-                    return true;
+                    showToast('Contact updated');
                 }
-                return false;
             },
-
-            getJob(id) { return this.jobs.find(j => j.id === id); },
-
-            addContact(contact) {
-                // Prevent duplicates by name
-                if (!this.contacts.some(c => c.name === contact.name)) {
-                    this.contacts.push({ ...contact, id: Date.now().toString() + Math.random().toString().slice(2,5) });
-                    this.save();
-                    return true;
-                }
-                return false;
+            deleteContact(id) {
+                this.contacts = this.contacts.filter(c => c.id !== id);
+                this.save();
+                showToast('Contact deleted');
             },
+            importContacts(newC) {
+                let count = 0;
+                newC.forEach(nc => {
+                    if(!this.contacts.some(c => (c.email && c.email === nc.email) || c.name === nc.name)) {
+                        this.contacts.push({ ...nc, id: Date.now().toString() + Math.random().toString().substring(2,5) });
+                        count++;
+                    }
+                });
+                this.save(); return count;
+            },
+            updateJobStatus(id, s) { 
+                const j = this.jobs.find(x => x.id === id); 
+                if(j) { j.status = s; this.save(); showToast(`Status: ${s}`); } 
+            },
+            toggleJobField(id, field) {
+                const j = this.jobs.find(x => x.id === id);
+                if(j) { j[field] = !j[field]; this.save(); }
+            },
+            addJobPhoto(id, dataUrl) {
+                const j = this.jobs.find(x => x.id === id);
+                if(j) { if(!j.photos) j.photos = []; j.photos.push(dataUrl); this.save(); }
+            },
+            deleteJobPhoto(id, index) {
+                const j = this.jobs.find(x => x.id === id);
+                if(j && j.photos) { j.photos.splice(index, 1); this.save(); }
+            },
+            addJobDocument(id, docObj) {
+                const j = this.jobs.find(x => x.id === id);
+                if(j) { if(!j.documents) j.documents = []; j.documents.push(docObj); this.save(); }
+            },
+            deleteJobDocument(id, index) {
+                const j = this.jobs.find(x => x.id === id);
+                if(j && j.documents) { j.documents.splice(index, 1); this.save(); }
+            },
+            setRevenueGoal(a) { this.settings.monthlyGoal = parseFloat(a); this.save(); showToast('Goal updated'); },
+            toggleChecklist(id, idx) { const j = this.jobs.find(x=>x.id===id); if(j && j.checklist[idx]) { j.checklist[idx].done = !j.checklist[idx].done; this.save(); } },
+            addChecklist(id, txt) { const j = this.jobs.find(x=>x.id===id); if(j) { if(!j.checklist) j.checklist=[]; j.checklist.push({text:txt, done:false}); this.save(); } },
             
-            getContactByName(name) { return this.contacts.find(c => c.name === name); },
+            getJobsForDate(d) { 
+                return this.jobs.filter(j => {
+                    const checkDate = new Date(d);
+                    const startDate = new Date(j.date);
+                    checkDate.setHours(12,0,0,0);
+                    startDate.setHours(12,0,0,0);
+                    if (j.durationDays && j.durationDays > 1) {
+                        const endDate = new Date(startDate);
+                        endDate.setDate(startDate.getDate() + (parseInt(j.durationDays) - 1));
+                        return checkDate >= startDate && checkDate <= endDate;
+                    }
+                    return j.date === d;
+                }); 
+            },
 
-            getJobsForDate(dateStr) { return this.jobs.filter(job => job.date === dateStr); },
-
-            getJobStats() {
-                const todayStr = new Date().toISOString().split('T')[0];
-                return {
-                    today: this.jobs.filter(j => j.date === todayStr).length,
-                    active: this.jobs.filter(j => ['Scheduled', 'In Progress'].includes(j.status)).length,
-                    completed: this.jobs.filter(j => j.status === 'Completed').length
-                };
+            getUpcomingJobs() {
+                const today = new Date().toISOString().split('T')[0];
+                return this.jobs
+                    .filter(j => j.date >= today && j.status !== 'Cancelled' && j.status !== 'Completed')
+                    .sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+            },
+            getJobById(id) { return this.jobs.find(j => j.id === id); },
+            getContactById(id) { return this.contacts.find(c => c.id === id); },
+            getJobsForContact(name) { return this.jobs.filter(j => j.contact === name); },
+            getDashboardStats() {
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                const monthJobs = this.jobs.filter(j => {
+                    const d = new Date(j.date);
+                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear && j.status !== 'Cancelled' && (j.type === 'Job' || !j.type);
+                });
+                const totalRevenue = monthJobs.reduce((acc, j) => acc + (parseFloat(j.price)||0), 0);
+                const completedCount = monthJobs.filter(j => j.status === 'Completed').length;
+                const outstanding = this.jobs.reduce((acc, j) => {
+                    if(j.status === 'Cancelled' || j.fullPaymentPaid || (j.type && j.type !== 'Job')) return acc;
+                    const price = parseFloat(j.price) || 0;
+                    const deposit = parseFloat(j.deposit) || 0;
+                    return acc + (price - deposit);
+                }, 0);
+                return { monthRevenue: totalRevenue, monthCount: monthJobs.length, completedCount: completedCount, outstanding: outstanding };
             }
         };
 
         // --- UTILS ---
         const Utils = {
-            getGreeting: () => {
-                const h = new Date().getHours();
-                return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-            },
+            getGreeting: () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; },
             formatDate: (d) => d.toISOString().split('T')[0],
-            getFriendlyDate: (str) => new Date(str).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
-            
-            toast(msg, type = 'success') {
-                const container = document.getElementById('toast-container');
-                const el = document.createElement('div');
-                const icon = type === 'success' ? 'fa-circle-check text-green-500' : 'fa-circle-info text-blue-500';
-                el.className = 'toast bg-app-lighter border border-app-border text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 backdrop-blur-md bg-opacity-90';
-                el.innerHTML = `<i class="fa-solid ${icon}"></i> <span class="text-sm font-medium">${msg}</span>`;
-                container.appendChild(el);
-                setTimeout(() => {
-                    el.style.opacity = '0';
-                    setTimeout(() => el.remove(), 300);
-                }, 3000);
+            getFriendlyDate: (s) => new Date(s).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+            sanitizePhone: (p) => p ? p.replace(/\s+/g, '').replace(/-/g, '') : '',
+            copyToClipboard: (text, label) => { if(!text) return; navigator.clipboard.writeText(text).then(() => showToast(`${label} copied`)); },
+            getEventTypeColor: (type, status) => {
+                if (status === 'Cancelled') return 'border-red-500 bg-red-500/10 text-red-400';
+                if (status === 'Completed') return 'border-emerald-500 bg-emerald-500/10 text-emerald-400';
+                switch(type) {
+                    case 'Consultation': return 'border-purple-500 bg-purple-500/10 text-purple-400';
+                    case 'Holiday': return 'border-orange-500 bg-orange-500/10 text-orange-400';
+                    case 'Personal': return 'border-slate-500 bg-slate-500/10 text-slate-400';
+                    default: return 'border-blue-500 bg-blue-500/10 text-blue-400'; // Job
+                }
             },
-
-            // Basic CSV Parser that handles quoted strings
-            parseCSVLine(text) {
-                let re_valid = /^\s*(?:'[^'\\]*(?:\\[\S\s][^'\\]*)*'|"[^"\\]*(?:\\[\S\s][^"\\]*)*"|[^,'"\s\\]*(?:\s+[^,'"\s\\]+)*)\s*(?:,\s*(?:'[^'\\]*(?:\\[\S\s][^'\\]*)*'|"[^"\\]*(?:\\[\S\s][^"\\]*)*"|[^,'"\s\\]*(?:\s+[^,'"\s\\]+)*)\s*)*$/;
-                let re_value = /(?!\s*$)\s*(?:'([^'\\]*(?:\\[\S\s][^'\\]*)*)'|"([^"\\]*(?:\\[\S\s][^"\\]*)*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g;
-                if (!re_valid.test(text)) return null;
-                let a = [];
-                text.replace(re_value, function(m0, m1, m2, m3) {
-                    if      (m1 !== undefined) a.push(m1.replace(/\\'/g, "'"));
-                    else if (m2 !== undefined) a.push(m2.replace(/\\"/g, '"'));
-                    else if (m3 !== undefined) a.push(m3);
-                    return ''; 
-                });
-                if (/,\s*$/.test(text)) a.push('');
-                return a;
+            getEventTypeIcon: (type) => {
+                switch(type) {
+                    case 'Consultation': return '<i class="fa-solid fa-comments"></i>';
+                    case 'Holiday': return '<i class="fa-solid fa-plane"></i>';
+                    case 'Personal': return '<i class="fa-solid fa-user-clock"></i>';
+                    default: return '<i class="fa-solid fa-briefcase"></i>';
+                }
+            },
+            getInitials: (n) => n ? n.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase() : '??',
+            downloadJSON: (data, name) => {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'}));
+                a.download = name; a.click();
             }
         };
 
         // --- ROUTER ---
         const router = {
-            currentRoute: 'today',
+            currentRoute: 'today', params: {}, tempPasscode: '',
+            
             navigate(route, params = {}) {
                 this.currentRoute = route;
-                
+                // Preserve calendar
+                if (route === 'calendar') {
+                    if (params.date) this.params.date = params.date;
+                    if (params.calendarMonth !== undefined) this.params.calendarMonth = params.calendarMonth;
+                    if (params.calendarYear !== undefined) this.params.calendarYear = params.calendarYear;
+                } else {
+                    this.params = params;
+                }
+
+                if(route !== 'secure-login') this.tempPasscode = '';
+
                 document.querySelectorAll('.nav-item').forEach(el => {
-                    el.classList.remove('active', 'text-blue-500');
-                    el.classList.add('text-app-muted');
-                    if (el.dataset.target === route) {
-                        el.classList.add('active', 'text-blue-500');
-                        el.classList.remove('text-app-muted');
-                    }
+                    el.classList.remove('active', 'text-blue-500'); el.classList.add('text-app-muted');
+                    if(el.dataset.target === route) { el.classList.add('active', 'text-blue-500'); el.classList.remove('text-app-muted'); }
                 });
 
-                const content = document.getElementById('app-content');
-                content.scrollTop = 0; 
+                const c = document.getElementById('app-content'); c.innerHTML = '';
+                if(route !== 'calendar' && route !== 'secure-login') window.scrollTo(0,0);
 
-                // Routing Logic
-                switch(route) {
-                    case 'today': this.renderToday(content); break;
-                    case 'calendar': this.renderCalendar(content); break;
-                    case 'contacts': this.renderContacts(content); break;
-                    case 'more': this.renderMore(content); break;
-                    case 'new-job': this.renderNewJob(content); break;
-                    case 'new-contact': this.renderNewContact(content); break;
-                    case 'job-detail': this.renderJobDetail(content, params); break;
-                    case 'edit-job-notes': this.renderEditJobNotes(content, params); break;
-                }
+                const views = {
+                    'today': () => this.renderToday(c),
+                    'calendar': () => this.renderCalendar(c),
+                    'contacts': () => this.renderContacts(c),
+                    'more': () => this.renderMore(c),
+                    'secure-login': () => this.renderSecureLogin(c),
+                    'secure-notes': () => this.renderSecureNotes(c),
+                    'new-event': () => this.renderNewEvent(c), 
+                    'new-contact': () => this.renderNewContact(c),
+                    'edit-contact': () => this.renderEditContact(c, this.params.id), 
+                    'job-details': () => this.renderJobDetails(c, this.params.id),
+                    'contact-details': () => this.renderContactDetails(c, this.params.id)
+                };
+                if(route === 'new-job') views['new-event']();
+                else if(views[route]) views[route]();
             },
 
-            // --- VIEW RENDERERS ---
-
             renderToday(container) {
-                const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-                const stats = DB.getJobStats();
-                const todayIso = new Date().toISOString().split('T')[0];
-                const todayJobs = DB.getJobsForDate(todayIso);
-
-                let jobsHtml = todayJobs.length === 0 ? this.components.emptyState('No jobs today', 'Enjoy your free time') : 
-                               `<div class="mt-4 space-y-3">${todayJobs.map(job => this.components.jobCard(job)).join('')}</div>`;
+                const stats = DB.getDashboardStats();
+                const upcomingJobs = DB.getUpcomingJobs();
+                const nextJob = upcomingJobs.length > 0 ? upcomingJobs[0] : null;
+                const monthName = new Date().toLocaleDateString('en-US', {month: 'long'});
+                let currentHeader = '';
+                let jobListHtml = upcomingJobs.length === 0 ? this.components.emptyState('No upcoming events', 'Add Event', 'new-event') : '<div class="space-y-4 pb-20 animate-fade-in">';
+                if (upcomingJobs.length > 0) {
+                    upcomingJobs.forEach(j => {
+                        const jDate = new Date(j.date);
+                        const today = new Date();
+                        const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+                        let dateHeader = jDate.toLocaleDateString('en-US', {weekday: 'short', day: 'numeric', month: 'short'});
+                        if(j.date === today.toISOString().split('T')[0]) dateHeader = "Today";
+                        else if(j.date === tomorrow.toISOString().split('T')[0]) dateHeader = "Tomorrow";
+                        if(dateHeader !== currentHeader) {
+                            jobListHtml += `<div class="sticky top-0 bg-app-bg/95 backdrop-blur py-2 z-10 border-b border-app-border mb-2 mt-2"><h3 class="text-xs font-bold text-blue-500 uppercase tracking-wider">${dateHeader}</h3></div>`;
+                            currentHeader = dateHeader;
+                        }
+                        jobListHtml += this.components.jobCard(j);
+                    });
+                    jobListHtml += '</div>';
+                }
 
                 container.innerHTML = `
                     <div class="px-5 pt-12 pb-6">
-                        <p class="text-app-muted text-sm mb-1 uppercase tracking-wider font-semibold text-[10px]">${todayStr}</p>
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-2xl font-bold text-white">${Utils.getGreeting()}, ${DB.user.name}</h1>
-                            <div class="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center border border-blue-500/20">
-                                <i class="fa-solid fa-user"></i>
-                            </div>
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 font-bold">R</div>
                         </div>
-
-                        <!-- Stats -->
-                        <div class="grid grid-cols-3 gap-3 mb-8">
-                            ${this.components.statCard('Today', todayJobs.length, 'text-white', 'bg-blue-600')}
-                            ${this.components.statCard('Active', stats.active, 'text-orange-400', 'bg-app-card')}
-                            ${this.components.statCard('Done', stats.completed, 'text-emerald-400', 'bg-app-card')}
+                        <div class="glass-card rounded-2xl p-5 mb-6 relative overflow-hidden group border border-blue-500/20 shadow-lg shadow-blue-900/20">
+                            <div class="absolute top-0 right-0 p-3 opacity-20"><i class="fa-solid fa-location-arrow text-6xl text-blue-400 transform -rotate-45"></i></div>
+                            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Next Up</h3>
+                            ${nextJob ? `
+                                ${nextJob.type === 'Holiday' ? `
+                                    <h2 class="text-2xl font-bold text-white mb-1">${nextJob.title}</h2>
+                                    <p class="text-orange-400 font-bold mb-4">${nextJob.durationDays} Days</p>
+                                    <p class="text-app-muted text-sm mb-4"><i class="fa-regular fa-calendar mr-1"></i> ${Utils.getFriendlyDate(nextJob.date)}</p>
+                                ` : `
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-lg text-blue-400">${Utils.getEventTypeIcon(nextJob.type || 'Job')}</span>
+                                        <h2 class="text-xl font-bold text-white line-clamp-1">${nextJob.title}</h2>
+                                    </div>
+                                    <p class="text-app-muted text-sm mb-4"><i class="fa-regular fa-clock mr-1"></i> ${nextJob.date === new Date().toISOString().split('T')[0] ? 'Today' : Utils.getFriendlyDate(nextJob.date)} at ${nextJob.time}</p>
+                                    <div class="flex gap-3">
+                                        <button onclick="router.navigate('job-details', {id: '${nextJob.id}'})" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-blue-600/30">View Details</button>
+                                        ${nextJob.address ? `<a href="http://maps.google.com/?q=${encodeURIComponent(nextJob.address)}" target="_blank" class="bg-app-lighter hover:bg-app-card text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors border border-app-border">Navigate</a>` : ''}
+                                    </div>
+                                `}
+                            ` : `
+                                <p class="text-white text-lg font-medium">You're all caught up!</p>
+                                <p class="text-app-muted text-sm mb-4">No upcoming events scheduled.</p>
+                                <button onclick="router.navigate('new-event')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold">Schedule Event</button>
+                            `}
                         </div>
-
-                        <div class="flex items-center gap-2 mb-2">
-                            <h2 class="font-semibold text-lg">Today's Schedule</h2>
-                            <span class="bg-app-lighter px-2 py-0.5 rounded text-xs text-app-muted">${todayJobs.length}</span>
+                        <div class="grid grid-cols-2 gap-3 mb-8">
+                            <div class="bg-app-card p-4 rounded-xl border border-app-border"><p class="text-xs text-app-muted uppercase tracking-wider mb-1">${monthName} Revenue</p><p class="text-2xl font-bold text-emerald-400">£${stats.monthRevenue.toLocaleString()}</p></div>
+                            <div class="bg-app-card p-4 rounded-xl border border-app-border"><p class="text-xs text-app-muted uppercase tracking-wider mb-1">Outstanding</p><p class="text-2xl font-bold text-amber-400">£${stats.outstanding.toLocaleString()}</p></div>
+                            <div class="bg-app-card p-4 rounded-xl border border-app-border flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center"><i class="fa-solid fa-briefcase"></i></div><div><p class="text-xl font-bold leading-none">${stats.monthCount}</p><p class="text-[10px] text-app-muted mt-0.5">Jobs this mo.</p></div></div>
+                            <div class="bg-app-card p-4 rounded-xl border border-app-border flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center"><i class="fa-solid fa-check-double"></i></div><div><p class="text-xl font-bold leading-none">${stats.monthCount > 0 ? Math.round((stats.completedCount/stats.monthCount)*100) : 0}%</p><p class="text-[10px] text-app-muted mt-0.5">Completion</p></div></div>
                         </div>
-                        ${jobsHtml}
-                    </div>
-                `;
+                        <div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-calendar-days text-blue-500"></i><h2 class="font-semibold text-lg">Upcoming Schedule</h2></div>
+                        ${jobListHtml}
+                    </div>`;
             },
 
             renderCalendar(container) {
-                const today = new Date();
-                let selectedDate = this.selectedDate || today.toISOString().split('T')[0];
-                const jobsForDate = DB.getJobsForDate(selectedDate);
-
-                // Date Scroller Logic
-                let daysHtml = '';
-                for(let i=-2; i<12; i++) {
-                    const d = new Date();
-                    d.setDate(today.getDate() + i);
-                    const iso = d.toISOString().split('T')[0];
-                    const isSelected = iso === selectedDate;
-                    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-                    
-                    daysHtml += `
-                        <button onclick="router.selectedDate='${iso}'; router.navigate('calendar')" 
-                             class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-20 rounded-2xl border ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-900/50' : 'bg-app-card border-app-border text-app-muted'} transition-all active:scale-95">
-                            <span class="text-xs font-medium mb-1 opacity-75">${dayName}</span>
-                            <span class="text-xl font-bold">${d.getDate()}</span>
-                            ${isSelected ? '<div class="w-1 h-1 rounded-full bg-white mt-1"></div>' : ''}
-                        </button>
-                    `;
+                if (this.params.calendarMonth === undefined) {
+                    const now = new Date();
+                    this.params.calendarMonth = now.getMonth();
+                    this.params.calendarYear = now.getFullYear();
                 }
+                const m = this.params.calendarMonth;
+                const y = this.params.calendarYear;
+                const selectedIso = this.params.date || new Date().toISOString().split('T')[0];
+                const daysInMonth = new Date(y, m + 1, 0).getDate();
+                const monthName = new Date(y, m).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                let daysHtml = '';
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const d = new Date(y, m, i);
+                    const iso = Utils.formatDate(d);
+                    const isSelected = iso === selectedIso;
+                    const dayEvents = DB.getJobsForDate(iso);
+                    const hasJobs = dayEvents.length > 0;
+                    
+                    let dotColor = 'bg-slate-500';
+                    if (dayEvents.some(e => e.type === 'Job' || !e.type)) dotColor = 'bg-blue-500';
+                    else if (dayEvents.some(e => e.type === 'Consultation')) dotColor = 'bg-purple-500';
+                    else if (dayEvents.some(e => e.type === 'Holiday')) dotColor = 'bg-orange-500';
 
+                    daysHtml += `
+                        <div onclick="router.navigate('calendar', {date: '${iso}', calendarMonth: ${m}, calendarYear: ${y}})" 
+                             id="day-${iso}"
+                             class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-20 rounded-2xl border ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-105' : 'bg-app-card border-app-border text-app-muted'} transition-all cursor-pointer snap-center relative">
+                            <span class="text-xs font-medium mb-1 opacity-80">${d.toLocaleDateString('en-US', {weekday:'short'})}</span>
+                            <span class="text-xl font-bold">${i}</span>
+                            ${hasJobs && !isSelected ? `<div class="absolute bottom-2 w-1.5 h-1.5 rounded-full ${dotColor}"></div>` : ''}
+                        </div>`;
+                }
+                const jobs = DB.getJobsForDate(selectedIso);
                 container.innerHTML = `
                     <div class="pt-12 px-5 pb-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h1 class="text-2xl font-bold">Schedule</h1>
-                            <button onclick="router.navigate('today')" class="text-xs font-semibold text-blue-500 bg-blue-500/10 px-3 py-1.5 rounded-lg">Jump to Today</button>
-                        </div>
-                        
-                        <div class="flex gap-3 overflow-x-auto pb-6 no-scrollbar -mx-5 px-5 mb-2">
-                            ${daysHtml}
-                        </div>
-
-                        <div class="flex justify-between items-end mb-4">
-                            <div>
-                                <h2 class="font-semibold text-lg text-white">Jobs</h2>
-                                <p class="text-app-muted text-sm">${Utils.getFriendlyDate(selectedDate)}</p>
+                        <div class="relative mb-6"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted"></i><input type="text" onkeyup="filterJobs(this.value)" placeholder="Search events..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-blue-500"></div>
+                        <div id="calendar-view">
+                            <div class="flex justify-between items-center mb-4 bg-app-card p-2 rounded-xl border border-app-border">
+                                <button onclick="changeMonth(-1)" class="w-10 h-10 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-solid fa-chevron-left"></i></button><span class="font-semibold text-lg select-none">${monthName}</span><button onclick="changeMonth(1)" class="w-10 h-10 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-solid fa-chevron-right"></i></button>
                             </div>
+                            <div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-5 px-5 snap-x scroll-smooth">${daysHtml}</div>
+                            <div class="mt-2 flex justify-between items-end mb-2"><div><h2 class="font-semibold text-lg text-white">Schedule</h2><p class="text-app-muted text-sm">${Utils.getFriendlyDate(selectedIso)}</p></div><button onclick="router.navigate('new-event', {date: '${selectedIso}'})" class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-lg"><i class="fa-solid fa-plus"></i></button></div>
+                            ${jobs.length === 0 ? this.components.emptyState('No events', 'Add Event', 'new-event') : `<div class="space-y-3 animate-fade-in">${jobs.map(j => this.components.jobCard(j)).join('')}</div>`}
                         </div>
-
-                        <div class="space-y-3">
-                            ${jobsForDate.length ? jobsForDate.map(j => this.components.jobCard(j)).join('') : this.components.emptyState('No jobs', 'Tap + to add one')}
-                        </div>
-                    </div>
-                `;
-            },
-
-            renderJobDetail(container, { id }) {
-                const job = DB.getJob(id);
-                if (!job) return router.navigate('today');
-                
-                const contact = job.contact ? DB.getContactByName(job.contact) : null;
-                const statusConfig = DB.statuses[job.status] || DB.statuses['Scheduled'];
-
-                // Status Dropdown Options
-                const statusOptions = Object.keys(DB.statuses).map(s => 
-                    `<option value="${s}" ${job.status === s ? 'selected' : ''}>${s}</option>`
-                ).join('');
-
-                container.innerHTML = `
-                    <div class="bg-app-bg min-h-full pb-24">
-                        <!-- Header -->
-                        <div class="px-5 pt-12 pb-6 bg-gradient-to-b from-app-lighter/50 to-app-bg border-b border-app-border">
-                            <button onclick="router.navigate('today')" class="mb-6 text-app-muted hover:text-white flex items-center gap-2">
-                                <i class="fa-solid fa-arrow-left"></i> Back
-                            </button>
-                            
-                            <div class="flex justify-between items-start mb-4">
-                                <h1 class="text-2xl font-bold leading-tight w-3/4">${job.title}</h1>
-                                <button onclick="router.navigate('edit-job-notes', {id: '${job.id}'})" class="w-10 h-10 rounded-full bg-app-card border border-app-border flex items-center justify-center text-app-muted active:bg-blue-600 active:text-white transition-colors">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="flex items-center gap-2 mb-4">
-                                <div class="px-3 py-1 rounded-lg ${statusConfig.color} bg-opacity-20 text-${statusConfig.color.replace('bg-', '')} border border-${statusConfig.color.replace('bg-', '')} border-opacity-30 text-sm font-semibold flex items-center gap-2">
-                                    <i class="fa-solid ${statusConfig.icon}"></i>
-                                    ${job.status}
-                                </div>
-                                <span class="text-app-muted text-sm">• ${job.service}</span>
-                            </div>
-
-                            <!-- Workflow / Status Changer -->
-                            <div class="relative">
-                                <select onchange="DB.updateJob('${job.id}', {status: this.value}); router.navigate('job-detail', {id: '${job.id}'})" 
-                                    class="w-full bg-app-card border border-app-border text-white py-3 px-4 rounded-xl appearance-none focus:border-blue-500 outline-none">
-                                    ${statusOptions}
-                                </select>
-                                <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-app-muted pointer-events-none"></i>
-                            </div>
-                        </div>
-
-                        <div class="px-5 mt-6 space-y-6">
-                            <!-- Time & Location -->
-                            <div class="bg-app-card border border-app-border rounded-xl p-4">
-                                <h3 class="text-xs font-semibold text-app-muted uppercase mb-3">Time & Location</h3>
-                                <div class="flex items-start gap-4 mb-4">
-                                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0">
-                                        <i class="fa-regular fa-clock"></i>
-                                    </div>
-                                    <div>
-                                        <p class="font-semibold text-white">${Utils.getFriendlyDate(job.date)}</p>
-                                        <p class="text-app-muted">${job.time}</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start gap-4">
-                                    <div class="w-10 h-10 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center flex-shrink-0">
-                                        <i class="fa-solid fa-location-dot"></i>
-                                    </div>
-                                    <div class="flex-1">
-                                        <p class="font-semibold text-white leading-tight mb-1">${job.address || 'No address'}</p>
-                                        <a href="https://maps.google.com/?q=${encodeURIComponent(job.address)}" target="_blank" 
-                                           class="text-blue-500 text-sm font-medium hover:underline flex items-center gap-1">
-                                           Get Directions <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Notes Section (Enhanced) -->
-                            <div class="bg-app-card border border-app-border rounded-xl p-4">
-                                <div class="flex justify-between items-center mb-3">
-                                    <h3 class="text-xs font-semibold text-app-muted uppercase">Notes & Timeline</h3>
-                                    <button onclick="router.navigate('edit-job-notes', {id: '${job.id}'})" class="text-xs text-blue-500 font-medium">Edit Notes</button>
-                                </div>
-                                <div class="bg-app-bg rounded-lg p-3 text-sm text-gray-300 min-h-[80px] leading-relaxed whitespace-pre-wrap">
-                                    ${job.notes ? job.notes : '<span class="text-app-muted italic">No notes added for this job yet. Tap Edit Notes to add details.</span>'}
-                                </div>
-                            </div>
-
-                            <!-- Client Actions -->
-                            <div class="bg-app-card border border-app-border rounded-xl p-4">
-                                <h3 class="text-xs font-semibold text-app-muted uppercase mb-3">Client Details</h3>
-                                ${contact ? `
-                                    <div class="flex items-center gap-3 mb-4">
-                                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                                            ${contact.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-lg">${contact.name}</p>
-                                            <p class="text-sm text-app-muted">${contact.company || 'Private Client'}</p>
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <a href="tel:${contact.phone}" class="bg-app-lighter hover:bg-green-600/20 hover:text-green-500 hover:border-green-500/50 border border-app-border rounded-xl py-3 flex flex-col items-center justify-center transition-all group">
-                                            <i class="fa-solid fa-phone mb-1 text-xl group-hover:scale-110 transition-transform"></i>
-                                            <span class="text-xs font-medium">Call</span>
-                                        </a>
-                                        <a href="sms:${contact.phone}" class="bg-app-lighter hover:bg-blue-600/20 hover:text-blue-500 hover:border-blue-500/50 border border-app-border rounded-xl py-3 flex flex-col items-center justify-center transition-all group">
-                                            <i class="fa-solid fa-message mb-1 text-xl group-hover:scale-110 transition-transform"></i>
-                                            <span class="text-xs font-medium">Message</span>
-                                        </a>
-                                    </div>
-                                ` : `
-                                    <div class="text-center py-4 text-app-muted">
-                                        <p class="mb-2">No contact linked</p>
-                                    </div>
-                                `}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            },
-
-            // New View for Editing Notes
-            renderEditJobNotes(container, { id }) {
-                const job = DB.getJob(id);
-                if(!job) return router.navigate('today');
-
-                container.innerHTML = `
-                     <div class="pt-12 px-5 pb-24 h-full flex flex-col">
-                        <div class="flex items-center gap-4 mb-6">
-                            <button onclick="router.navigate('job-detail', {id: '${id}'})" class="text-app-muted hover:text-white"><i class="fa-solid fa-arrow-left text-xl"></i></button>
-                            <h1 class="text-xl font-bold">Edit Job Notes</h1>
-                        </div>
-
-                        <form onsubmit="handleUpdateNotes(event, '${id}')" class="flex-1 flex flex-col">
-                             <div class="flex-1 mb-4">
-                                <textarea name="notes" class="w-full h-full bg-app-card border border-app-border rounded-xl p-4 text-white placeholder-app-muted focus:outline-none focus:border-blue-500 resize-none text-base leading-relaxed" placeholder="Type notes here...">${job.notes || ''}</textarea>
-                             </div>
-                             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition-colors">
-                                Save Notes
-                            </button>
-                        </form>
-                    </div>
-                `;
+                        <div id="search-results" class="hidden space-y-3 mt-4"></div>
+                    </div>`;
+                setTimeout(() => { const el = document.getElementById(`day-${selectedIso}`); if(el) el.scrollIntoView({behavior:'smooth', inline:'center'}); }, 100);
             },
 
             renderContacts(container) {
-                const contacts = DB.contacts;
-                const content = contacts.length === 0 ? this.components.emptyState('No contacts yet', 'Add or import your clients') : 
-                `<div class="space-y-3 pb-20 px-5">${contacts.map(c => `
-                    <div class="bg-app-card p-4 rounded-xl border border-app-border flex items-center gap-4 active:border-blue-500/50 transition-colors">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-md shrink-0">
-                            ${c.name.substring(0,2).toUpperCase()}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-semibold text-white truncate">${c.name}</h3>
-                            <p class="text-xs text-app-muted truncate">${c.company || 'Private Customer'}</p>
-                            ${c.address ? `<p class="text-[10px] text-app-muted mt-0.5 truncate"><i class="fa-solid fa-location-dot mr-1"></i>${c.address}</p>` : ''}
-                        </div>
-                        <div class="flex gap-2">
-                             <a href="sms:${c.phone}" class="w-9 h-9 rounded-full bg-app-lighter text-app-muted flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors border border-app-border">
-                                <i class="fa-solid fa-message text-sm"></i>
-                            </a>
-                            <a href="tel:${c.phone}" class="w-9 h-9 rounded-full bg-app-lighter text-app-muted flex items-center justify-center hover:bg-green-600 hover:text-white transition-colors border border-app-border">
-                                <i class="fa-solid fa-phone text-sm"></i>
-                            </a>
-                        </div>
-                    </div>
-                `).join('')}</div>`;
-
-                container.innerHTML = `
-                    <div class="pt-12">
-                        <div class="px-5 mb-4 flex justify-between items-center">
-                            <h1 class="text-2xl font-bold">Contacts</h1>
-                            <button onclick="router.navigate('new-contact')" class="w-9 h-9 rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/30 flex items-center justify-center">
-                                <i class="fa-solid fa-plus"></i>
-                            </button>
-                        </div>
-                        
-                        <!-- Search Bar -->
-                        <div class="px-5 mb-6">
-                            <div class="relative group">
-                                <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted group-focus-within:text-blue-500 transition-colors"></i>
-                                <input type="text" placeholder="Search name or company..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white placeholder-app-muted focus:outline-none focus:border-blue-500 transition-all">
-                            </div>
-                        </div>
-
-                        ${content}
-                    </div>
-                `;
-            },
-
-            renderNewJob(container) {
-                container.innerHTML = `
-                    <div class="pt-12 px-5 pb-24 min-h-full">
-                        <div class="flex items-center gap-4 mb-6">
-                            <button onclick="router.navigate('today')" class="text-app-muted hover:text-white w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-lg"></i></button>
-                            <h1 class="text-xl font-bold">New Job</h1>
-                        </div>
-
-                        <form onsubmit="handleNewJob(event)" class="space-y-5 animate-[slideUp_0.3s_ease-out]">
-                            <div>
-                                <label class="block text-xs font-semibold text-app-muted mb-1.5 uppercase ml-1">Job Details</label>
-                                <input type="text" name="title" required placeholder="Job Title (e.g. Kitchen Wrap)" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white placeholder-app-muted focus:outline-none focus:border-blue-500 mb-3">
-                                
-                                <div class="relative">
-                                    <select name="service" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white appearance-none focus:outline-none focus:border-blue-500">
-                                        <option>Kitchen Wrap</option>
-                                        <option>Window Film</option>
-                                        <option>Commercial Signage</option>
-                                        <option>Vehicle Wrap</option>
-                                        <option>Maintenance</option>
-                                    </select>
-                                    <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-app-muted pointer-events-none text-xs"></i>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-app-muted mb-1.5 uppercase ml-1">Date</label>
-                                    <input type="date" name="date" required value="${new Date().toISOString().split('T')[0]}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 [color-scheme:dark]">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-app-muted mb-1.5 uppercase ml-1">Time</label>
-                                    <input type="time" name="time" value="09:00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 [color-scheme:dark]">
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-app-muted mb-1.5 uppercase ml-1">Client & Location</label>
-                                <div class="relative mb-3">
-                                    <select name="contact" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white appearance-none focus:outline-none focus:border-blue-500">
-                                        <option value="">Select Existing Contact...</option>
-                                        ${DB.contacts.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}
-                                    </select>
-                                    <i class="fa-solid fa-user absolute right-4 top-4 text-app-muted pointer-events-none text-xs"></i>
-                                </div>
-                                <div class="relative">
-                                    <input type="text" name="address" placeholder="Site Address" class="w-full bg-app-card border border-app-border rounded-xl p-3 pl-10 text-white placeholder-app-muted focus:outline-none focus:border-blue-500">
-                                    <i class="fa-solid fa-location-dot absolute left-3.5 top-3.5 text-app-muted"></i>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-app-muted mb-1.5 uppercase ml-1">Assignment</label>
-                                <div class="relative">
-                                    <select name="assigned" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white appearance-none focus:outline-none focus:border-blue-500">
-                                        <option>Richard (Me)</option>
-                                        <option>Team Install A</option>
-                                        <option>Subcontractor</option>
-                                    </select>
-                                    <i class="fa-solid fa-helmet-safety absolute right-4 top-4 text-app-muted pointer-events-none text-xs"></i>
-                                </div>
-                            </div>
-
-                             <div>
-                                <label class="block text-xs font-semibold text-app-muted mb-1.5 uppercase ml-1">Notes</label>
-                                <textarea name="notes" rows="3" placeholder="Job details, gate codes, etc." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white placeholder-app-muted focus:outline-none focus:border-blue-500"></textarea>
-                            </div>
-
-                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/40 transition-colors mt-4">
-                                Save Job
-                            </button>
-                        </form>
-                    </div>
-                `;
-            },
-
-            renderNewContact(container) {
-                container.innerHTML = `
-                    <div class="pt-12 px-5 pb-24 h-full overflow-y-auto">
-                        <div class="flex items-center gap-4 mb-6">
-                            <button onclick="router.navigate('contacts')" class="text-app-muted hover:text-white"><i class="fa-solid fa-arrow-left text-xl"></i></button>
-                            <h1 class="text-xl font-bold">New Contact</h1>
-                        </div>
-
-                        <form onsubmit="handleNewContact(event)" class="space-y-5">
-                            <div class="grid grid-cols-[auto_1fr] gap-4 items-center mb-6">
-                                <div class="w-16 h-16 rounded-full bg-app-lighter border-2 border-dashed border-app-muted flex items-center justify-center text-app-muted">
-                                    <i class="fa-solid fa-camera text-xl"></i>
-                                </div>
-                                <input type="text" name="name" required placeholder="Full Name *" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
-                            </div>
-                            
-                            <input type="text" name="company" placeholder="Company Name" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <input type="tel" name="phone" placeholder="Mobile Phone" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
-                                <input type="email" name="email" placeholder="Email Address" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
-                            </div>
-
-                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/40 transition-colors mt-8">
-                                Save Contact
-                            </button>
-                        </form>
-                    </div>
-                `;
-            },
-
-            renderMore(container) {
                 container.innerHTML = `
                     <div class="pt-12 px-5 pb-20">
-                        <h1 class="text-2xl font-bold mb-6">Menu</h1>
-                        
-                        <div class="bg-app-card border border-app-border rounded-xl overflow-hidden mb-6">
-                            <div class="p-4 flex items-center gap-3 border-b border-app-border">
-                                <div class="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center"><i class="fa-solid fa-user text-xl"></i></div>
-                                <div>
-                                    <p class="font-bold text-white">${DB.user.name}</p>
-                                    <p class="text-xs text-app-muted">${DB.user.email}</p>
-                                </div>
-                            </div>
-                            <button class="w-full text-left p-4 hover:bg-app-lighter transition text-sm flex justify-between">Account Settings <i class="fa-solid fa-chevron-right text-xs text-app-muted"></i></button>
+                        <div class="flex justify-between items-center mb-4"><h1 class="text-2xl font-bold">Contacts</h1><button onclick="router.navigate('new-contact')" class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg"><i class="fa-solid fa-user-plus"></i></button></div>
+                        <div class="relative mb-4"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted"></i><input type="text" onkeyup="filterContacts(this.value)" placeholder="Search..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-blue-500"></div>
+                        <div id="contacts-list" class="space-y-3">
+                            ${DB.contacts.length === 0 ? this.components.emptyState('No contacts', 'Add Contact', 'new-contact') : 
+                              DB.contacts.sort((a,b)=>a.name.localeCompare(b.name)).map(c => `
+                                <div onclick="router.navigate('contact-details', {id: '${c.id}'})" class="bg-app-card p-4 rounded-xl border border-app-border flex items-center gap-4 active:scale-95 transition-transform cursor-pointer">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold">${Utils.getInitials(c.name)}</div>
+                                    <div class="flex-1"><h3 class="font-semibold text-white">${c.name}</h3><p class="text-xs text-app-muted">${c.company || 'Private'}</p></div>
+                                    <i class="fa-solid fa-chevron-right text-app-muted"></i>
+                                </div>`).join('')}
                         </div>
-
-                        <div class="space-y-2">
-                             <button onclick="document.getElementById('csvInput').click()" class="w-full bg-app-card p-4 rounded-xl border border-app-border flex items-center justify-between text-white active:bg-app-lighter">
-                                <span class="flex items-center gap-3"><i class="fa-solid fa-file-csv text-green-500 w-5"></i> Import Contacts (CSV)</span>
-                                <i class="fa-solid fa-chevron-right text-xs text-app-muted"></i>
-                            </button>
-                             <button class="w-full bg-app-card p-4 rounded-xl border border-app-border flex items-center justify-between text-white">
-                                <span class="flex items-center gap-3"><i class="fa-solid fa-file-invoice text-app-muted w-5"></i> Invoices</span>
-                            </button>
-                             <button class="w-full bg-app-card p-4 rounded-xl border border-app-border flex items-center justify-between text-white">
-                                <span class="flex items-center gap-3"><i class="fa-solid fa-gear text-app-muted w-5"></i> App Settings</span>
-                            </button>
-                            <button onclick="localStorage.clear(); location.reload()" class="w-full bg-app-card p-4 rounded-xl border border-red-900/30 flex items-center justify-between text-red-400">
-                                <span class="flex items-center gap-3"><i class="fa-solid fa-right-from-bracket w-5"></i> Reset Demo Data</span>
-                            </button>
-                        </div>
-                    </div>
-                `;
+                    </div>`;
             },
 
-            // --- REUSABLE COMPONENTS ---
-            components: {
-                statCard(label, count, textColor, bgClass) {
-                    return `
-                    <div class="bg-app-card p-3 rounded-xl border border-app-border flex flex-col items-center justify-center py-4">
-                        <span class="text-2xl font-bold ${textColor}">${count}</span>
-                        <span class="text-[10px] text-app-muted uppercase tracking-wider mt-1">${label}</span>
-                    </div>`;
-                },
-                emptyState(title, sub) {
-                    return `
-                    <div class="mt-8 border-2 border-dashed border-app-lighter rounded-xl p-10 flex flex-col items-center justify-center text-center">
-                        <i class="fa-solid fa-clipboard-check text-4xl text-app-lighter mb-4"></i>
-                        <p class="text-white font-medium mb-1">${title}</p>
-                        <p class="text-app-muted text-sm">${sub}</p>
-                    </div>`;
-                },
-                jobCard(job) {
-                    const statusColor = DB.statuses[job.status] ? DB.statuses[job.status].color.replace('bg-', 'text-') : 'text-blue-500';
-                    return `
-                        <div onclick="router.navigate('job-detail', {id: '${job.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 flex gap-4 active:scale-[0.98] transition-transform cursor-pointer">
-                            <div class="flex-shrink-0 flex flex-col items-center pt-1">
-                                <span class="text-xs text-app-muted font-bold">${job.time}</span>
-                                <div class="w-0.5 h-full bg-app-border mt-2 rounded-full"></div>
-                            </div>
-                            <div class="flex-1 pb-1">
-                                <div class="flex justify-between items-start mb-1">
-                                    <h3 class="font-semibold text-white text-lg leading-tight">${job.title}</h3>
-                                    ${job.status === 'Completed' ? '<i class="fa-solid fa-circle-check text-green-500"></i>' : ''}
-                                </div>
-                                <p class="text-sm font-medium ${statusColor} mb-2 flex items-center gap-1.5">
-                                    <span class="w-1.5 h-1.5 rounded-full ${DB.statuses[job.status]?.color || 'bg-gray-500'}"></span>
-                                    ${job.status}
-                                </p>
-                                
-                                <div class="flex items-start gap-2 text-app-muted text-xs mb-3">
-                                    <i class="fa-solid fa-location-dot mt-0.5"></i>
-                                    <span class="line-clamp-1">${job.address || 'No address provided'}</span>
-                                </div>
-                                
-                                <div class="flex items-center justify-between border-t border-app-border pt-3 mt-2">
-                                    <span class="px-2 py-1 rounded-md bg-app-lighter text-[10px] text-slate-300 font-medium tracking-wide">
-                                        ${job.service}
-                                    </span>
-                                    ${job.contact ? `<span class="flex items-center gap-1.5 text-xs text-indigo-400 font-medium"><i class="fa-solid fa-user"></i> ${job.contact}</span>` : ''}
-                                </div>
-                            </div>
+            renderContactDetails(c, id) {
+                const con = DB.getContactById(id);
+                if(!con) { this.navigate('contacts'); return; }
+                const jobs = DB.getJobsForContact(con.name);
+                const cleanPhone = Utils.sanitizePhone(con.phone);
+                c.innerHTML = `
+                <div class="pt-8 px-5 pb-24 h-full overflow-y-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="router.navigate('contacts')" class="text-app-muted flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <div class="flex gap-2">
+                            <button onclick="router.navigate('edit-contact', {id: '${id}'})" class="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="if(confirm('Delete this contact?')){DB.deleteContact('${id}'); router.navigate('contacts');}" class="w-8 h-8 rounded-full bg-red-600/20 text-red-400 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                    `;
+                    </div>
+                    <div class="flex flex-col items-center mb-8"><div class="w-24 h-24 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-3xl shadow-xl mb-4">${Utils.getInitials(con.name)}</div><h1 class="text-2xl font-bold text-center">${con.name}</h1><p class="text-app-muted text-center">${con.company||'Private'}</p>
+                    <div class="grid grid-cols-4 gap-3 w-full mt-6">
+                        <a href="tel:${cleanPhone}" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-solid fa-phone text-blue-500 text-xl"></i><span class="text-xs text-app-muted">Call</span></a>
+                        <a href="sms:${cleanPhone}" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-solid fa-comment-dots text-emerald-500 text-xl"></i><span class="text-xs text-app-muted">Text</span></a>
+                        <a href="mailto:${con.email}" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-solid fa-envelope text-purple-500 text-xl"></i><span class="text-xs text-app-muted">Email</span></a>
+                        <a href="https://wa.me/${cleanPhone}" target="_blank" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-brands fa-whatsapp text-green-500 text-xl"></i><span class="text-xs text-app-muted">WA</span></a>
+                    </div></div>
+                    
+                    <div class="bg-app-card border border-app-border rounded-xl p-5 mb-6">
+                        <h3 class="text-sm font-semibold text-app-muted mb-4">Details</h3>
+                        
+                        <div class="flex items-center justify-between mb-3 border-b border-app-border/50 pb-2">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-phone"></i></div>
+                                <span class="text-sm text-white truncate">${con.phone || 'No Phone'}</span>
+                            </div>
+                            ${con.phone ? `<button onclick="Utils.copyToClipboard('${con.phone}', 'Phone')" class="w-8 h-8 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-regular fa-copy"></i></button>` : ''}
+                        </div>
+
+                        <div class="flex items-center justify-between mb-3 border-b border-app-border/50 pb-2">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-envelope"></i></div>
+                                <span class="text-sm text-white truncate">${con.email || 'No Email'}</span>
+                            </div>
+                            ${con.email ? `<button onclick="Utils.copyToClipboard('${con.email}', 'Email')" class="w-8 h-8 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-regular fa-copy"></i></button>` : ''}
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-location-dot"></i></div>
+                                <span class="text-sm text-white truncate">${con.address || 'No Address'}</span>
+                            </div>
+                            ${con.address ? `<button onclick="Utils.copyToClipboard('${con.address}', 'Address')" class="w-8 h-8 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-regular fa-copy"></i></button>` : ''}
+                        </div>
+                    </div>
+
+                    <h3 class="text-sm font-semibold text-app-muted mb-3">History</h3><div class="space-y-3">${jobs.map(j=>this.components.jobCard(j)).join('')}</div>
+                </div>`;
+            },
+
+            // --- FORMS ---
+            renderNewEvent(c) { 
+                const isHoliday = (type) => type === 'Holiday' || type === 'Personal';
+                c.innerHTML = `
+                <div class="pt-12 px-5 pb-24 h-full overflow-y-auto"><div class="flex items-center gap-4 mb-6"><button onclick="router.navigate('today')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-xl font-bold">New Event</h1></div>
+                <div id="conflict" class="hidden bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl mb-4 text-sm flex items-center gap-3"><i class="fa-solid fa-triangle-exclamation"></i><span><b>Conflict!</b> Event exists at this time.</span></div>
+                <form onsubmit="handleNewJob(event)" class="space-y-5">
+                    <div>
+                        <label class="text-xs text-app-muted block mb-2">Event Type</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <label class="cursor-pointer"><input type="radio" name="type" value="Job" checked class="peer sr-only" onchange="toggleFormFields(this.value)"><div class="bg-app-card border border-app-border peer-checked:bg-blue-600 peer-checked:border-blue-600 rounded-lg p-2 text-center text-xs font-semibold transition-colors">Job</div></label>
+                            <label class="cursor-pointer"><input type="radio" name="type" value="Consultation" class="peer sr-only" onchange="toggleFormFields(this.value)"><div class="bg-app-card border border-app-border peer-checked:bg-purple-600 peer-checked:border-purple-600 rounded-lg p-2 text-center text-xs font-semibold transition-colors">Consult</div></label>
+                            <label class="cursor-pointer"><input type="radio" name="type" value="Holiday" class="peer sr-only" onchange="toggleFormFields(this.value)"><div class="bg-app-card border border-app-border peer-checked:bg-orange-600 peer-checked:border-orange-600 rounded-lg p-2 text-center text-xs font-semibold transition-colors">Holiday</div></label>
+                            <label class="cursor-pointer"><input type="radio" name="type" value="Personal" class="peer sr-only" onchange="toggleFormFields(this.value)"><div class="bg-app-card border border-app-border peer-checked:bg-slate-600 peer-checked:border-slate-600 rounded-lg p-2 text-center text-xs font-semibold transition-colors">Personal</div></label>
+                        </div>
+                    </div>
+
+                    <div><label class="text-xs text-app-muted block mb-1">Title</label><input name="title" required placeholder="Event title..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    
+                    <div id="holiday-fields" class="hidden">
+                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Duration (Days)</label><input type="number" name="durationDays" value="1" min="1" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-orange-500"></div>
+                    </div>
+
+                    <div id="job-fields">
+                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Job Reference</label><input name="jobReference" placeholder="e.g. #JOB-2025-001" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Brief Job Details</label><textarea name="jobDescription" rows="2" placeholder="Describe the job..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
+                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Vinyl Codes & Locations</label><textarea name="vinylCodes" rows="2" placeholder="Codes and where applied..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
+                        <div class="grid grid-cols-2 gap-4 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" id="inp-price" name="price" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" id="inp-deposit" name="deposit" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
+                        <div id="balance-display" class="hidden text-right text-xs font-bold text-red-400 mb-5">Balance: £0.00</div>
+                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Service</label><select name="service" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option>Kitchen Wrap</option><option>Window Film</option><option>Other</option></select></div>
+                    </div>
+
+                    <div id="contact-fields">
+                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Contact</label><select name="contact" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option value="">Select...</option>${DB.contacts.map(c=>`<option value="${c.name}">${c.name}</option>`).join('')}</select></div>
+                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" placeholder="Location..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="min-w-0">
+                            <label class="text-xs text-app-muted block mb-1">Date</label>
+                            <input type="date" name="date" id="j-date" onchange="checkConflict()" value="${this.params.date||new Date().toISOString().split('T')[0]}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white text-[16px] appearance-none leading-tight [color-scheme:dark]">
+                        </div>
+                        <div class="min-w-0">
+                            <label class="text-xs text-app-muted block mb-1">Time</label>
+                            <input type="time" name="time" id="j-time" onchange="checkConflict()" value="09:00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white text-[16px] appearance-none leading-tight [color-scheme:dark]">
+                        </div>
+                    </div>
+                    <div><label class="text-xs text-app-muted block mb-1">Notes</label><textarea name="notes" rows="3" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
+                    
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg mt-4">Create Event</button>
+                </form></div>`;
+            },
+
+            renderNewContact(c) {
+                c.innerHTML = `
+                <div class="pt-12 px-5 pb-24"><div class="flex items-center gap-4 mb-6"><button onclick="router.navigate('contacts')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-xl font-bold">New Contact</h1></div>
+                <form onsubmit="event.preventDefault(); DB.addContact(Object.fromEntries(new FormData(event.target))); router.navigate('contacts');" class="space-y-5">
+                    <div><label class="text-xs text-app-muted block mb-1">Name</label><input name="name" required placeholder="Name" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <div><label class="text-xs text-app-muted block mb-1">Company</label><input name="company" placeholder="Company" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label class="text-xs text-app-muted block mb-1">Phone</label><input name="phone" type="tel" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Email</label><input name="email" type="email" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
+                    <div><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" placeholder="Address" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg mt-4">Save Contact</button>
+                </form></div>`;
+            },
+
+            renderEditContact(c, id) {
+                const con = DB.getContactById(id);
+                if(!con) { this.navigate('contacts'); return; }
+                c.innerHTML = `
+                <div class="pt-12 px-5 pb-24"><div class="flex items-center gap-4 mb-6"><button onclick="router.navigate('contact-details', {id:'${id}'})" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-xl font-bold">Edit Contact</h1></div>
+                <form onsubmit="event.preventDefault(); const d=Object.fromEntries(new FormData(event.target)); d.id='${id}'; DB.updateContact(d); router.navigate('contact-details', {id:'${id}'});" class="space-y-5">
+                    <div><label class="text-xs text-app-muted block mb-1">Name</label><input name="name" value="${con.name}" required class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
+                    <div><label class="text-xs text-app-muted block mb-1">Company</label><input name="company" value="${con.company||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label class="text-xs text-app-muted block mb-1">Phone</label><input name="phone" value="${con.phone||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div><div><label class="text-xs text-app-muted block mb-1">Email</label><input name="email" value="${con.email||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div></div>
+                    <div><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" value="${con.address||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg mt-4">Update Contact</button>
+                </form></div>`;
+            },
+
+            renderMore(container) { container.innerHTML = `
+                <div class="pt-12 px-5 pb-20 animate-fade-in"><div class="mb-6"><h1 class="text-2xl font-bold">More</h1><p class="text-app-muted text-sm">${DB.user.email}</p></div>
+                <div class="bg-app-card border border-app-border rounded-xl overflow-hidden mb-6"><button onclick="router.navigate('secure-login')" class="w-full p-4 flex items-center justify-between text-white hover:bg-app-lighter"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-lg"><i class="fa-solid fa-lock"></i></div><div><h4 class="font-medium">Secure Vault</h4><p class="text-xs text-app-muted">Important IDs & Codes</p></div></div><i class="fa-solid fa-chevron-right text-app-muted"></i></button></div>
+                <div class="space-y-3"><button onclick="document.getElementById('csv').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-file-csv text-green-500"></i> Import CSV</button><input id="csv" type="file" class="hidden" accept=".csv" onchange="handleCSV(this)"><button onclick="Utils.downloadJSON({jobs:DB.jobs, contacts:DB.contacts}, 'backup.json')" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-download text-blue-500"></i> Backup Data</button><button onclick="const r=prompt('Type RESET to confirm wipe:'); if(r==='RESET'){localStorage.clear();location.reload()}" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-red-400"><i class="fa-solid fa-trash"></i> Reset App</button></div></div>`; },
+            renderSecureLogin(c) { this.tempPasscode = ''; c.innerHTML = `<div class="h-full flex flex-col items-center justify-center px-6"><div class="mb-8 text-center"><div class="w-16 h-16 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-3xl mx-auto mb-4"><i class="fa-solid fa-shield-halved"></i></div><h2 class="text-2xl font-bold text-white mb-2">Secure Vault</h2><p class="text-app-muted text-sm">Enter passcode to access</p></div><div id="dots" class="flex gap-4 mb-10 justify-center h-4">${[...Array(6)].map(() => '<div class="dot"></div>').join('')}</div><div class="grid grid-cols-3 gap-6">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="keypad-btn" onclick="handleKeypad(${n})">${n}</button>`).join('')}<button class="keypad-btn bg-transparent border-none text-sm" onclick="router.navigate('more')">Cancel</button><button class="keypad-btn" onclick="handleKeypad(0)">0</button><button class="keypad-btn bg-transparent border-none text-red-400" onclick="handleKeypad('del')"><i class="fa-solid fa-delete-left"></i></button></div></div>`; },
+            renderSecureNotes(c) { c.innerHTML = `<div class="pt-12 px-5 pb-20 h-full flex flex-col"><div class="flex items-center gap-4 mb-8"><button onclick="router.navigate('more')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-2xl font-bold">Secure Vault</h1></div><div class="space-y-4"><div class="bg-app-card border border-blue-500/30 p-5 rounded-xl relative overflow-hidden group"><div class="absolute top-0 right-0 p-3 opacity-10"><i class="fa-solid fa-id-card text-6xl text-blue-400"></i></div><p class="text-xs text-blue-400 uppercase font-bold tracking-wider mb-2">Gateway ID</p><p class="text-2xl font-mono text-white tracking-widest mb-4">54 02 69 02 45 51</p><button onclick="navigator.clipboard.writeText('540269024551'); showToast('Copied Gateway ID')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 w-max"><i class="fa-regular fa-copy"></i> Copy Number</button></div><div class="bg-app-card border border-purple-500/30 p-5 rounded-xl relative overflow-hidden group"><div class="absolute top-0 right-0 p-3 opacity-10"><i class="fa-solid fa-globe text-6xl text-purple-400"></i></div><p class="text-xs text-purple-400 uppercase font-bold tracking-wider mb-2">EORI Number</p><p class="text-xl font-mono text-white tracking-widest mb-4">GB045268219000</p><button onclick="navigator.clipboard.writeText('GB045268219000'); showToast('Copied EORI')" class="bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 w-max"><i class="fa-regular fa-copy"></i> Copy Number</button></div></div></div>`; },
+            renderJobDetails(container, id) {
+                const job = DB.getJobById(id);
+                if (!job) { this.navigate('today'); return; }
+                const checklist = job.checklist || [];
+                const photos = job.photos || [];
+                const documents = job.documents || [];
+                const balance = (parseFloat(job.price)||0) - (parseFloat(job.deposit)||0);
+                const isJob = !job.type || job.type === 'Job';
+                const isHoliday = job.type === 'Holiday';
+
+                container.innerHTML = `
+                    <div class="pt-8 px-5 pb-24 h-full animate-fade-in">
+                        <button onclick="router.navigate('today')" class="text-app-muted mb-6 flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <div class="flex justify-between items-start mb-2"><h1 class="text-2xl font-bold flex-1 mr-4">${job.title}</h1>
+                        ${isJob ? `<div class="text-right"><span class="text-lg font-bold text-white block">£${parseFloat(job.price).toFixed(2)}</span><span class="text-xs ${balance > 0 ? 'text-red-400' : 'text-emerald-400'} font-medium">${balance > 0 ? 'Due: £'+balance.toFixed(2) : 'Paid in Full'}</span></div>` : ''}</div>
+                        ${job.jobReference ? `<div class="mb-4"><span class="bg-app-lighter border border-app-border text-xs px-2 py-1 rounded text-app-muted font-mono"><i class="fa-solid fa-hashtag text-[10px] mr-1"></i>${job.jobReference}</span></div>` : ''}
+                        
+                        ${!isHoliday ? `<div class="mb-6"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${Utils.getEventTypeColor(job.type, job.status)}">${job.status}</span> <span class="ml-2 text-xs text-app-muted italic">${job.type||'Job'}</span></div>` : ''}
+                        
+                        ${isJob ? `<div class="grid grid-cols-2 gap-3 mb-6"><button onclick="smartMsg('omw', '${id}')" class="bg-blue-600/10 border border-blue-600/30 text-blue-500 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-car-side"></i> On My Way</button><button onclick="generateInvoice('${id}')" class="bg-emerald-600/10 border border-emerald-600/30 text-emerald-500 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-invoice"></i> Copy Invoice</button></div>` : ''}
+                        
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold">Update Status</h3><div class="flex gap-2 justify-between">${['Scheduled','Completed','Cancelled'].map(s => `<button onclick="DB.updateJobStatus('${id}', '${s}'); router.renderJobDetails(document.getElementById('app-content'), '${id}')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium border ${job.status===s ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-lighter border-app-border text-app-muted'}">${s}</button>`).join('')}</div></div>
+                        
+                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6">
+                            <div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-folder-open"></i> Documents</h3><button onclick="document.getElementById('doc-upload').click()" class="text-blue-500 text-xs font-bold">+ Add File</button><input type="file" id="doc-upload" class="hidden" onchange="handleDocUpload(event, '${id}')"></div>
+                            <div class="space-y-2">${documents.length === 0 ? '<p class="text-sm text-app-muted italic">No documents attached.</p>' : documents.map((doc, i) => `<div class="flex items-center justify-between p-3 bg-app-lighter rounded-lg border border-app-border"><div class="flex items-center gap-3 overflow-hidden"><div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-lines"></i></div><a href="${doc.data}" download="${doc.name}" class="text-sm text-white truncate hover:text-blue-400 transition-colors">${doc.name}</a></div><button onclick="deleteDoc('${id}', ${i})" class="text-app-muted hover:text-red-400 px-2"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div>
+                        </div>` : ''}
+
+                        ${isJob ? `
+                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6">
+                            <h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-clipboard-list"></i> Job Specs</h3>
+                            ${job.jobDescription ? `<div class="mb-3"><p class="text-xs text-app-muted mb-1">Brief Details</p><p class="text-sm text-white">${job.jobDescription}</p></div>` : ''}
+                            ${job.vinylCodes ? `<div><p class="text-xs text-app-muted mb-1">Vinyl Codes / Locations</p><p class="text-sm text-white font-mono bg-app-lighter p-2 rounded-lg border border-app-border">${job.vinylCodes}</p></div>` : ''}
+                            ${!job.jobDescription && !job.vinylCodes ? '<p class="text-sm text-app-muted italic">No details added.</p>' : ''}
+                        </div>
+                        <div class="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-emerald-500 uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-boxes-stacked"></i> Materials</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Ordered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsOrdered')" ${job.materialsOrdered ? 'checked' : ''} class="custom-checkbox-green"></div><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Delivered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsDelivered')" ${job.materialsDelivered ? 'checked' : ''} class="custom-checkbox-green"></div></div></div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-file-contract"></i> Payments & Admin</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-white">Deposit Paid (£${parseFloat(job.deposit).toFixed(2)})</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'depositPaid')" ${job.depositPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="flex items-center justify-between"><span class="text-sm text-white">Full Payment</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'fullPaymentPaid')" ${job.fullPaymentPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="flex items-center justify-between"><span class="text-sm text-white">Agreement Signed</span><div class="flex gap-4 items-center"><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementSigned')" ${job.agreementSigned ? 'checked' : ''} class="custom-checkbox"> Signed</label><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementNA')" ${job.agreementNA ? 'checked' : ''} class="custom-checkbox"> N/A</label></div></div></div></div>` : ''}
+                        
+                        ${job.accommodationNeeded ? `<div class="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-indigo-400 uppercase tracking-wider mb-2 font-semibold"><i class="fa-solid fa-bed"></i> Accommodation</h3><p class="text-sm text-white font-semibold">${job.accomHotel || 'Hotel not specified'}</p><div class="flex gap-4 mt-2"><p class="text-xs text-app-muted"><span class="block font-bold text-indigo-300">Ref:</span> ${job.accomRef || 'N/A'}</p><p class="text-xs text-app-muted"><span class="block font-bold text-indigo-300">Check-in:</span> ${job.accomTime || 'N/A'}</p></div></div>` : ''}
+                        
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera"></i> Gallery</h3><button onclick="document.getElementById('photo-upload').click()" class="text-blue-500 text-xs font-bold">+ Add Photo</button><input type="file" id="photo-upload" accept="image/*" class="hidden" onchange="handlePhotoUpload(event, '${id}')"></div><div class="flex gap-2 overflow-x-auto pb-2">${photos.length === 0 ? '<p class="text-sm text-app-muted italic">No photos yet.</p>' : photos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border"><img src="${src}" class="w-full h-full object-cover"><button onclick="deletePhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"><i class="fa-solid fa-times"></i></button></div>`).join('')}</div></div>` : ''}
+                        
+                        <div class="space-y-4">
+                            ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-list-check"></i> Tasks</h3>${checklist.map((item, idx) => `<div class="flex items-center gap-3 p-2 rounded-lg"><input type="checkbox" onchange="DB.toggleChecklist('${id}', ${idx}); router.renderJobDetails(document.getElementById('app-content'), '${id}')" ${item.done ? 'checked' : ''} class="custom-checkbox"><span class="text-sm ${item.done ? 'line-through text-app-muted' : 'text-white'}">${item.text}</span></div>`).join('')}<form onsubmit="event.preventDefault(); const i=this.querySelector('input'); if(i.value){DB.addChecklist('${id}', i.value); i.value=''; router.renderJobDetails(document.getElementById('app-content'), '${id}')}" class="flex gap-2 mt-2"><input placeholder="Add task..." class="flex-1 bg-app-lighter rounded-lg px-3 py-2 text-sm text-white focus:outline-none"><button class="text-blue-500 font-bold px-2">+</button></form></div>` : ''}
+                            <div class="bg-app-card border border-app-border rounded-xl p-4 flex gap-4"><div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center"><i class="fa-regular fa-calendar"></i></div><div><p class="text-sm font-semibold text-white">${Utils.getFriendlyDate(job.date)}</p><p class="text-xs text-app-muted">${job.time}</p><p class="text-xs text-indigo-400 mt-1">${job.duration ? 'Est: '+job.duration : ''}</p><p class="text-xs text-orange-400 mt-1">${job.durationDays > 1 ? job.durationDays + ' Days' : ''}</p></div></div>
+                            ${job.address && !isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 flex gap-4"><div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i class="fa-solid fa-location-dot"></i></div><div class="flex-1"><p class="text-sm font-semibold text-white break-words">${job.address}</p><a href="http://maps.google.com/?q=${encodeURIComponent(job.address)}" target="_blank" class="text-xs text-blue-500 font-medium">Get Directions</a></div></div>` : ''}
+                            <div class="bg-app-card border border-app-border rounded-xl p-4"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-2 font-semibold">Notes</h3><p class="text-sm text-app-muted">${job.notes || 'No notes'}</p></div>
+                        </div>
+                        <div class="mt-8 mb-4">
+                            <button onclick="if(confirm('Are you sure you want to delete this event? This cannot be undone.')) { DB.deleteJob('${id}'); router.navigate('today'); }" class="w-full py-3 rounded-xl border border-red-500/30 text-red-400 bg-red-500/10 text-sm font-semibold hover:bg-red-500/20 transition-colors">Delete Event</button>
+                        </div>
+                    </div>`;
+            },
+
+            components: {
+                jobCard: (j) => {
+                    if (j.type === 'Holiday') {
+                        return `<div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 flex gap-4 mb-3 active:scale-95 transition-transform">
+                            <div class="flex flex-col items-center w-10 justify-center">
+                                <span class="text-xs text-app-muted font-bold">${j.time}</span>
+                            </div>
+                            <div class="flex-1 flex justify-between items-center">
+                                <h3 class="font-semibold text-white leading-tight">${j.title}</h3>
+                                <span class="text-xs text-orange-400 font-bold">${j.durationDays} Days</span>
+                            </div>
+                        </div>`;
+                    }
+                    return `
+                    <div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 flex gap-4 mb-3 active:scale-95 transition-transform">
+                        <div class="flex flex-col items-center w-10">
+                            <span class="text-xs text-app-muted font-bold">${j.time}</span>
+                            <div class="w-0.5 h-full bg-app-border mt-1"></div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs text-blue-400">${Utils.getEventTypeIcon(j.type || 'Job')}</span>
+                                <h3 class="font-semibold text-white leading-tight">${j.title}</h3>
+                            </div>
+                            <p class="text-blue-400 text-sm mb-1">${j.service || j.type || 'Event'}</p>
+                            ${j.durationDays > 1 ? `<p class="text-xs text-orange-400 mb-1"><i class="fa-solid fa-clock-rotate-left"></i> ${j.durationDays} Days</p>` : ''}
+                            <p class="text-xs text-app-muted truncate"><i class="fa-solid fa-location-dot"></i> ${j.address}</p>
+                        </div>
+                        <div class="flex flex-col items-end justify-between">
+                            <span class="px-2 py-0.5 rounded text-[10px] border ${Utils.getEventTypeColor(j.type, j.status)}">${j.status}</span>
+                        </div>
+                    </div>`;
                 }
+                ,
+                emptyState: (t,b,r) => `<div class="border-2 border-dashed border-app-lighter rounded-xl p-8 flex flex-col items-center text-center"><p class="text-app-muted mb-3">${t}</p><button onclick="router.navigate('${r}')" class="text-blue-500 font-bold flex items-center gap-2"><i class="fa-solid fa-plus"></i> ${b}</button></div>`
             }
         };
 
         // --- HANDLERS ---
         function toggleFabMenu() {
-            const menu = document.getElementById('fab-menu');
-            const overlay = document.getElementById('fab-overlay');
-            const icon = document.getElementById('fab-icon');
-            
-            const isHidden = menu.classList.contains('hidden');
-            
-            if (isHidden) {
-                menu.classList.remove('hidden');
-                menu.classList.add('flex');
-                overlay.classList.remove('hidden');
-                icon.classList.remove('fa-plus');
-                icon.classList.add('fa-xmark');
-                icon.classList.add('rotate-90');
-            } else {
-                menu.classList.add('hidden');
-                menu.classList.remove('flex');
-                overlay.classList.add('hidden');
-                icon.classList.add('fa-plus');
-                icon.classList.remove('fa-xmark');
-                icon.classList.remove('rotate-90');
+            const m=document.getElementById('fab-menu'), o=document.getElementById('fab-overlay'), i=document.getElementById('fab-icon');
+            m.classList.toggle('hidden'); m.classList.toggle('flex'); o.classList.toggle('hidden');
+            i.classList.toggle('fa-bars'); i.classList.toggle('fa-xmark'); i.classList.toggle('rotate-90');
+        }
+        function toggleFormFields(type) {
+            const jobF = document.getElementById('job-fields');
+            const conF = document.getElementById('contact-fields');
+            const holF = document.getElementById('holiday-fields');
+
+            // Default hidden
+            jobF.classList.add('hidden');
+            conF.classList.add('hidden');
+            holF.classList.add('hidden');
+
+            if (type === 'Job' || type === 'Consultation') {
+                conF.classList.remove('hidden');
+                if (type === 'Job') jobF.classList.remove('hidden'); 
+            } else if (type === 'Holiday') {
+                holF.classList.remove('hidden');
             }
         }
-
         function handleNewJob(e) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            DB.addJob({
-                title: formData.get('title'),
-                service: formData.get('service'),
-                date: formData.get('date'),
-                time: formData.get('time'),
-                address: formData.get('address'),
-                assigned: formData.get('assigned'),
-                contact: formData.get('contact'),
-                status: 'Scheduled',
-                notes: formData.get('notes') || ''
-            });
-            router.navigate('today');
+            e.preventDefault(); 
+            const d = Object.fromEntries(new FormData(e.target));
+            d.accommodationNeeded = e.target.accommodationNeeded ? e.target.accommodationNeeded.checked : false;
+            DB.addJob(d); router.navigate('today');
         }
-
-        function handleUpdateNotes(e, id) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            DB.updateJob(id, { notes: formData.get('notes') });
-            router.navigate('job-detail', {id});
-            Utils.toast('Notes updated');
+        function changeMonth(d) {
+            let m = router.params.calendarMonth, y = router.params.calendarYear;
+            m += d; 
+            if(m > 11) { m = 0; y++; } 
+            else if(m < 0) { m = 11; y--; }
+            router.params.calendarMonth = m; router.params.calendarYear = y;
+            router.renderCalendar(document.getElementById('app-content'));
         }
-
-        function handleNewContact(e) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            DB.addContact({
-                name: formData.get('name'),
-                company: formData.get('company'),
-                phone: formData.get('phone'),
-                email: formData.get('email')
-            });
-            router.navigate('contacts');
+        function filterJobs(q) {
+            const v=document.getElementById('calendar-view'), r=document.getElementById('search-results');
+            if(!q) { v.classList.remove('hidden'); r.classList.add('hidden'); return; }
+            v.classList.add('hidden'); r.classList.remove('hidden');
+            const res = DB.jobs.filter(j=>j.title.toLowerCase().includes(q.toLowerCase()) || (j.address && j.address.toLowerCase().includes(q.toLowerCase())));
+            r.innerHTML = res.length ? res.map(j=>router.components.jobCard(j)).join('') : '<p class="text-center text-app-muted p-4">No match</p>';
         }
-
-        // CSV UPLOAD HANDLER
-        function handleCSVUpload(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const lines = text.split('\n');
-                
-                // Assuming standard headers based on user file:
-                // Name, First Name, Last Name, Company Name, Job Title, Dept, Email, Phone, Street, State, City, PostCode, Country...
-                
-                let successCount = 0;
-                
-                // Skip header (i=1)
-                for(let i=1; i<lines.length; i++) {
-                    const line = lines[i].trim();
-                    if(!line) continue;
-
-                    // Parse line respecting quotes
-                    const cols = parseCSVRow(line);
-                    
-                    if (cols && cols[0]) {
-                        // Map CSV columns to App Data
-                        const contact = {
-                            name: cols[0], // Full Name
-                            company: cols[3], // Company Name
-                            email: cols[6], // Email
-                            phone: cols[7], // Phone
-                            address: `${cols[8] || ''}, ${cols[10] || ''} ${cols[11] || ''}`.replace(/^, /, '').trim() // Street, City Zip
-                        };
-                        
-                        // Clean up address if empty commas remain
-                        if(contact.address === ', ') contact.address = '';
-
-                        if (DB.addContact(contact)) {
-                            successCount++;
-                        }
-                    }
-                }
-                
-                Utils.toast(`Imported ${successCount} contacts successfully`);
-                router.navigate('contacts');
-                input.value = ''; // Reset input
-            };
-            reader.readAsText(file);
+        function filterContacts(q) {
+            const l = document.getElementById('contacts-list');
+            const res = DB.contacts.filter(c=>c.name.toLowerCase().includes(q.toLowerCase()));
+            l.innerHTML = res.length ? res.map(c=>`<div onclick="router.navigate('contact-details', {id: '${c.id}'})" class="bg-app-card p-4 rounded-xl border border-app-border flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">${Utils.getInitials(c.name)}</div><div><h3 class="font-semibold text-white">${c.name}</h3></div></div>`).join('') : '<p class="text-center text-app-muted">No match</p>';
         }
-
-        // Helper for CSV parsing logic
-        function parseCSVRow(str) {
-            const result = [];
-            let cell = '';
-            let inQuote = false;
-            
-            for (let i = 0; i < str.length; i++) {
-                const char = str[i];
-                if (char === '"') {
-                    inQuote = !inQuote;
-                } else if (char === ',' && !inQuote) {
-                    result.push(cell);
-                    cell = '';
-                } else {
-                    cell += char;
+        function checkConflict() {
+            const d=document.getElementById('j-date').value, t=document.getElementById('j-time').value, w=document.getElementById('conflict');
+            DB.jobs.some(j=>j.date===d && j.time===t) ? w.classList.remove('hidden') : w.classList.add('hidden');
+        }
+        function calcBalance() {
+            const p = parseFloat(document.getElementById('inp-price').value) || 0;
+            const d = parseFloat(document.getElementById('inp-deposit').value) || 0;
+            const b = document.getElementById('balance-display');
+            if(p > 0) { b.innerText = `Balance: £${(p-d).toFixed(2)}`; b.classList.remove('hidden'); } else { b.classList.add('hidden'); }
+        }
+        function smartMsg(t, id) {
+            const j=DB.getJobById(id); if(!j)return;
+            const c=DB.contacts.find(x=>x.name===j.contact); if(!c||!c.phone) return alert('No contact phone found');
+            const phone = Utils.sanitizePhone(c.phone);
+            const msg = t==='omw' ? `Hi ${c.name}, I'm on my way to ${j.address}. See you soon!` : `Hi ${c.name}, running a few minutes late. Apologies!`;
+            window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+        }
+        function generateInvoice(id) {
+            const j=DB.getJobById(id);
+            const text = `INVOICE\nJob: ${j.title}\nRef: ${j.jobReference || 'N/A'}\nDate: ${j.date}\nService: ${j.service}\n\nTotal Due: £${parseFloat(j.price).toFixed(2)}\n\nThank you for your business!`;
+            navigator.clipboard.writeText(text).then(()=>showToast('Invoice copied to clipboard'));
+        }
+        function handlePhotoUpload(e, id) {
+            const f = e.target.files[0]; if(!f) return;
+            const r = new FileReader();
+            r.onload = (evt) => { DB.addJobPhoto(id, evt.target.result); router.renderJobDetails(document.getElementById('app-content'), id); };
+            r.readAsDataURL(f);
+        }
+        function deletePhoto(id, idx) { DB.deleteJobPhoto(id, idx); router.renderJobDetails(document.getElementById('app-content'), id); }
+        function handleDocUpload(e, id) {
+            const f = e.target.files[0]; if(!f) return;
+            const r = new FileReader();
+            r.onload = (evt) => { DB.addJobDocument(id, { name: f.name, data: evt.target.result, type: f.type }); router.renderJobDetails(document.getElementById('app-content'), id); };
+            r.readAsDataURL(f);
+        }
+        function deleteDoc(id, idx) { DB.deleteJobDocument(id, idx); router.renderJobDetails(document.getElementById('app-content'), id); }
+        function handleKeypad(key) {
+            if(key === 'del') router.tempPasscode = router.tempPasscode.slice(0,-1);
+            else if(router.tempPasscode.length < 6) router.tempPasscode += key;
+            const dots = document.getElementById('dots').children;
+            for(let i=0; i<6; i++) {
+                dots[i].classList.toggle('active', i < router.tempPasscode.length);
+            }
+            if(router.tempPasscode.length === 6) {
+                if(router.tempPasscode === '990704') router.navigate('secure-notes');
+                else { 
+                    router.tempPasscode = ''; 
+                    const d = document.getElementById('dots'); 
+                    d.classList.add('animate-shake'); 
+                    setTimeout(()=> { d.classList.remove('animate-shake'); for(let dot of dots) dot.classList.remove('active'); }, 500); 
                 }
             }
-            result.push(cell);
-            // Clean up quotes around cells if present
-            return result.map(c => c.replace(/^"|"$/g, '').trim());
         }
+        function handleCSV(input) {
+            const f=input.files[0]; if(!f)return;
+            Papa.parse(f, { header:true, skipEmptyLines:true, complete: (res) => {
+                const map = res.data.map(r => ({ name: r['Name']||r['First Name']+' '+r['Last Name'], company: r['Company Name'], phone: r['Phone'], email: r['Email'], address: r['Street']||'' }));
+                showToast(`Imported ${DB.importContacts(map)} contacts`); router.navigate('contacts');
+            }});
+        }
+        function showToast(m) { const t=document.getElementById('toast'); document.getElementById('toast-msg').innerText=m; t.classList.remove('translate-y-[-150%]'); setTimeout(()=>t.classList.add('translate-y-[-150%]'), 3000); }
 
-        // --- INIT ---
-        window.addEventListener('DOMContentLoaded', () => {
-            DB.init();
-            
-            // Seed dummy data if empty for better first impression
-            if(DB.jobs.length === 0) {
-                DB.addJob({id: '1', title: 'Window Tinting - Front', service: 'Window Film', date: new Date().toISOString().split('T')[0], time: '10:00', address: '123 Maple Ave, Springfield', status: 'In Progress', contact: 'John Doe', notes: 'Gate code is 1234'});
-                DB.addContact({id: '1', name: 'John Doe', company: 'JD Logistics', phone: '555-0123'});
-            }
-            
-            router.navigate('today');
-        });
+        window.addEventListener('DOMContentLoaded', () => { DB.init(); router.navigate('today'); });
     </script>
 </body>
 </html>
