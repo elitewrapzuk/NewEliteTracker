@@ -1901,8 +1901,12 @@
         }
 
         function openSignOffModal(id) {
+            const proceed = confirm('Client sign-off confirms they are happy with the final install and approve completion. Continue to signature?');
+            if (!proceed) return;
             const existing = document.getElementById('signoff-modal');
             if (existing) existing.remove();
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            const sigHeight = isMobile ? 230 : 180;
             const modal = document.createElement('div');
             modal.id = 'signoff-modal';
             modal.className = 'modal-overlay';
@@ -1910,27 +1914,57 @@
                 <div class="modal-sheet">
                     <div class="flex justify-between items-center mb-5">
                         <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-signature mr-2 text-blue-400"></i>Client Sign-Off</h2>
-                        <button onclick="document.getElementById('signoff-modal').remove()" class="w-8 h-8 rounded-full bg-app-lighter text-app-muted flex items-center justify-center hover:text-white"><i class="fa-solid fa-times"></i></button>
+                        <button onclick="closeSignOffModal()" class="w-8 h-8 rounded-full bg-app-lighter text-app-muted flex items-center justify-center hover:text-white"><i class="fa-solid fa-times"></i></button>
                     </div>
+                    ${isMobile ? `<button onclick="requestLandscapeForSignature()" class="w-full mb-4 py-2.5 rounded-xl border border-blue-500/40 bg-blue-500/10 text-blue-300 text-sm font-semibold"><i class="fa-solid fa-mobile-screen-button mr-2"></i>Rotate Signature Mode (Landscape)</button><p class="text-[11px] text-app-muted mb-3">Tip: use landscape for a wider signing area.</p>` : ''}
                     <div class="mb-4">
                         <label class="text-xs text-app-muted block mb-1">Client Name</label>
                         <input id="sig-client-name" type="text" placeholder="Enter client name..." class="w-full bg-app-lighter border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <p class="text-xs text-app-muted mb-2 font-semibold uppercase tracking-wider">Signature</p>
-                    <div class="sig-canvas-wrap mb-1" style="height:180px;">
+                    <div class="sig-canvas-wrap mb-1" style="height:${sigHeight}px;">
                         <canvas id="sig-canvas"></canvas>
                         <div id="sig-placeholder"><p class="text-gray-400 text-sm">Sign here</p></div>
                     </div>
                     <button onclick="clearSigCanvas()" class="text-xs text-app-muted mb-5 flex items-center gap-1 hover:text-white transition-colors mt-2">
                         <i class="fa-solid fa-rotate-left"></i> Clear
                     </button>
+                    <label class="mb-5 flex items-start gap-3 bg-app-lighter border border-app-border rounded-xl p-3">
+                        <input id="sig-accept-final" type="checkbox" class="custom-checkbox mt-0.5">
+                        <span class="text-xs text-app-muted leading-relaxed">I confirm I am happy with the final install and approve completion of the work.</span>
+                    </label>
                     <div class="flex gap-3">
-                        <button onclick="document.getElementById('signoff-modal').remove()" class="flex-1 py-3 rounded-xl border border-app-border text-app-muted font-semibold text-sm hover:text-white transition-colors">Cancel</button>
+                        <button onclick="closeSignOffModal()" class="flex-1 py-3 rounded-xl border border-app-border text-app-muted font-semibold text-sm hover:text-white transition-colors">Cancel</button>
                         <button onclick="saveSignature('${id}')" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-500 transition-colors shadow-lg shadow-blue-600/30">Save &amp; Complete</button>
                     </div>
                 </div>`;
             document.body.appendChild(modal);
             setTimeout(() => initSigCanvas(), 60);
+        }
+
+        async function requestLandscapeForSignature() {
+            try {
+                if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                }
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                }
+                showToast('Landscape signature mode enabled');
+            } catch (_) {
+                showToast('Rotate phone sideways for more signing space');
+            }
+        }
+
+        async function closeSignOffModal() {
+            const modal = document.getElementById('signoff-modal');
+            if (modal) modal.remove();
+            try {
+                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+            } catch (_) {}
+            try {
+                if (document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen();
+            } catch (_) {}
         }
 
         function initSigCanvas() {
@@ -1988,11 +2022,13 @@
         function saveSignature(id) {
             const name = (document.getElementById('sig-client-name').value || '').trim();
             if (!name) { alert('Please enter the client name.'); return; }
+            const accepted = !!document.getElementById('sig-accept-final')?.checked;
+            if (!accepted) { alert('Please confirm the final install approval checkbox.'); return; }
             const canvas = document.getElementById('sig-canvas');
             if (!canvas || canvas.dataset.signed !== 'true') { alert('Please capture the client signature before saving.'); return; }
             const signature = canvas.toDataURL('image/png');
             DB.saveSignOff(id, signature, name);
-            document.getElementById('signoff-modal').remove();
+            closeSignOffModal();
             router.renderJobDetails(document.getElementById('app-content'), id);
         }
 
