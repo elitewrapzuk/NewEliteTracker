@@ -1011,17 +1011,6 @@
         const router = {
             currentRoute: 'today', params: {}, tempPasscode: '', hasUnsavedChanges: false,
 
-            togglePortalShell(isPortal) {
-                const nav = document.getElementById('bottom-nav');
-                const fab = document.getElementById('fab-root');
-                const fabMenu = document.getElementById('fab-menu');
-                const fabOverlay = document.getElementById('fab-overlay');
-                if (nav) nav.style.display = isPortal ? 'none' : '';
-                if (fab) fab.style.display = isPortal ? 'none' : '';
-                if (fabMenu) fabMenu.classList.add('hidden');
-                if (fabOverlay) fabOverlay.classList.add('hidden');
-            },
-
             bindUnsavedTracker(container) {
                 const forms = container.querySelectorAll('form[data-track-unsaved="true"]');
                 forms.forEach(form => {
@@ -1041,7 +1030,6 @@
                 }
                 this.hasUnsavedChanges = false;
                 this.currentRoute = route;
-                this.togglePortalShell(route === 'client-portal');
                 // Preserve calendar
                 if (route === 'calendar') {
                     if (params.date) this.params.date = params.date;
@@ -1069,7 +1057,6 @@
                     'more': () => this.renderMore(c),
                     'insights': () => this.renderInsights(c),
                     'templates': () => this.renderTemplates(c),
-                    'client-portal': () => this.renderClientPortal(c),
                     'secure-login': () => this.renderSecureLogin(c),
                     'secure-notes': () => this.renderSecureNotes(c),
                     'new-event': () => this.renderNewEvent(c), 
@@ -1831,43 +1818,6 @@
                     </div>
                 </div>`;
             },
-            renderClientPortal(container) {
-                const payload = this.params.portalPayload || readPortalPayloadFromHash();
-                if (!payload) {
-                    container.innerHTML = `<div class="min-h-screen flex items-center justify-center p-6"><div class="bg-app-card border border-app-border rounded-2xl p-6 max-w-md w-full text-center"><h1 class="text-xl font-bold mb-2">Portal Unavailable</h1><p class="text-sm text-app-muted mb-4">This portal link is invalid or expired.</p><button onclick="router.navigate('today')" class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold">Back to Dashboard</button></div></div>`;
-                    return;
-                }
-                const daysToGo = getCountdownDays(payload.jobDate);
-                const countdownLabel = daysToGo === null ? 'Date not set' : (daysToGo < 0 ? `Started ${Math.abs(daysToGo)} day${Math.abs(daysToGo)===1?'':'s'} ago` : (daysToGo === 0 ? 'Today' : `${daysToGo} day${daysToGo===1?'':'s'} to go`));
-                container.innerHTML = `
-                <div class="min-h-screen bg-app-bg text-app-text">
-                    <div class="max-w-2xl mx-auto p-5 md:p-8">
-                        <div class="bg-app-card border border-app-border rounded-2xl p-5 md:p-7 mb-4">
-                            <p class="text-[11px] uppercase tracking-wider text-cyan-300 mb-2">Elite Wrapz Client Portal</p>
-                            <h1 class="text-2xl font-bold text-white mb-1">${Utils.escapeHtml(payload.jobTitle || 'Your Booking')}</h1>
-                            <p class="text-sm text-app-muted">${Utils.escapeHtml(payload.clientName || 'Customer')}${payload.jobNumber ? ` · ${Utils.escapeHtml(payload.jobNumber)}` : ''}</p>
-                            <div class="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-semibold"><i class="fa-regular fa-clock"></i>${countdownLabel}</div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Job Date</p><p class="text-sm font-semibold text-white">${payload.jobDate ? Utils.getFriendlyDate(payload.jobDate) : 'Not set'}</p></div>
-                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Arrival Time</p><p class="text-sm font-semibold text-white">${Utils.escapeHtml(payload.jobTime || 'TBC')}</p></div>
-                        </div>
-
-                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-4">
-                            <p class="text-xs text-app-muted mb-3 uppercase tracking-wider">Materials Status</p>
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between p-3 rounded-lg border ${payload.materialsOrdered ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-app-border bg-app-lighter'}"><span class="text-sm text-white">Vinyl Ordered</span><span class="text-xs font-semibold ${payload.materialsOrdered ? 'text-emerald-300' : 'text-app-muted'}">${payload.materialsOrdered ? 'Yes' : 'Pending'}</span></div>
-                                <div class="flex items-center justify-between p-3 rounded-lg border ${payload.materialsDelivered ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-app-border bg-app-lighter'}"><span class="text-sm text-white">Vinyl Delivered</span><span class="text-xs font-semibold ${payload.materialsDelivered ? 'text-emerald-300' : 'text-app-muted'}">${payload.materialsDelivered ? 'Yes' : 'Pending'}</span></div>
-                            </div>
-                        </div>
-
-                        ${payload.address ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-4"><p class="text-xs text-app-muted mb-1">Address</p><p class="text-sm text-white">${Utils.escapeHtml(payload.address)}</p></div>` : ''}
-
-                        <div class="text-center text-xs text-app-muted mt-6">Questions? Reply to your last message from <span class="text-white font-semibold">Elite Wrapz Team</span>.</div>
-                    </div>
-                </div>`;
-            },
             renderSecureLogin(c) { this.tempPasscode = ''; c.innerHTML = `<div class="h-full flex flex-col items-center justify-center px-6"><div class="mb-8 text-center"><div class="w-16 h-16 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-3xl mx-auto mb-4"><i class="fa-solid fa-shield-halved"></i></div><h2 class="text-2xl font-bold text-white mb-2">Secure Vault</h2><p class="text-app-muted text-sm">Enter passcode to access</p></div><div id="dots" class="flex gap-4 mb-10 justify-center h-4">${[...Array(6)].map(() => '<div class="dot"></div>').join('')}</div><div class="grid grid-cols-3 gap-6">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="keypad-btn" onclick="handleKeypad(${n})">${n}</button>`).join('')}<button class="keypad-btn bg-transparent border-none text-sm" onclick="router.navigate('more')">Cancel</button><button class="keypad-btn" onclick="handleKeypad(0)">0</button><button class="keypad-btn bg-transparent border-none text-red-400" onclick="handleKeypad('del')"><i class="fa-solid fa-delete-left"></i></button></div></div>`; },
             renderSecureNotes(c) {
                 c.innerHTML = `
@@ -1974,8 +1924,7 @@
 
                         ${!isHoliday ? `<div class="mb-6"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${Utils.getEventTypeColor(job.type, job.status)}">${job.status}</span> <span class="ml-2 text-xs text-app-muted italic">${job.type||'Job'}</span></div>` : ''}
                         
-                        ${isJob ? `<div class="grid grid-cols-3 gap-3 mb-3"><button onclick="generateInvoice('${id}')" class="bg-emerald-600/10 border border-emerald-600/30 text-emerald-500 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-invoice"></i> Copy Invoice</button><button onclick="generateJobPDF('${id}')" class="bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button><button onclick="router.navigate('templates', { jobId: '${id}', contactId: '${job.contactId || ''}' })" class="bg-cyan-600/10 border border-cyan-600/30 text-cyan-300 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-regular fa-message"></i> Template</button></div>
-                        <div class="grid grid-cols-2 gap-3 mb-6"><button onclick="copyClientPortalLink('${id}')" class="bg-indigo-600/10 border border-indigo-600/30 text-indigo-300 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-link"></i> Copy Client Portal</button><button onclick="openClientPortalLink('${id}')" class="bg-blue-600/10 border border-blue-600/30 text-blue-300 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-regular fa-window-restore"></i> Open Portal</button></div>` : isHoliday ? '' : `<div class="mb-6"><button onclick="generateJobPDF('${id}')" class="w-full bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button></div>`}
+                        ${isJob ? `<div class="grid grid-cols-3 gap-3 mb-6"><button onclick="generateInvoice('${id}')" class="bg-emerald-600/10 border border-emerald-600/30 text-emerald-500 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-invoice"></i> Copy Invoice</button><button onclick="generateJobPDF('${id}')" class="bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button><button onclick="router.navigate('templates', { jobId: '${id}', contactId: '${job.contactId || ''}' })" class="bg-cyan-600/10 border border-cyan-600/30 text-cyan-300 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-regular fa-message"></i> Template</button></div>` : isHoliday ? '' : `<div class="mb-6"><button onclick="generateJobPDF('${id}')" class="w-full bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button></div>`}
                         
                         ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold">Update Status</h3><div class="flex gap-2 justify-between">${['Scheduled','Completed','Cancelled'].map(s => `<button onclick="DB.updateJobStatus('${id}', '${s}'); router.renderJobDetails(document.getElementById('app-content'), '${id}')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium border ${job.status===s ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-lighter border-app-border text-app-muted'}">${s}</button>`).join('')}</div></div>` : ''}
 
@@ -2606,67 +2555,6 @@
             window.open(`https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(text)}`, '_blank');
         }
 
-        function encodePortalPayload(payload) {
-            try {
-                return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-            } catch (_) {
-                return '';
-            }
-        }
-        function decodePortalPayload(raw) {
-            try {
-                return JSON.parse(decodeURIComponent(escape(atob(raw))));
-            } catch (_) {
-                return null;
-            }
-        }
-        function readPortalPayloadFromHash() {
-            const hash = window.location.hash || '';
-            if (!hash.startsWith('#portal=')) return null;
-            const raw = hash.replace('#portal=', '');
-            return decodePortalPayload(decodeURIComponent(raw));
-        }
-        function getCountdownDays(jobDate) {
-            if (!jobDate) return null;
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const target = new Date(jobDate + 'T12:00:00');
-            const t = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-            return Math.round((t - today) / 86400000);
-        }
-        function buildClientPortalSnapshot(job) {
-            const contact = (job?.contactId ? DB.getContactById(job.contactId) : null) || (job?.contact ? DB.contacts.find(c => c.name === job.contact) : null);
-            return {
-                portalId: DB.makeId('portal'),
-                generatedAt: new Date().toISOString(),
-                clientName: contact?.name || job?.contact || 'Customer',
-                jobTitle: job?.title || '',
-                jobNumber: job?.jobNumber || '',
-                jobDate: job?.date || '',
-                jobTime: job?.time || '',
-                address: job?.address || contact?.address || '',
-                materialsOrdered: !!job?.materialsOrdered,
-                materialsDelivered: !!job?.materialsDelivered
-            };
-        }
-        function getClientPortalLink(jobId) {
-            const job = DB.getJobById(jobId);
-            if (!job) return '';
-            const payload = buildClientPortalSnapshot(job);
-            const encoded = encodePortalPayload(payload);
-            if (!encoded) return '';
-            return `${window.location.origin}${window.location.pathname}#portal=${encodeURIComponent(encoded)}`;
-        }
-        function copyClientPortalLink(jobId) {
-            const link = getClientPortalLink(jobId);
-            if (!link) { showToast('Could not generate portal link'); return; }
-            navigator.clipboard.writeText(link).then(() => showToast('Client portal link copied'));
-        }
-        function openClientPortalLink(jobId) {
-            const link = getClientPortalLink(jobId);
-            if (!link) { showToast('Could not generate portal link'); return; }
-            window.open(link, '_blank');
-        }
         function generateInvoice(id) {
             const j=DB.getJobById(id);
             const text = `INVOICE\nJob: ${j.title}\nRef: ${j.jobReference || 'N/A'}\nDate: ${j.date}\nService: ${j.service}\n\nTotal Due: £${parseFloat(j.price).toFixed(2)}\n\nThank you for your business!`;
@@ -3209,9 +3097,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             DB.init();
             CloudSync.init();
-            const portalPayload = readPortalPayloadFromHash();
-            if (portalPayload) router.navigate('client-portal', { portalPayload });
-            else router.navigate('today');
+            router.navigate('today');
         });
         window.addEventListener('beforeunload', (e) => {
             if (!router.hasUnsavedChanges) return;
