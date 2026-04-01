@@ -667,14 +667,17 @@
                 this.jobs.forEach(j => {
                     const isJob = !j.type || j.type === 'Job';
                     if (!isJob || j.status === 'Cancelled') return;
+                    const jobDate = new Date((j.date || '') + 'T12:00:00');
+                    const todayDate = new Date(todayIso + 'T12:00:00');
+                    const daysUntil = Math.round((jobDate - todayDate) / 86400000);
                     const balance = (parseFloat(j.price) || 0) - (parseFloat(j.deposit) || 0);
-                    if (j.date <= todayIso && !j.fullPaymentPaid && balance > 0) {
+                    if (daysUntil <= 0 && !j.fullPaymentPaid && balance > 0) {
                         queue.push({ id: j.id, level: 'high', text: `Payment due · £${balance.toFixed(2)} · ${j.jobNumber || j.title}` });
                     }
-                    if (j.date <= todayIso && !j.clientSignature && j.status !== 'Completed') {
+                    if (daysUntil <= 0 && !j.clientSignature && j.status !== 'Completed') {
                         queue.push({ id: j.id, level: 'med', text: `Sign-off needed · ${j.jobNumber || j.title}` });
                     }
-                    if (j.date >= todayIso && j.date <= soonIso && (!j.materialsOrdered || !j.materialsDelivered)) {
+                    if (daysUntil >= 0 && daysUntil <= 2 && (!j.materialsOrdered || !j.materialsDelivered) && j.status !== 'Completed') {
                         queue.push({ id: j.id, level: 'med', text: `Materials check · ${j.jobNumber || j.title}` });
                     }
                 });
@@ -1597,6 +1600,11 @@
                             <button onclick="router.navigate('edit-event', {id: '${id}'})" class="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center active:scale-95 transition-transform"><i class="fa-solid fa-pen"></i></button>
                         </div>
                         <div class="mb-4"><h1 class="text-2xl font-bold text-white truncate">${job.jobNumber || job.title}</h1><p class="text-xs text-app-muted">${job.title}</p></div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-3 mb-4 grid grid-cols-1 gap-2 text-xs">
+                            <p class="text-white"><span class="text-app-muted">Job #:</span> <span class="font-mono text-blue-300 font-semibold">${job.jobNumber || 'Not set'}</span></p>
+                            <p class="text-white"><span class="text-app-muted">Date:</span> ${job.date ? Utils.getFriendlyDate(job.date) : 'Not set'}</p>
+                            <p class="text-white truncate"><span class="text-app-muted">Address:</span> ${job.address || 'Not set'}</p>
+                        </div>
                         <div class="grid grid-cols-2 gap-2 mb-6">
                             <button onclick="router.navigate('job-details', {id:'${id}', jobDetailsTab:'overview'})" class="py-2 rounded-lg text-xs font-semibold border bg-app-card border-app-border text-app-muted">Overview</button>
                             <button onclick="router.navigate('job-details', {id:'${id}', jobDetailsTab:'files'})" class="py-2 rounded-lg text-xs font-semibold border bg-blue-600 border-blue-600 text-white">Files</button>
@@ -1629,6 +1637,11 @@
                         <div class="grid grid-cols-2 gap-2 mb-4">
                             <button onclick="router.navigate('job-details', {id:'${id}', jobDetailsTab:'overview'})" class="py-2 rounded-lg text-xs font-semibold border bg-blue-600 border-blue-600 text-white">Overview</button>
                             <button onclick="router.navigate('job-details', {id:'${id}', jobDetailsTab:'files'})" class="py-2 rounded-lg text-xs font-semibold border bg-app-card border-app-border text-app-muted">Files</button>
+                        </div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-3 mb-4 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                            <p class="text-white"><span class="text-app-muted">Job #:</span> <span class="font-mono text-blue-300 font-semibold">${job.jobNumber || 'Not set'}</span></p>
+                            <p class="text-white"><span class="text-app-muted">Date:</span> ${job.date ? Utils.getFriendlyDate(job.date) : 'Not set'}</p>
+                            <p class="text-white truncate"><span class="text-app-muted">Address:</span> ${job.address || 'Not set'}</p>
                         </div>
 
                         ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 mb-4 flex items-center gap-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Signed Off &amp; Complete</p><p class="text-xs text-app-muted">By ${job.signedOffName} · ${signedOffDate}</p></div></div>` : ''}
