@@ -294,7 +294,21 @@
                     n.beforePhotos = this.uniqueList(Array.isArray(n.beforePhotos) ? n.beforePhotos : (Array.isArray(n.photos) ? n.photos : []));
                     n.afterPhotos = this.uniqueList(n.afterPhotos);
                     n.documents = Array.isArray(n.documents) ? n.documents : [];
-                    n.durationDays = n.durationDays ? parseInt(n.durationDays) : 1;
+                    n.durationDays = n.durationDays ? Math.max(1, parseInt(n.durationDays)) : 1;
+                    n.paymentPlanEnabled = !!n.paymentPlanEnabled;
+                    n.paymentPlanDetails = (n.paymentPlanDetails || '').toString();
+                    n.depositPaidDate = n.depositPaidDate || '';
+                    n.depositPaidMethod = n.depositPaidMethod || '';
+                    n.fullPaymentPaidDate = n.fullPaymentPaidDate || '';
+                    n.fullPaymentPaidMethod = n.fullPaymentPaidMethod || '';
+                    n.accommodationNeeded = !!n.accommodationNeeded;
+                    n.accomHotel = n.accomHotel || '';
+                    n.accomAddress = n.accomAddress || '';
+                    n.accomRef = n.accomRef || '';
+                    n.accomCheckIn = n.accomCheckIn || '';
+                    n.accomCheckOut = n.accomCheckOut || '';
+                    n.accomNotes = n.accomNotes || '';
+                    n.accomScreenshot = n.accomScreenshot || null;
                     const key = n.id || `${(n.jobNumber || '').toLowerCase()}|${n.date || ''}|${(n.title || '').toLowerCase()}`;
                     if (!jobsByKey.has(key)) jobsByKey.set(key, n);
                 });
@@ -437,6 +451,20 @@
                     agreementNA: false,
                     materialsOrdered: false,
                     materialsDelivered: false,
+                    paymentPlanEnabled: false,
+                    paymentPlanDetails: '',
+                    depositPaidDate: '',
+                    depositPaidMethod: '',
+                    fullPaymentPaidDate: '',
+                    fullPaymentPaidMethod: '',
+                    accommodationNeeded: !!job.accommodationNeeded,
+                    accomHotel: job.accomHotel || '',
+                    accomAddress: job.accomAddress || '',
+                    accomRef: job.accomRef || '',
+                    accomCheckIn: job.accomCheckIn || '',
+                    accomCheckOut: job.accomCheckOut || '',
+                    accomNotes: job.accomNotes || '',
+                    accomScreenshot: job.accomScreenshot || null,
                     clientSignature: null,
                     signedOffAt: null,
                     signedOffName: null
@@ -465,6 +493,12 @@
                     this.save();
                     showToast('Event updated');
                 }
+            },
+            updateJobFields(id, fields = {}) {
+                const j = this.jobs.find(x => x.id === id);
+                if (!j) return;
+                Object.assign(j, fields || {});
+                this.save();
             },
             addContact(c) {
                 const email = (c.email || '').trim().toLowerCase();
@@ -1089,7 +1123,7 @@
                 const isHoliday = (type) => type === 'Holiday' || type === 'Personal';
                 c.innerHTML = `
                 <div class="pt-12 px-5 pb-24 h-full overflow-y-auto"><div class="flex items-center gap-4 mb-6"><button onclick="router.navigate('today')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-xl font-bold">New Event</h1></div>
-                <div id="conflict" class="hidden bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl mb-4 text-sm flex items-center gap-3"><i class="fa-solid fa-triangle-exclamation"></i><span><b>Conflict!</b> Event exists at this time.</span></div>
+                <div id="conflict" class="hidden bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl mb-4 text-sm flex items-center gap-3"><i class="fa-solid fa-triangle-exclamation"></i><span><b>Conflict!</b> Existing event overlaps this date/time window.</span></div>
                 <form onsubmit="handleNewJob(event)" class="space-y-5">
                     <div>
                         <label class="text-xs text-app-muted block mb-2">Event Type</label>
@@ -1104,7 +1138,7 @@
                     <div><label class="text-xs text-app-muted block mb-1">Title</label><input name="title" required placeholder="Event title..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                     
                     <div id="holiday-fields" class="hidden">
-                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Duration (Days)</label><input type="number" name="durationDays" value="1" min="1" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-orange-500"></div>
+                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Duration (Days)</label><input type="number" name="holidayDurationDays" id="j-duration-days-holiday" value="1" min="1" oninput="checkConflict()" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-orange-500"></div>
                     </div>
 
                     <div id="job-fields">
@@ -1126,6 +1160,7 @@
                             <div><label class="text-xs text-app-muted block mb-1">Edge / Trim</label><input name="vinylEdgeDetail" placeholder="Edge tape / trim detail" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                         </div>
                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Vinyl Codes & Locations</label><textarea name="vinylCodes" rows="2" placeholder="Codes and where applied..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
+                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Estimated Duration (Days)</label><input type="number" name="durationDays" id="j-duration-days-job" value="1" min="1" oninput="checkConflict()" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                         <div class="grid grid-cols-2 gap-4 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" id="inp-price" name="price" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" id="inp-deposit" name="deposit" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
                         <div id="balance-display" class="hidden text-right text-xs font-bold text-red-400 mb-5">Balance: £0.00</div>
                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Service</label><select name="service" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option>Kitchen Wrap</option><option>Window Film</option><option>Other</option></select></div>
@@ -1200,7 +1235,7 @@
                         </div>
                         <div><label class="text-xs text-app-muted block mb-1">Title</label><input name="title" required value="${job.title||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                         <div id="holiday-fields" class="${job.type==='Holiday'?'':'hidden'}">
-                            <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Duration (Days)</label><input type="number" name="durationDays" value="${job.durationDays||1}" min="1" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-orange-500"></div>
+                            <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Duration (Days)</label><input type="number" name="holidayDurationDays" value="${job.durationDays||1}" min="1" oninput="checkConflict()" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-orange-500"></div>
                         </div>
                         <div id="job-fields" class="${job.type==='Holiday'||job.type==='Personal'?'hidden':''}">
                             <div class="mb-5">
@@ -1221,6 +1256,7 @@
                                 <div><label class="text-xs text-app-muted block mb-1">Edge / Trim</label><input name="vinylEdgeDetail" value="${job.vinylEdgeDetail||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                             </div>
                             <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Vinyl Codes & Locations</label><textarea name="vinylCodes" rows="2" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">${job.vinylCodes||''}</textarea></div>
+                            <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Estimated Duration (Days)</label><input type="number" name="durationDays" value="${job.durationDays||1}" min="1" oninput="checkConflict()" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                             <div class="grid grid-cols-2 gap-4 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" id="inp-price" name="price" oninput="calcBalance()" value="${job.price||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" id="inp-deposit" name="deposit" oninput="calcBalance()" value="${job.deposit||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
                             <div id="balance-display" class="${job.price>0?'text-right text-xs font-bold text-red-400 mb-5':'hidden'}">Balance: £${((parseFloat(job.price)||0)-(parseFloat(job.deposit)||0)).toFixed(2)}</div>
                             <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Service</label><select name="service" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option ${job.service==='Kitchen Wrap'?'selected':''}>Kitchen Wrap</option><option ${job.service==='Window Film'?'selected':''}>Window Film</option><option ${job.service==='Other'?'selected':''}>Other</option></select></div>
@@ -1388,14 +1424,14 @@
                             ${!job.jobDescription && !job.vinylCodes && !job.vinylBrand && !job.vinylFinish && !job.vinylColour && !job.vinylEdgeDetail ? '<p class="text-sm text-app-muted italic">No details added.</p>' : ''}
                         </div>
                         <div class="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-emerald-500 uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-boxes-stacked"></i> Materials</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Ordered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsOrdered')" ${job.materialsOrdered ? 'checked' : ''} class="custom-checkbox-green"></div><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Delivered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsDelivered')" ${job.materialsDelivered ? 'checked' : ''} class="custom-checkbox-green"></div></div></div>
-                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-file-contract"></i> Payments &amp; Admin</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-white">Deposit Paid (£${parseFloat(job.deposit).toFixed(2)})</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'depositPaid')" ${job.depositPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="flex items-center justify-between"><span class="text-sm text-white">Full Payment</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'fullPaymentPaid')" ${job.fullPaymentPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="flex items-center justify-between"><span class="text-sm text-white">Agreement Signed</span><div class="flex gap-4 items-center"><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementSigned')" ${job.agreementSigned ? 'checked' : ''} class="custom-checkbox"> Signed</label><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementNA')" ${job.agreementNA ? 'checked' : ''} class="custom-checkbox"> N/A</label></div></div></div></div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-file-contract"></i> Payments &amp; Admin</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-white">Deposit Paid (£${parseFloat(job.deposit).toFixed(2)})</span><input type="checkbox" onchange="togglePaymentStatus('${id}','depositPaid',this.checked)" ${job.depositPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-app-muted block mb-1">Deposit Paid Date</label><input type="date" value="${job.depositPaidDate||''}" onchange="DB.updateJobFields('${id}', { depositPaidDate: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><div><label class="text-[11px] text-app-muted block mb-1">Deposit Method</label><select onchange="DB.updateJobFields('${id}', { depositPaidMethod: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white"><option value="" ${!job.depositPaidMethod?'selected':''}>Select</option><option ${job.depositPaidMethod==='Paylink'?'selected':''}>Paylink</option><option ${job.depositPaidMethod==='Bank Transfer'?'selected':''}>Bank Transfer</option><option ${job.depositPaidMethod==='Cash'?'selected':''}>Cash</option><option ${job.depositPaidMethod==='Card'?'selected':''}>Card</option><option ${job.depositPaidMethod==='Finance'?'selected':''}>Finance</option><option ${job.depositPaidMethod==='Other'?'selected':''}>Other</option></select></div></div><div class="flex items-center justify-between"><span class="text-sm text-white">Paid in Full</span><input type="checkbox" onchange="togglePaymentStatus('${id}','fullPaymentPaid',this.checked)" ${job.fullPaymentPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-app-muted block mb-1">Paid in Full Date</label><input type="date" value="${job.fullPaymentPaidDate||''}" onchange="DB.updateJobFields('${id}', { fullPaymentPaidDate: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><div><label class="text-[11px] text-app-muted block mb-1">Paid in Full Method</label><select onchange="DB.updateJobFields('${id}', { fullPaymentPaidMethod: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white"><option value="" ${!job.fullPaymentPaidMethod?'selected':''}>Select</option><option ${job.fullPaymentPaidMethod==='Paylink'?'selected':''}>Paylink</option><option ${job.fullPaymentPaidMethod==='Bank Transfer'?'selected':''}>Bank Transfer</option><option ${job.fullPaymentPaidMethod==='Cash'?'selected':''}>Cash</option><option ${job.fullPaymentPaidMethod==='Card'?'selected':''}>Card</option><option ${job.fullPaymentPaidMethod==='Finance'?'selected':''}>Finance</option><option ${job.fullPaymentPaidMethod==='Other'?'selected':''}>Other</option></select></div></div><div class="pt-2 border-t border-app-border/60"><label class="flex items-center justify-between mb-2"><span class="text-sm text-white">Payment Plan</span><input type="checkbox" onchange="DB.updateJobFields('${id}', { paymentPlanEnabled: this.checked })" ${job.paymentPlanEnabled ? 'checked' : ''} class="custom-checkbox"></label><textarea rows="2" placeholder="Plan details: instalments, due dates, terms..." onchange="DB.updateJobFields('${id}', { paymentPlanDetails: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white">${job.paymentPlanDetails||''}</textarea></div><div class="flex items-center justify-between"><span class="text-sm text-white">Agreement Signed</span><div class="flex gap-4 items-center"><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementSigned')" ${job.agreementSigned ? 'checked' : ''} class="custom-checkbox"> Signed</label><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementNA')" ${job.agreementNA ? 'checked' : ''} class="custom-checkbox"> N/A</label></div></div></div></div>
 
                         <div class="bg-app-card border ${signedOff ? 'border-emerald-500/40' : 'border-app-border'} rounded-xl p-4 mb-6">
                             <h3 class="text-xs ${signedOff ? 'text-emerald-500' : 'text-app-muted'} uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-pen-nib mr-1"></i>Client Sign-Off</h3>
                             ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-3"><div class="flex items-center gap-3 mb-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Job Complete — Client Signed Off</p><p class="text-xs text-app-muted">Signed by <strong class="text-white">${job.signedOffName}</strong> on ${signedOffDate}</p></div></div><div class="bg-white rounded-xl p-2"><img src="${job.clientSignature}" class="w-full object-contain" style="max-height:120px;"></div></div>` : `<p class="text-sm text-app-muted italic mb-3">No client sign-off recorded yet.</p><button onclick="openSignOffModal('${id}')" class="w-full bg-blue-600/10 border border-blue-600/30 text-blue-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-blue-600/20 transition-colors"><i class="fa-solid fa-signature"></i> Capture Client Signature</button>`}
                         </div>` : ''}
                         
-                        ${job.accommodationNeeded ? `<div class="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-indigo-400 uppercase tracking-wider mb-2 font-semibold"><i class="fa-solid fa-bed"></i> Accommodation</h3><p class="text-sm text-white font-semibold">${job.accomHotel || 'Hotel not specified'}</p><div class="flex gap-4 mt-2"><p class="text-xs text-app-muted"><span class="block font-bold text-indigo-300">Ref:</span> ${job.accomRef || 'N/A'}</p><p class="text-xs text-app-muted"><span class="block font-bold text-indigo-300">Check-in:</span> ${job.accomTime || 'N/A'}</p></div></div>` : ''}
+                        ${isJob ? `<div class="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-indigo-400 uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-bed"></i> Accommodation</h3><label class="flex items-center justify-between mb-3"><span class="text-sm text-indigo-100">Accommodation Needed</span><input type="checkbox" onchange="DB.updateJobFields('${id}', { accommodationNeeded: this.checked }); router.renderJobDetails(document.getElementById('app-content'), '${id}')" ${job.accommodationNeeded ? 'checked' : ''} class="custom-checkbox"></label><form onsubmit="saveAccommodationInfo(event, '${id}')" class="space-y-2"><div class="grid grid-cols-2 gap-2"><input name="accomHotel" value="${job.accomHotel||''}" placeholder="Hotel name" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white"><input name="accomRef" value="${job.accomRef||''}" placeholder="Booking ref" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white"></div><input name="accomAddress" value="${job.accomAddress||''}" placeholder="Hotel address" class="w-full bg-app-card border border-app-border rounded-lg p-2 text-xs text-white"><div class="grid grid-cols-2 gap-2"><input type="datetime-local" name="accomCheckIn" value="${job.accomCheckIn||''}" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"><input type="datetime-local" name="accomCheckOut" value="${job.accomCheckOut||''}" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><textarea name="accomNotes" rows="2" placeholder="Check-in details / parking / access notes" class="w-full bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">${job.accomNotes||''}</textarea><button class="w-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 py-2 rounded-lg text-xs font-semibold">Save Accommodation Details</button></form><div class="mt-3"><div class="flex items-center justify-between mb-2"><p class="text-[11px] text-app-muted">Accommodation Screenshot</p><button onclick="document.getElementById('accom-upload').click()" class="text-xs text-blue-400 font-semibold">+ Add</button><input type="file" id="accom-upload" accept="image/*" class="hidden" onchange="handleAccommodationUpload(event, '${id}')"></div>${job.accomScreenshot ? `<div class="bg-app-card border border-app-border rounded-lg p-2"><img src="${job.accomScreenshot.data}" class="w-full max-h-48 object-contain rounded cursor-pointer" onclick="openGenericLightbox('${job.accomScreenshot.data}', 'Accommodation Screenshot')"><div class="flex justify-between mt-2"><span class="text-[11px] text-app-muted truncate">${job.accomScreenshot.name || 'screenshot'}</span><button onclick="deleteAccommodationScreenshot('${id}')" class="text-[11px] text-red-400">Remove</button></div></div>` : '<p class="text-xs text-app-muted italic">No screenshot added.</p>'}</div></div>` : ''}
                         
                         ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera"></i> Before Photos</h3><button onclick="document.getElementById('before-photo-upload').click()" class="text-blue-500 text-xs font-bold">+ Add</button><input type="file" id="before-photo-upload" accept="image/*" multiple class="hidden" onchange="handleBeforePhotoUpload(event, '${id}')"></div><div class="flex gap-2 overflow-x-auto pb-2">${beforePhotos.length === 0 ? '<p class="text-sm text-app-muted italic">No before photos yet.</p>' : beforePhotos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border group cursor-pointer" onclick="openPhotoLightbox('${id}', ${i}, 'before')"><img src="${src}" class="w-full h-full object-cover pointer-events-none"><button onclick="event.stopPropagation(); deleteBeforePhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-times"></i></button></div>`).join('')}</div></div>` : ''}
 
@@ -1471,10 +1507,13 @@
             } else if (type === 'Holiday') {
                 holF.classList.remove('hidden');
             }
+            checkConflict();
         }
         function handleNewJob(e) {
             e.preventDefault(); 
             const d = Object.fromEntries(new FormData(e.target));
+            if (d.type === 'Holiday') d.durationDays = d.holidayDurationDays || d.durationDays || 1;
+            delete d.holidayDurationDays;
             d.accommodationNeeded = e.target.accommodationNeeded ? e.target.accommodationNeeded.checked : false;
             applyJobNumber(d);
             DB.addJob(d); router.navigate('today');
@@ -1482,6 +1521,8 @@
         function handleEditJob(e, id) {
             e.preventDefault();
             const d = Object.fromEntries(new FormData(e.target));
+            if (d.type === 'Holiday') d.durationDays = d.holidayDurationDays || d.durationDays || 1;
+            delete d.holidayDurationDays;
             applyJobNumber(d);
             d.id = id;
             DB.updateJob(d);
@@ -1557,8 +1598,90 @@
             l.innerHTML = res.length ? res.map(c=>`<div onclick="router.navigate('contact-details', {id: '${c.id}'})" class="bg-app-card p-4 rounded-xl border border-app-border flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">${Utils.getInitials(c.name)}</div><div><h3 class="font-semibold text-white">${c.name}</h3><p class="text-xs text-app-muted">${c.company || 'Private'} · ${DB.getJobsForContact(c).length} job${DB.getJobsForContact(c).length === 1 ? '' : 's'}</p></div></div>`).join('') : '<p class="text-center text-app-muted">No match</p>';
         }
         function checkConflict() {
-            const d=document.getElementById('j-date').value, t=document.getElementById('j-time').value, w=document.getElementById('conflict');
-            DB.jobs.some(j=>j.date===d && j.time===t) ? w.classList.remove('hidden') : w.classList.add('hidden');
+            const d = document.getElementById('j-date')?.value;
+            const t = document.getElementById('j-time')?.value;
+            const w = document.getElementById('conflict');
+            if (!w || !d || !t) return;
+            const selectedType = document.querySelector('input[name="type"]:checked')?.value || 'Job';
+            const durEl = document.querySelector('#job-fields:not(.hidden) input[name="durationDays"]') || document.querySelector('#holiday-fields:not(.hidden) input[name="holidayDurationDays"]') || document.querySelector('input[name="durationDays"]') || document.querySelector('input[name="holidayDurationDays"]');
+            const duration = Math.max(1, parseInt(durEl?.value || '1') || 1);
+            const start = new Date(d + 'T12:00:00');
+            const end = new Date(start);
+            end.setDate(start.getDate() + (duration - 1));
+            const hasConflict = DB.jobs.some(j => {
+                if (j.status === 'Cancelled') return false;
+                const js = new Date((j.date || '') + 'T12:00:00');
+                const je = new Date(js);
+                const jDur = Math.max(1, parseInt(j.durationDays || 1) || 1);
+                je.setDate(js.getDate() + (jDur - 1));
+                const overlapsDayRange = js <= end && je >= start;
+                if (!overlapsDayRange) return false;
+                const blockedType = j.type === 'Holiday' || j.type === 'Personal' || selectedType === 'Holiday' || selectedType === 'Personal';
+                return blockedType || (j.time === t);
+            });
+            hasConflict ? w.classList.remove('hidden') : w.classList.add('hidden');
+        }
+        function togglePaymentStatus(id, field, checked) {
+            const updates = { [field]: !!checked };
+            const today = Utils.formatDate(new Date());
+            const j = DB.getJobById(id);
+            if (field === 'depositPaid') {
+                updates.depositPaidDate = checked ? (j?.depositPaidDate || today) : '';
+                if (!checked) updates.depositPaidMethod = '';
+            }
+            if (field === 'fullPaymentPaid') {
+                updates.fullPaymentPaidDate = checked ? (j?.fullPaymentPaidDate || today) : '';
+                if (!checked) updates.fullPaymentPaidMethod = '';
+            }
+            DB.updateJobFields(id, updates);
+            router.renderJobDetails(document.getElementById('app-content'), id);
+        }
+        function saveAccommodationInfo(e, id) {
+            e.preventDefault();
+            const d = Object.fromEntries(new FormData(e.target));
+            DB.updateJobFields(id, {
+                accomHotel: d.accomHotel || '',
+                accomAddress: d.accomAddress || '',
+                accomRef: d.accomRef || '',
+                accomCheckIn: d.accomCheckIn || '',
+                accomCheckOut: d.accomCheckOut || '',
+                accomNotes: d.accomNotes || ''
+            });
+            showToast('Accommodation saved');
+            router.renderJobDetails(document.getElementById('app-content'), id);
+        }
+        function handleAccommodationUpload(event, id) {
+            const f = event.target.files?.[0];
+            if (!f) return;
+            const r = new FileReader();
+            r.onload = (evt) => {
+                DB.updateJobFields(id, { accomScreenshot: { name: f.name, data: evt.target.result, type: f.type } });
+                router.renderJobDetails(document.getElementById('app-content'), id);
+                showToast('Accommodation screenshot added');
+            };
+            r.readAsDataURL(f);
+            event.target.value = '';
+        }
+        function deleteAccommodationScreenshot(id) {
+            DB.updateJobFields(id, { accomScreenshot: null });
+            router.renderJobDetails(document.getElementById('app-content'), id);
+            showToast('Accommodation screenshot removed');
+        }
+        function openGenericLightbox(src, label = 'Image') {
+            const existing = document.getElementById('photo-lightbox');
+            if (existing) existing.remove();
+            const lb = document.createElement('div');
+            lb.id = 'photo-lightbox';
+            lb.className = 'lightbox-overlay';
+            lb.innerHTML = `
+                <div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:16px;z-index:10;">
+                    <span style="color:rgba(255,255,255,.6);font-size:14px;font-weight:500;">${label}</span>
+                    <button onclick="document.getElementById('photo-lightbox').remove()" style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.12);color:white;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <img src="${src}" style="max-width:92vw;max-height:82vh;object-fit:contain;border-radius:12px;box-shadow:0 25px 50px rgba(0,0,0,.8);user-select:none;">
+            `;
+            lb.addEventListener('click', (e) => { if (e.target === lb) lb.remove(); });
+            document.body.appendChild(lb);
         }
         function calcBalance() {
             const p = parseFloat(document.getElementById('inp-price').value) || 0;
@@ -1638,15 +1761,18 @@
                     <div class="price-highlight">£${parseFloat(j.price||0).toFixed(2)}</div>
                     <div class="label" style="margin-top:8px;">Deposit</div>
                     <div class="value">£${parseFloat(j.deposit||0).toFixed(2)} ${j.depositPaid ? '✓ Paid' : '(Unpaid)'}</div>
+                    ${(j.depositPaidDate || j.depositPaidMethod) ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">${j.depositPaidDate ? 'Paid on: ' + j.depositPaidDate : ''}${j.depositPaidMethod ? (j.depositPaidDate ? ' · ' : '') + j.depositPaidMethod : ''}</div>` : ''}
                 </div>
                 <div class="card">
                     <div class="label">Balance Due</div>
                     <div class="${balance>0?'balance-due':'balance-paid'}" style="font-size:20px;font-weight:700;">£${balance.toFixed(2)}</div>
                     <div style="font-size:12px;margin-top:4px;color:#64748b;">${j.fullPaymentPaid ? '✓ Full Payment Received' : balance>0 ? 'Payment Outstanding' : ''}</div>
+                    ${(j.fullPaymentPaidDate || j.fullPaymentPaidMethod) ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">${j.fullPaymentPaidDate ? 'Paid in full: ' + j.fullPaymentPaidDate : ''}${j.fullPaymentPaidMethod ? (j.fullPaymentPaidDate ? ' · ' : '') + j.fullPaymentPaidMethod : ''}</div>` : ''}
                     <div class="label" style="margin-top:8px;">Service</div>
                     <div class="value">${j.service||'N/A'}</div>
                 </div>
             </div>` : ''}
+            ${j.paymentPlanEnabled || j.paymentPlanDetails ? `<div class="card" style="margin:12px 0;"><div class="section-title">Payment Plan</div><div style="font-size:13px;color:#334155;">${j.paymentPlanEnabled ? 'Enabled' : 'Not enabled'}</div>${j.paymentPlanDetails ? `<div style="font-size:12px;color:#475569;white-space:pre-wrap;margin-top:6px;">${j.paymentPlanDetails}</div>` : ''}</div>` : ''}
             ${j.jobDescription ? `<div class="card" style="margin:12px 0;">
                 <div class="section-title">Job Description</div>
                 <div style="font-size:13px;color:#334155;white-space:pre-wrap;">${j.jobDescription}</div>
@@ -1668,6 +1794,7 @@
                 <div class="section-title">Notes</div>
                 <div style="font-size:13px;color:#334155;white-space:pre-wrap;">${j.notes}</div>
             </div>` : ''}
+            ${j.accommodationNeeded || j.accomHotel || j.accomAddress || j.accomRef || j.accomCheckIn || j.accomCheckOut || j.accomNotes ? `<div class="card" style="margin:12px 0;"><div class="section-title">Accommodation</div><div style="font-size:13px;color:#334155;line-height:1.5;"><div><strong>Hotel:</strong> ${j.accomHotel || 'N/A'}</div><div><strong>Address:</strong> ${j.accomAddress || 'N/A'}</div><div><strong>Ref:</strong> ${j.accomRef || 'N/A'}</div><div><strong>Check-in:</strong> ${j.accomCheckIn || 'N/A'}</div><div><strong>Check-out:</strong> ${j.accomCheckOut || 'N/A'}</div>${j.accomNotes ? `<div style="white-space:pre-wrap;margin-top:6px;"><strong>Notes:</strong> ${j.accomNotes}</div>` : ''}</div></div>` : ''}
             ${j.clientSignature ? `<div class="card" style="margin:12px 0;">
                 <div class="section-title">Client Sign-Off</div>
                 <div>Signed by <strong>${j.signedOffName||'Client'}</strong> on ${signedDate}</div>
