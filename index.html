@@ -182,12 +182,6 @@
         <div class="w-full bg-app-card/95 backdrop-blur border border-app-border rounded-2xl p-2 shadow-2xl">
             <p class="text-[11px] uppercase tracking-wider text-app-muted px-3 pt-2 pb-1 font-semibold">Quick Menu</p>
 
-            <button onclick="router.navigate('projects'); toggleFabMenu()" class="w-full text-left bg-app-card border border-app-border text-white px-3 py-2.5 rounded-xl flex items-center gap-3 hover:bg-app-lighter transition-all mb-2">
-                <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-folder-open"></i></div>
-                <div class="flex-1"><span class="block text-sm font-semibold">Projects</span><span class="text-[10px] text-app-muted">All Jobs & History</span></div>
-                <i class="fa-solid fa-chevron-right text-app-muted text-xs"></i>
-            </button>
-
             <button onclick="router.navigate('new-event'); toggleFabMenu()" class="w-full text-left bg-app-card border border-app-border text-white px-3 py-2.5 rounded-xl flex items-center gap-3 hover:bg-app-lighter transition-all mb-2">
                 <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center"><i class="fa-regular fa-calendar-plus"></i></div>
                 <div class="flex-1"><span class="block text-sm font-semibold">New Event</span><span class="text-[10px] text-app-muted">Job, Quote, Holiday</span></div>
@@ -242,11 +236,11 @@
             <i class="fa-regular fa-calendar text-xl mb-0.5"></i> Calendar
         </button>
         <div class="w-12"></div>
+        <button onclick="router.navigate('projects')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs" data-target="projects">
+            <i class="fa-solid fa-folder-open text-xl mb-0.5"></i> Projects
+        </button>
         <button onclick="router.navigate('contacts')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs" data-target="contacts">
             <i class="fa-regular fa-user text-xl mb-0.5"></i> Contacts
-        </button>
-        <button onclick="router.navigate('more')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs" data-target="more">
-            <i class="fa-solid fa-bars text-xl mb-0.5"></i> More
         </button>
     </nav>
 
@@ -890,7 +884,12 @@
                     <div class="px-4 md:px-6 pt-10 md:pt-12 pb-6">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-2xl font-bold text-white">${Utils.getGreeting()}, ${DB.user.name}</h1>
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 font-bold">R</div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="router.navigate('more')" class="w-10 h-10 rounded-full bg-app-card border border-app-border text-app-muted hover:text-white hover:border-blue-500/50 transition-colors flex items-center justify-center" title="More">
+                                    <i class="fa-solid fa-gear"></i>
+                                </button>
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 font-bold">R</div>
+                            </div>
                         </div>
                         <div class="glass-card rounded-2xl p-5 mb-6 relative overflow-hidden group border border-blue-500/20 shadow-lg shadow-blue-900/20">
                             <div class="absolute top-0 right-0 p-3 opacity-20"><i class="fa-solid fa-location-arrow text-6xl text-blue-400 transform -rotate-45"></i></div>
