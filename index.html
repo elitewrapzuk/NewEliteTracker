@@ -1369,7 +1369,15 @@
                 const priceOf = (j) => parseFloat(j.price) || 0;
                 const depositOf = (j) => parseFloat(j.deposit) || 0;
                 const balanceOf = (j) => priceOf(j) - depositOf(j);
-                const isPaid = (j) => isJobType(j) && (j.fullPaymentPaid || balanceOf(j) <= 0);
+                const isPaid = (j) => isJobType(j) && !!j.fullPaymentPaid;
+                const paymentState = (j) => {
+                    if (!isJobType(j)) return { text: asType(j), className: 'text-app-muted' };
+                    if (j.fullPaymentPaid) return { text: 'PAID', className: 'text-emerald-400' };
+                    if (j.paymentPlanEnabled) return { text: 'PAYMENT PLAN', className: 'text-indigo-300' };
+                    if (j.depositPaid) return { text: 'DEPOSIT PAID', className: 'text-cyan-300' };
+                    const bal = Math.max(0, balanceOf(j));
+                    return { text: bal > 0 ? `Due £${bal.toFixed(2)}` : 'Pending payment status', className: bal > 0 ? 'text-amber-400' : 'text-app-muted' };
+                };
 
                 const monthOptions = [...new Set(DB.jobs.map(monthKey).filter(Boolean))]
                     .sort((a, b) => (a < b ? 1 : -1));
@@ -1432,6 +1440,7 @@
                 const timelineJobs = [...jobs].sort((a, b) => new Date((a.date || '') + 'T12:00:00') - new Date((b.date || '') + 'T12:00:00'));
                 const timelineHtml = timelineJobs.map((j, idx) => {
                     const isJob = isJobType(j);
+                    const payment = paymentState(j);
                     const start = new Date((j.date || '') + 'T12:00:00');
                     const end = new Date(start);
                     const dur = Math.max(1, parseInt(j.durationDays || 1) || 1);
@@ -1444,7 +1453,7 @@
                             <div class="flex items-center justify-between gap-2 mb-1"><p class="text-xs text-blue-300 font-semibold">${j.jobNumber || asType(j)}</p><p class="text-[10px] text-app-muted">${j.status || 'Scheduled'}</p></div>
                             <p class="text-sm font-semibold text-white truncate">${j.title}</p>
                             <p class="text-xs text-app-muted mt-1">${Utils.getFriendlyDate(j.date)}${dur > 1 ? ` → ${Utils.getFriendlyDate(endIso)} · ${dur} days` : ''}</p>
-                            <p class="text-[11px] mt-1 ${isJob && !isPaid(j) ? 'text-amber-300' : 'text-app-muted'}">${j.contact || j.address || 'No client/location'}${isJob ? ` · ${isPaid(j) ? 'PAID' : `Due £${Math.max(0, balanceOf(j)).toFixed(2)}`}` : ''}</p>
+                            <p class="text-[11px] mt-1 ${isJob ? payment.className : 'text-app-muted'}">${j.contact || j.address || 'No client/location'}${isJob ? ` · ${payment.text}` : ''}</p>
                         </div>
                     </div>`;
                 }).join('');
@@ -1458,9 +1467,7 @@
                             ${grouped[gk].map(j => {
                                 const sc = statusColors[j.status] || 'bg-app-lighter text-app-muted border-app-border';
                                 const isJob = isJobType(j);
-                                const bal = balanceOf(j);
-                                const dueText = isJob ? (isPaid(j) ? 'PAID' : `Due £${Math.max(0, bal).toFixed(2)}`) : (asType(j));
-                                const dueClass = isJob ? (isPaid(j) ? 'text-emerald-400' : 'text-amber-400') : 'text-app-muted';
+                                const payment = paymentState(j);
                                 return `<div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 active:scale-[0.99] transition-transform cursor-pointer">
                                     <div class="flex justify-between items-start gap-3 mb-2">
                                         <div class="min-w-0 flex-1">
@@ -1476,7 +1483,7 @@
                                     </div>
                                     <div class="grid grid-cols-2 gap-2 text-xs mb-2">
                                         <p class="text-app-muted truncate"><i class="fa-regular fa-calendar mr-1"></i>${Utils.getFriendlyDate(j.date)}</p>
-                                        <p class="text-right font-semibold ${dueClass}">${dueText}</p>
+                                        <p class="text-right font-semibold ${isJob ? payment.className : 'text-app-muted'}">${isJob ? payment.text : asType(j)}</p>
                                     </div>
                                     <div class="flex items-center justify-between">
                                         <p class="text-xs text-app-muted truncate mr-3">${j.contact ? `<i class="fa-regular fa-user mr-1"></i>${j.contact}` : (j.address ? `<i class="fa-solid fa-location-dot mr-1"></i>${j.address}` : 'No contact')}</p>
