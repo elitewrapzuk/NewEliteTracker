@@ -1076,7 +1076,7 @@
                 const upcomingJobs = DB.getUpcomingJobs();
                 const materialReminders = DB.getMaterialReminders(5);
                 const actionQueue = DB.getActionQueue(6);
-                const nextJob = upcomingJobs.length > 0 ? upcomingJobs[0] : null;
+                const nextJob = upcomingJobs.find(j => j.type !== 'Holiday') || null;
                 const syncLabel = !CloudSync.user ? 'Local only' : (CloudSync.syncInProgress ? 'Syncing…' : (CloudSync.pendingChanges ? 'Pending upload' : 'Cloud synced'));
                 const syncClass = !CloudSync.user ? 'text-amber-300 border-amber-500/30 bg-amber-500/10' : (CloudSync.syncInProgress ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' : (CloudSync.pendingChanges ? 'text-orange-300 border-orange-500/30 bg-orange-500/10' : 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10'));
                 let currentHeader = '';
