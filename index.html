@@ -239,7 +239,10 @@
                     agreementSigned: false,
                     agreementNA: false,
                     materialsOrdered: false,
-                    materialsDelivered: false
+                    materialsDelivered: false,
+                    clientSignature: null,
+                    signedOffAt: null,
+                    signedOffName: null
                 });
                 this.save();
                 showToast('Event created successfully');
@@ -300,14 +303,16 @@
             setRevenueGoal(a) { this.settings.monthlyGoal = parseFloat(a); this.save(); showToast('Goal updated'); },
             toggleChecklist(id, idx) { const j = this.jobs.find(x=>x.id===id); if(j && j.checklist[idx]) { j.checklist[idx].done = !j.checklist[idx].done; this.save(); } },
             addChecklist(id, txt) { const j = this.jobs.find(x=>x.id===id); if(j) { if(!j.checklist) j.checklist=[]; j.checklist.push({text:txt, done:false}); this.save(); } },
+            saveSignOff(id, signature, clientName) {
+                const j = this.jobs.find(x => x.id === id);
+                if(j) { j.clientSignature = signature; j.signedOffAt = new Date().toISOString(); j.signedOffName = clientName || 'Client'; j.status = 'Completed'; this.save(); showToast('Job signed off & complete!'); }
+            },
             
             getJobsForDate(d) { 
                 return this.jobs.filter(j => {
-                    const checkDate = new Date(d);
-                    const startDate = new Date(j.date);
-                    checkDate.setHours(12,0,0,0);
-                    startDate.setHours(12,0,0,0);
-                    if (j.durationDays && j.durationDays > 1) {
+                    if (j.durationDays && parseInt(j.durationDays) > 1) {
+                        const checkDate = new Date(d + 'T12:00:00');
+                        const startDate = new Date(j.date + 'T12:00:00');
                         const endDate = new Date(startDate);
                         endDate.setDate(startDate.getDate() + (parseInt(j.durationDays) - 1));
                         return checkDate >= startDate && checkDate <= endDate;
@@ -317,10 +322,10 @@
             },
 
             getUpcomingJobs() {
-                const today = new Date().toISOString().split('T')[0];
+                const today = Utils.formatDate(new Date());
                 return this.jobs
                     .filter(j => j.date >= today && j.status !== 'Cancelled' && j.status !== 'Completed')
-                    .sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+                    .sort((a, b) => new Date(a.date + 'T' + (a.time||'00:00')) - new Date(b.date + 'T' + (b.time||'00:00')));
             },
             getJobById(id) { return this.jobs.find(j => j.id === id); },
             getContactById(id) { return this.contacts.find(c => c.id === id); },
@@ -330,7 +335,7 @@
                 const currentMonth = now.getMonth();
                 const currentYear = now.getFullYear();
                 const monthJobs = this.jobs.filter(j => {
-                    const d = new Date(j.date);
+                    const d = new Date(j.date + 'T12:00:00');
                     return d.getMonth() === currentMonth && d.getFullYear() === currentYear && j.status !== 'Cancelled' && (j.type === 'Job' || !j.type);
                 });
                 const totalRevenue = monthJobs.reduce((acc, j) => acc + (parseFloat(j.price)||0), 0);
@@ -348,8 +353,8 @@
         // --- UTILS ---
         const Utils = {
             getGreeting: () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; },
-            formatDate: (d) => d.toISOString().split('T')[0],
-            getFriendlyDate: (s) => new Date(s).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+            formatDate: (d) => { const mo=String(d.getMonth()+1).padStart(2,'0'); const dy=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${mo}-${dy}`; },
+            getFriendlyDate: (s) => new Date(s + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' }),
             sanitizePhone: (p) => p ? p.replace(/\s+/g, '').replace(/-/g, '') : '',
             copyToClipboard: (text, label) => { if(!text) return; navigator.clipboard.writeText(text).then(() => showToast(`${label} copied`)); },
             getEventTypeColor: (type, status) => {
@@ -389,6 +394,7 @@
                     if (params.date) this.params.date = params.date;
                     if (params.calendarMonth !== undefined) this.params.calendarMonth = params.calendarMonth;
                     if (params.calendarYear !== undefined) this.params.calendarYear = params.calendarYear;
+                    if (params.calendarViewMode !== undefined) this.params.calendarViewMode = params.calendarViewMode;
                 } else {
                     this.params = params;
                 }
@@ -433,8 +439,8 @@
                         const today = new Date();
                         const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
                         let dateHeader = jDate.toLocaleDateString('en-US', {weekday: 'short', day: 'numeric', month: 'short'});
-                        if(j.date === today.toISOString().split('T')[0]) dateHeader = "Today";
-                        else if(j.date === tomorrow.toISOString().split('T')[0]) dateHeader = "Tomorrow";
+                        if(j.date === Utils.formatDate(today)) dateHeader = "Today";
+                        else if(j.date === Utils.formatDate(tomorrow)) dateHeader = "Tomorrow";
                         if(dateHeader !== currentHeader) {
                             jobListHtml += `<div class="sticky top-0 bg-app-bg/95 backdrop-blur py-2 z-10 border-b border-app-border mb-2 mt-2"><h3 class="text-xs font-bold text-blue-500 uppercase tracking-wider">${dateHeader}</h3></div>`;
                             currentHeader = dateHeader;
@@ -463,7 +469,7 @@
                                         <span class="text-lg text-blue-400">${Utils.getEventTypeIcon(nextJob.type || 'Job')}</span>
                                         <h2 class="text-xl font-bold text-white line-clamp-1">${nextJob.title}</h2>
                                     </div>
-                                    <p class="text-app-muted text-sm mb-4"><i class="fa-regular fa-clock mr-1"></i> ${nextJob.date === new Date().toISOString().split('T')[0] ? 'Today' : Utils.getFriendlyDate(nextJob.date)} at ${nextJob.time}</p>
+                                    <p class="text-app-muted text-sm mb-4"><i class="fa-regular fa-clock mr-1"></i> ${nextJob.date === Utils.formatDate(new Date()) ? 'Today' : Utils.getFriendlyDate(nextJob.date)} at ${nextJob.time}</p>
                                     <div class="flex gap-3">
                                         <button onclick="router.navigate('job-details', {id: '${nextJob.id}'})" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-blue-600/30">View Details</button>
                                         ${nextJob.address ? `<a href="http://maps.google.com/?q=${encodeURIComponent(nextJob.address)}" target="_blank" class="bg-app-lighter hover:bg-app-card text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors border border-app-border">Navigate</a>` : ''}
@@ -492,48 +498,76 @@
                     this.params.calendarMonth = now.getMonth();
                     this.params.calendarYear = now.getFullYear();
                 }
+                if (!this.params.calendarViewMode) this.params.calendarViewMode = 'strip';
                 const m = this.params.calendarMonth;
                 const y = this.params.calendarYear;
-                const selectedIso = this.params.date || new Date().toISOString().split('T')[0];
+                const viewMode = this.params.calendarViewMode;
+                const selectedIso = this.params.date || Utils.formatDate(new Date());
+                const todayIso = Utils.formatDate(new Date());
                 const daysInMonth = new Date(y, m + 1, 0).getDate();
-                const monthName = new Date(y, m).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                let daysHtml = '';
-                for (let i = 1; i <= daysInMonth; i++) {
-                    const d = new Date(y, m, i);
-                    const iso = Utils.formatDate(d);
-                    const isSelected = iso === selectedIso;
-                    const dayEvents = DB.getJobsForDate(iso);
-                    const hasJobs = dayEvents.length > 0;
-                    
-                    let dotColor = 'bg-slate-500';
-                    if (dayEvents.some(e => e.type === 'Job' || !e.type)) dotColor = 'bg-blue-500';
-                    else if (dayEvents.some(e => e.type === 'Consultation')) dotColor = 'bg-purple-500';
-                    else if (dayEvents.some(e => e.type === 'Holiday')) dotColor = 'bg-orange-500';
+                const monthName = new Date(y, m).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                let calendarViewHtml = '';
 
-                    daysHtml += `
-                        <div onclick="router.navigate('calendar', {date: '${iso}', calendarMonth: ${m}, calendarYear: ${y}})" 
-                             id="day-${iso}"
-                             class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-20 rounded-2xl border ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-105' : 'bg-app-card border-app-border text-app-muted'} transition-all cursor-pointer snap-center relative">
-                            <span class="text-xs font-medium mb-1 opacity-80">${d.toLocaleDateString('en-US', {weekday:'short'})}</span>
-                            <span class="text-xl font-bold">${i}</span>
-                            ${hasJobs && !isSelected ? `<div class="absolute bottom-2 w-1.5 h-1.5 rounded-full ${dotColor}"></div>` : ''}
-                        </div>`;
+                if (viewMode === 'strip') {
+                    let daysHtml = '';
+                    for (let i = 1; i <= daysInMonth; i++) {
+                        const d = new Date(y, m, i);
+                        const iso = Utils.formatDate(d);
+                        const isSelected = iso === selectedIso;
+                        const isToday = iso === todayIso;
+                        const dayEvents = DB.getJobsForDate(iso);
+                        const hasJobs = dayEvents.length > 0;
+                        let dotColor = 'bg-slate-500';
+                        if (dayEvents.some(e => e.type === 'Job' || !e.type)) dotColor = 'bg-blue-500';
+                        else if (dayEvents.some(e => e.type === 'Consultation')) dotColor = 'bg-purple-500';
+                        else if (dayEvents.some(e => e.type === 'Holiday')) dotColor = 'bg-orange-500';
+                        daysHtml += `<div onclick="router.navigate('calendar', {date: '${iso}', calendarMonth: ${m}, calendarYear: ${y}, calendarViewMode: 'strip'})" id="day-${iso}" class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-20 rounded-2xl border ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-105' : isToday ? 'bg-blue-500/10 border-blue-500/40 text-blue-300' : 'bg-app-card border-app-border text-app-muted'} transition-all cursor-pointer snap-center relative"><span class="text-xs font-medium mb-1 opacity-80">${d.toLocaleDateString('en-GB', {weekday:'short'})}</span><span class="text-xl font-bold">${i}</span>${hasJobs && !isSelected ? `<div class="absolute bottom-2 w-1.5 h-1.5 rounded-full ${dotColor}"></div>` : ''}</div>`;
+                    }
+                    calendarViewHtml = `<div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-5 px-5 snap-x scroll-smooth">${daysHtml}</div>`;
+                } else {
+                    const dayLabels = ['M','T','W','T','F','S','S'];
+                    let firstDow = new Date(y, m, 1).getDay() - 1;
+                    if (firstDow < 0) firstDow = 6;
+                    let gridCells = dayLabels.map(dl => `<div class="text-center text-xs text-app-muted font-bold py-2">${dl}</div>`).join('');
+                    for (let i = 0; i < firstDow; i++) gridCells += `<div></div>`;
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const d = new Date(y, m, day);
+                        const iso = Utils.formatDate(d);
+                        const isSelected = iso === selectedIso;
+                        const isToday = iso === todayIso;
+                        const dayEvents = DB.getJobsForDate(iso);
+                        const hasJobs = dayEvents.length > 0;
+                        let dotColor = 'bg-blue-400';
+                        if (dayEvents.some(e => e.type === 'Consultation')) dotColor = 'bg-purple-400';
+                        else if (dayEvents.some(e => e.type === 'Holiday')) dotColor = 'bg-orange-400';
+                        gridCells += `<div onclick="router.navigate('calendar', {date: '${iso}', calendarMonth: ${m}, calendarYear: ${y}, calendarViewMode: 'grid'})" class="aspect-square flex flex-col items-center justify-center rounded-xl cursor-pointer transition-all active:scale-90 ${isSelected ? 'bg-blue-600 text-white shadow-lg' : isToday ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : 'text-app-muted hover:bg-app-lighter'}"><span class="text-sm font-semibold leading-none">${day}</span>${hasJobs ? `<div class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : dotColor} mt-0.5"></div>` : ''}</div>`;
+                    }
+                    calendarViewHtml = `<div class="grid grid-cols-7 gap-1 mb-2">${gridCells}</div>`;
                 }
+
                 const jobs = DB.getJobsForDate(selectedIso);
                 container.innerHTML = `
                     <div class="pt-12 px-5 pb-6">
-                        <div class="relative mb-6"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted"></i><input type="text" onkeyup="filterJobs(this.value)" placeholder="Search events..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-blue-500"></div>
+                        <div class="relative mb-4"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted"></i><input type="text" onkeyup="filterJobs(this.value)" placeholder="Search events..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-blue-500"></div>
                         <div id="calendar-view">
-                            <div class="flex justify-between items-center mb-4 bg-app-card p-2 rounded-xl border border-app-border">
-                                <button onclick="changeMonth(-1)" class="w-10 h-10 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-solid fa-chevron-left"></i></button><span class="font-semibold text-lg select-none">${monthName}</span><button onclick="changeMonth(1)" class="w-10 h-10 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-solid fa-chevron-right"></i></button>
+                            <div class="flex justify-between items-center mb-3 bg-app-card p-2 rounded-xl border border-app-border">
+                                <button onclick="changeMonth(-1)" class="w-10 h-10 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-solid fa-chevron-left"></i></button>
+                                <span class="font-semibold text-base select-none">${monthName}</span>
+                                <button onclick="changeMonth(1)" class="w-10 h-10 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-solid fa-chevron-right"></i></button>
                             </div>
-                            <div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-5 px-5 snap-x scroll-smooth">${daysHtml}</div>
+                            <div class="flex gap-1 mb-3 bg-app-card p-1 rounded-xl border border-app-border">
+                                <button onclick="toggleCalendarView('strip')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode==='strip' ? 'bg-blue-600 text-white' : 'text-app-muted hover:text-white'}"><i class="fa-solid fa-grip-lines mr-1"></i>Day Strip</button>
+                                <button onclick="toggleCalendarView('grid')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode==='grid' ? 'bg-blue-600 text-white' : 'text-app-muted hover:text-white'}"><i class="fa-regular fa-calendar mr-1"></i>Monthly</button>
+                            </div>
+                            ${calendarViewHtml}
                             <div class="mt-2 flex justify-between items-end mb-2"><div><h2 class="font-semibold text-lg text-white">Schedule</h2><p class="text-app-muted text-sm">${Utils.getFriendlyDate(selectedIso)}</p></div><button onclick="router.navigate('new-event', {date: '${selectedIso}'})" class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-lg"><i class="fa-solid fa-plus"></i></button></div>
                             ${jobs.length === 0 ? this.components.emptyState('No events', 'Add Event', 'new-event') : `<div class="space-y-3 animate-fade-in">${jobs.map(j => this.components.jobCard(j)).join('')}</div>`}
                         </div>
                         <div id="search-results" class="hidden space-y-3 mt-4"></div>
                     </div>`;
-                setTimeout(() => { const el = document.getElementById(`day-${selectedIso}`); if(el) el.scrollIntoView({behavior:'smooth', inline:'center'}); }, 100);
+                if (viewMode === 'strip') {
+                    setTimeout(() => { const el = document.getElementById(`day-${selectedIso}`); if(el) el.scrollIntoView({behavior:'smooth', inline:'center'}); }, 100);
+                }
             },
 
             renderContacts(container) {
@@ -647,7 +681,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div class="min-w-0">
                             <label class="text-xs text-app-muted block mb-1">Date</label>
-                            <input type="date" name="date" id="j-date" onchange="checkConflict()" value="${this.params.date||new Date().toISOString().split('T')[0]}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white text-[16px] appearance-none leading-tight [color-scheme:dark]">
+                            <input type="date" name="date" id="j-date" onchange="checkConflict()" value="${this.params.date||Utils.formatDate(new Date())}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white text-[16px] appearance-none leading-tight [color-scheme:dark]">
                         </div>
                         <div class="min-w-0">
                             <label class="text-xs text-app-muted block mb-1">Time</label>
@@ -701,6 +735,9 @@
                 const balance = (parseFloat(job.price)||0) - (parseFloat(job.deposit)||0);
                 const isJob = !job.type || job.type === 'Job';
                 const isHoliday = job.type === 'Holiday';
+                const contactData = DB.contacts.find(c => c.name === job.contact);
+                const signedOff = !!job.clientSignature;
+                const signedOffDate = signedOff ? new Date(job.signedOffAt).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + ' ' + new Date(job.signedOffAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
 
                 container.innerHTML = `
                     <div class="pt-8 px-5 pb-24 h-full animate-fade-in">
@@ -708,14 +745,18 @@
                         <div class="flex justify-between items-start mb-2"><h1 class="text-2xl font-bold flex-1 mr-4">${job.title}</h1>
                         ${isJob ? `<div class="text-right"><span class="text-lg font-bold text-white block">£${parseFloat(job.price).toFixed(2)}</span><span class="text-xs ${balance > 0 ? 'text-red-400' : 'text-emerald-400'} font-medium">${balance > 0 ? 'Due: £'+balance.toFixed(2) : 'Paid in Full'}</span></div>` : ''}</div>
                         ${job.jobReference ? `<div class="mb-4"><span class="bg-app-lighter border border-app-border text-xs px-2 py-1 rounded text-app-muted font-mono"><i class="fa-solid fa-hashtag text-[10px] mr-1"></i>${job.jobReference}</span></div>` : ''}
-                        
+
+                        ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 mb-4 flex items-center gap-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Signed Off &amp; Complete</p><p class="text-xs text-app-muted">By ${job.signedOffName} · ${signedOffDate}</p></div></div>` : ''}
+
                         ${!isHoliday ? `<div class="mb-6"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${Utils.getEventTypeColor(job.type, job.status)}">${job.status}</span> <span class="ml-2 text-xs text-app-muted italic">${job.type||'Job'}</span></div>` : ''}
                         
                         ${isJob ? `<div class="grid grid-cols-2 gap-3 mb-6"><button onclick="smartMsg('omw', '${id}')" class="bg-blue-600/10 border border-blue-600/30 text-blue-500 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-car-side"></i> On My Way</button><button onclick="generateInvoice('${id}')" class="bg-emerald-600/10 border border-emerald-600/30 text-emerald-500 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-invoice"></i> Copy Invoice</button></div>` : ''}
                         
-                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold">Update Status</h3><div class="flex gap-2 justify-between">${['Scheduled','Completed','Cancelled'].map(s => `<button onclick="DB.updateJobStatus('${id}', '${s}'); router.renderJobDetails(document.getElementById('app-content'), '${id}')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium border ${job.status===s ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-lighter border-app-border text-app-muted'}">${s}</button>`).join('')}</div></div>
-                        
-                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6">
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold">Update Status</h3><div class="flex gap-2 justify-between">${['Scheduled','Completed','Cancelled'].map(s => `<button onclick="DB.updateJobStatus('${id}', '${s}'); router.renderJobDetails(document.getElementById('app-content'), '${id}')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium border ${job.status===s ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-lighter border-app-border text-app-muted'}">${s}</button>`).join('')}</div></div>` : ''}
+
+                        ${!isHoliday && job.contact ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6 flex items-center gap-3 ${contactData ? 'cursor-pointer active:scale-95 transition-transform' : ''}" ${contactData ? `onclick="router.navigate('contact-details', {id: '${contactData.id}'})"` : ''}><div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${Utils.getInitials(job.contact)}</div><div class="flex-1 min-w-0"><p class="text-sm font-semibold text-white truncate">${job.contact}</p><p class="text-xs text-app-muted">${contactData ? (contactData.company || 'Private Client') : 'Private Client'}</p></div>${contactData ? '<i class="fa-solid fa-chevron-right text-app-muted"></i>' : ''}</div>` : ''}
+
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6">
                             <div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-folder-open"></i> Documents</h3><button onclick="document.getElementById('doc-upload').click()" class="text-blue-500 text-xs font-bold">+ Add File</button><input type="file" id="doc-upload" class="hidden" onchange="handleDocUpload(event, '${id}')"></div>
                             <div class="space-y-2">${documents.length === 0 ? '<p class="text-sm text-app-muted italic">No documents attached.</p>' : documents.map((doc, i) => `<div class="flex items-center justify-between p-3 bg-app-lighter rounded-lg border border-app-border"><div class="flex items-center gap-3 overflow-hidden"><div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-lines"></i></div><a href="${doc.data}" download="${doc.name}" class="text-sm text-white truncate hover:text-blue-400 transition-colors">${doc.name}</a></div><button onclick="deleteDoc('${id}', ${i})" class="text-app-muted hover:text-red-400 px-2"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div>
                         </div>` : ''}
@@ -728,11 +769,16 @@
                             ${!job.jobDescription && !job.vinylCodes ? '<p class="text-sm text-app-muted italic">No details added.</p>' : ''}
                         </div>
                         <div class="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-emerald-500 uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-boxes-stacked"></i> Materials</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Ordered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsOrdered')" ${job.materialsOrdered ? 'checked' : ''} class="custom-checkbox-green"></div><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Delivered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsDelivered')" ${job.materialsDelivered ? 'checked' : ''} class="custom-checkbox-green"></div></div></div>
-                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-file-contract"></i> Payments & Admin</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-white">Deposit Paid (£${parseFloat(job.deposit).toFixed(2)})</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'depositPaid')" ${job.depositPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="flex items-center justify-between"><span class="text-sm text-white">Full Payment</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'fullPaymentPaid')" ${job.fullPaymentPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="flex items-center justify-between"><span class="text-sm text-white">Agreement Signed</span><div class="flex gap-4 items-center"><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementSigned')" ${job.agreementSigned ? 'checked' : ''} class="custom-checkbox"> Signed</label><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementNA')" ${job.agreementNA ? 'checked' : ''} class="custom-checkbox"> N/A</label></div></div></div></div>` : ''}
+                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-file-contract"></i> Payments &amp; Admin</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-white">Deposit Paid (£${parseFloat(job.deposit).toFixed(2)})</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'depositPaid')" ${job.depositPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="flex items-center justify-between"><span class="text-sm text-white">Full Payment</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'fullPaymentPaid')" ${job.fullPaymentPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="flex items-center justify-between"><span class="text-sm text-white">Agreement Signed</span><div class="flex gap-4 items-center"><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementSigned')" ${job.agreementSigned ? 'checked' : ''} class="custom-checkbox"> Signed</label><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementNA')" ${job.agreementNA ? 'checked' : ''} class="custom-checkbox"> N/A</label></div></div></div></div>
+
+                        <div class="bg-app-card border ${signedOff ? 'border-emerald-500/40' : 'border-app-border'} rounded-xl p-4 mb-6">
+                            <h3 class="text-xs ${signedOff ? 'text-emerald-500' : 'text-app-muted'} uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-pen-nib mr-1"></i>Client Sign-Off</h3>
+                            ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-3"><div class="flex items-center gap-3 mb-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Job Complete — Client Signed Off</p><p class="text-xs text-app-muted">Signed by <strong class="text-white">${job.signedOffName}</strong> on ${signedOffDate}</p></div></div><div class="bg-white rounded-xl p-2"><img src="${job.clientSignature}" class="w-full object-contain" style="max-height:120px;"></div></div>` : `<p class="text-sm text-app-muted italic mb-3">No client sign-off recorded yet.</p><button onclick="openSignOffModal('${id}')" class="w-full bg-blue-600/10 border border-blue-600/30 text-blue-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-blue-600/20 transition-colors"><i class="fa-solid fa-signature"></i> Capture Client Signature</button>`}
+                        </div>` : ''}
                         
                         ${job.accommodationNeeded ? `<div class="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-indigo-400 uppercase tracking-wider mb-2 font-semibold"><i class="fa-solid fa-bed"></i> Accommodation</h3><p class="text-sm text-white font-semibold">${job.accomHotel || 'Hotel not specified'}</p><div class="flex gap-4 mt-2"><p class="text-xs text-app-muted"><span class="block font-bold text-indigo-300">Ref:</span> ${job.accomRef || 'N/A'}</p><p class="text-xs text-app-muted"><span class="block font-bold text-indigo-300">Check-in:</span> ${job.accomTime || 'N/A'}</p></div></div>` : ''}
                         
-                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera"></i> Gallery</h3><button onclick="document.getElementById('photo-upload').click()" class="text-blue-500 text-xs font-bold">+ Add Photo</button><input type="file" id="photo-upload" accept="image/*" class="hidden" onchange="handlePhotoUpload(event, '${id}')"></div><div class="flex gap-2 overflow-x-auto pb-2">${photos.length === 0 ? '<p class="text-sm text-app-muted italic">No photos yet.</p>' : photos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border"><img src="${src}" class="w-full h-full object-cover"><button onclick="deletePhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"><i class="fa-solid fa-times"></i></button></div>`).join('')}</div></div>` : ''}
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera"></i> Gallery</h3><button onclick="document.getElementById('photo-upload').click()" class="text-blue-500 text-xs font-bold">+ Add Photos</button><input type="file" id="photo-upload" accept="image/*" multiple class="hidden" onchange="handlePhotoUpload(event, '${id}')"></div><div class="flex gap-2 overflow-x-auto pb-2">${photos.length === 0 ? '<p class="text-sm text-app-muted italic">No photos yet.</p>' : photos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border group cursor-pointer" onclick="openPhotoLightbox('${id}', ${i})"><img src="${src}" class="w-full h-full object-cover pointer-events-none"><button onclick="event.stopPropagation(); deletePhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-times"></i></button></div>`).join('')}</div></div>` : ''}
                         
                         <div class="space-y-4">
                             ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-list-check"></i> Tasks</h3>${checklist.map((item, idx) => `<div class="flex items-center gap-3 p-2 rounded-lg"><input type="checkbox" onchange="DB.toggleChecklist('${id}', ${idx}); router.renderJobDetails(document.getElementById('app-content'), '${id}')" ${item.done ? 'checked' : ''} class="custom-checkbox"><span class="text-sm ${item.done ? 'line-through text-app-muted' : 'text-white'}">${item.text}</span></div>`).join('')}<form onsubmit="event.preventDefault(); const i=this.querySelector('input'); if(i.value){DB.addChecklist('${id}', i.value); i.value=''; router.renderJobDetails(document.getElementById('app-content'), '${id}')}" class="flex gap-2 mt-2"><input placeholder="Add task..." class="flex-1 bg-app-lighter rounded-lg px-3 py-2 text-sm text-white focus:outline-none"><button class="text-blue-500 font-bold px-2">+</button></form></div>` : ''}
