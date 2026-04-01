@@ -260,6 +260,7 @@
         const DB = {
             jobs: [], contacts: [], user: { name: "Richard", email: "richarddyatess@gmail.com" },
             settings: { monthlyGoal: 5000 },
+            updatedAt: null,
             secureNotes: "Gateway ID: 54 02 69 02 45 51\nEORI: GB045268219000",
             vaultEntries: [
                 { id: 'vault-gateway', label: 'Gateway ID', value: '54 02 69 02 45 51', kind: 'Code' },
@@ -321,10 +322,12 @@
                 const sN = localStorage.getItem('app_secure_notes');
                 const sS = localStorage.getItem('app_settings');
                 const sV = localStorage.getItem('app_vault_entries');
+                const sU = localStorage.getItem('app_updated_at');
                 if (sJ) this.jobs = JSON.parse(sJ);
                 if (sC) this.contacts = JSON.parse(sC);
                 if (sN) this.secureNotes = sN;
                 if (sS) this.settings = JSON.parse(sS);
+                this.updatedAt = sU || new Date().toISOString();
                 if (sV) {
                     try { this.vaultEntries = JSON.parse(sV); } catch (_) {}
                 } else if (this.secureNotes) {
@@ -339,11 +342,13 @@
             },
             save(options = {}) {
                 this.normalizeAndDeduplicateData();
+                if (!options.preserveTimestamp) this.updatedAt = new Date().toISOString();
                 localStorage.setItem('app_jobs', JSON.stringify(this.jobs));
                 localStorage.setItem('app_contacts', JSON.stringify(this.contacts));
                 localStorage.setItem('app_secure_notes', this.secureNotes);
                 localStorage.setItem('app_vault_entries', JSON.stringify(this.vaultEntries));
                 localStorage.setItem('app_settings', JSON.stringify(this.settings));
+                localStorage.setItem('app_updated_at', this.updatedAt || new Date().toISOString());
                 if (!options.skipCloud) CloudSync.queuePush();
             },
             getSerializableData() {
@@ -354,13 +359,14 @@
                     secureNotes: this.secureNotes,
                     vaultEntries: this.vaultEntries,
                     settings: this.settings,
-                    updatedAt: new Date().toISOString()
+                    updatedAt: this.updatedAt || new Date().toISOString()
                 };
             },
             loadFromObject(payload = {}) {
                 this.jobs = Array.isArray(payload.jobs) ? payload.jobs : [];
                 this.contacts = Array.isArray(payload.contacts) ? payload.contacts : [];
                 this.secureNotes = payload.secureNotes || this.secureNotes;
+                this.updatedAt = payload.updatedAt || this.updatedAt || new Date().toISOString();
                 this.vaultEntries = Array.isArray(payload.vaultEntries) ? payload.vaultEntries : (this.secureNotes ? this.secureNotes.split('\n').map((line, idx) => {
                     const parts = line.split(':');
                     const label = (parts.shift() || `Item ${idx + 1}`).trim();
@@ -369,7 +375,7 @@
                 }).filter(x => x.value) : this.vaultEntries);
                 this.settings = { monthlyGoal: 5000, ...(payload.settings || this.settings || {}) };
                 this.migrateData();
-                this.save({ skipCloud: true });
+                this.save({ skipCloud: true, preserveTimestamp: true });
             },
             migrateData() {
                 this.contacts = (this.contacts || []).map(c => ({ ...c, id: c.id || this.makeId('contact') }));
@@ -645,6 +651,10 @@
             store: null,
             user: null,
             pushTimer: null,
+            syncInProgress: false,
+            lastSyncedAt: null,
+            lastSyncStatus: 'Idle',
+            lastSyncAttemptAt: 0,
             initialized: false,
             config: {
                 apiKey: "AIzaSyAT_VsOcL1BFsznR0GcQrA3B-ML-Sx-wIw",
@@ -665,8 +675,12 @@
                     this.initialized = true;
                     this.auth.onAuthStateChanged(async (u) => {
                         this.user = u || null;
-                        if (this.user) await this.pullRemoteData();
+                        if (this.user) await this.pullRemoteData({ silent: false, forceReconcile: true });
                         if (router.currentRoute === 'more') router.renderMore(document.getElementById('app-content'));
+                    });
+                    window.addEventListener('online', () => this.autoSync('online'));
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') this.autoSync('focus');
                     });
                 } catch (err) {
                     console.error('Cloud init failed', err);
@@ -683,26 +697,86 @@
             async signOut() {
                 if (!this.auth) return;
                 await this.auth.signOut();
+                this.lastSyncStatus = 'Signed out';
+                this.lastSyncedAt = null;
             },
             queuePush() {
-                if (!this.user || !this.store) return;
+                if (!this.user || !this.store || this.syncInProgress) return;
                 clearTimeout(this.pushTimer);
                 this.pushTimer = setTimeout(() => this.pushRemoteData(), 800);
             },
-            async pushRemoteData() {
-                if (!this.user || !this.store) return;
-                await this.store.collection('trackerData').doc(this.user.uid).set(DB.getSerializableData(), { merge: true });
+            parseTimestamp(ts) {
+                const ms = Date.parse(ts || '');
+                return Number.isFinite(ms) ? ms : 0;
             },
-            async pullRemoteData() {
+            buildMergedPayload(localData = {}, remoteData = {}) {
+                const localMs = this.parseTimestamp(localData.updatedAt);
+                const remoteMs = this.parseTimestamp(remoteData.updatedAt);
+                const preferLocal = localMs >= remoteMs;
+                const primary = preferLocal ? localData : remoteData;
+                const secondary = preferLocal ? remoteData : localData;
+                return {
+                    jobs: [...(primary.jobs || []), ...(secondary.jobs || [])],
+                    contacts: [...(primary.contacts || []), ...(secondary.contacts || [])],
+                    vaultEntries: [...(primary.vaultEntries || []), ...(secondary.vaultEntries || [])],
+                    secureNotes: primary.secureNotes || secondary.secureNotes || '',
+                    settings: { ...(secondary.settings || {}), ...(primary.settings || {}) },
+                    updatedAt: new Date().toISOString()
+                };
+            },
+            async autoSync(reason = 'auto') {
+                const now = Date.now();
+                if (!this.user || !this.store || this.syncInProgress) return;
+                if (now - this.lastSyncAttemptAt < 15000) return;
+                this.lastSyncAttemptAt = now;
+                try {
+                    await this.pullRemoteData({ silent: true, forceReconcile: true });
+                } catch (err) {
+                    console.warn(`Auto sync (${reason}) failed`, err);
+                }
+            },
+            async pushRemoteData(options = {}) {
                 if (!this.user || !this.store) return;
+                this.syncInProgress = true;
+                this.lastSyncStatus = 'Syncing';
+                try {
+                    await this.store.collection('trackerData').doc(this.user.uid).set(DB.getSerializableData(), { merge: true });
+                    this.lastSyncedAt = new Date().toISOString();
+                    this.lastSyncStatus = 'Synced';
+                    if (!options.silent) showToast('Cloud data uploaded');
+                } finally {
+                    this.syncInProgress = false;
+                    if (router.currentRoute === 'more') router.renderMore(document.getElementById('app-content'));
+                }
+            },
+            async pullRemoteData(options = {}) {
+                if (!this.user || !this.store) return;
+                this.syncInProgress = true;
+                this.lastSyncStatus = 'Syncing';
                 const ref = this.store.collection('trackerData').doc(this.user.uid);
-                const snap = await ref.get();
-                if (snap.exists) {
-                    DB.loadFromObject(snap.data() || {});
-                    showToast('Cloud data synced');
-                } else {
-                    await this.pushRemoteData();
-                    showToast('Cloud store initialized');
+                try {
+                    const snap = await ref.get();
+                    if (snap.exists) {
+                        const remoteData = snap.data() || {};
+                        if (options.forceReconcile) {
+                            const merged = this.buildMergedPayload(DB.getSerializableData(), remoteData);
+                            DB.loadFromObject(merged);
+                            await ref.set(DB.getSerializableData(), { merge: false });
+                        } else {
+                            DB.loadFromObject(remoteData);
+                        }
+                        this.lastSyncedAt = new Date().toISOString();
+                        this.lastSyncStatus = 'Synced';
+                        if (!options.silent) showToast('Cloud data synced');
+                    } else {
+                        await ref.set(DB.getSerializableData(), { merge: true });
+                        this.lastSyncedAt = new Date().toISOString();
+                        this.lastSyncStatus = 'Initialized';
+                        if (!options.silent) showToast('Cloud store initialized');
+                    }
+                } finally {
+                    this.syncInProgress = false;
+                    if (router.currentRoute === 'more') router.renderMore(document.getElementById('app-content'));
                 }
             }
         };
@@ -1225,7 +1299,7 @@
             renderMore(container) { container.innerHTML = `
                 <div class="pt-12 px-5 pb-20 animate-fade-in"><div class="mb-6"><h1 class="text-2xl font-bold">More</h1><p class="text-app-muted text-sm">${DB.user.email}</p></div>
                 <div class="bg-app-card border border-app-border rounded-xl overflow-hidden mb-6"><button onclick="router.navigate('secure-login')" class="w-full p-4 flex items-center justify-between text-white hover:bg-app-lighter"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-lg"><i class="fa-solid fa-lock"></i></div><div><h4 class="font-medium">Secure Vault</h4><p class="text-xs text-app-muted">Important IDs & Codes</p></div></div><i class="fa-solid fa-chevron-right text-app-muted"></i></button></div>
-                <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex items-center justify-between mb-2"><h4 class="font-medium text-white">Cloud Sync</h4><span class="text-[10px] px-2 py-1 rounded-full ${CloudSync.user ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${CloudSync.user ? 'Connected' : 'Offline'}</span></div><p class="text-xs text-app-muted mb-3">Optional: sync data across devices with Firebase.</p>${CloudSync.user ? `<p class="text-xs text-app-muted mb-3">Signed in as <span class="text-white">${CloudSync.user.email}</span></p><div class="grid grid-cols-3 gap-2"><button onclick="cloudSyncNow()" class="bg-cyan-600/20 border border-cyan-600/30 text-cyan-300 py-2.5 rounded-lg text-xs font-semibold">Pull Cloud</button><button onclick="cloudUploadNow()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Upload Local</button><button onclick="cloudSignOut()" class="bg-red-600/20 border border-red-600/30 text-red-300 py-2.5 rounded-lg text-xs font-semibold">Sign Out</button></div>` : `<div class="grid grid-cols-2 gap-2"><button onclick="cloudLoginPrompt()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Log In</button><button onclick="cloudSignupPrompt()" class="bg-emerald-600/20 border border-emerald-600/30 text-emerald-300 py-2.5 rounded-lg text-xs font-semibold">Create Account</button></div>`}</div>
+                <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex items-center justify-between mb-2"><h4 class="font-medium text-white">Cloud Sync</h4><span class="text-[10px] px-2 py-1 rounded-full ${CloudSync.user ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${CloudSync.user ? 'Connected' : 'Offline'}</span></div><p class="text-xs text-app-muted mb-3">${CloudSync.user ? `Auto-sync on open/focus is enabled · ${CloudSync.lastSyncStatus}${CloudSync.lastSyncedAt ? ` · ${new Date(CloudSync.lastSyncedAt).toLocaleString('en-GB')}` : ''}` : 'Optional: sync data across devices with Firebase.'}</p>${CloudSync.user ? `<p class="text-xs text-app-muted mb-3">Signed in as <span class="text-white">${CloudSync.user.email}</span></p><div class="grid grid-cols-3 gap-2"><button onclick="cloudSyncNow()" class="bg-cyan-600/20 border border-cyan-600/30 text-cyan-300 py-2.5 rounded-lg text-xs font-semibold">Pull Cloud</button><button onclick="cloudUploadNow()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Upload Local</button><button onclick="cloudSignOut()" class="bg-red-600/20 border border-red-600/30 text-red-300 py-2.5 rounded-lg text-xs font-semibold">Sign Out</button></div>` : `<div class="grid grid-cols-2 gap-2"><button onclick="cloudLoginPrompt()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Log In</button><button onclick="cloudSignupPrompt()" class="bg-emerald-600/20 border border-emerald-600/30 text-emerald-300 py-2.5 rounded-lg text-xs font-semibold">Create Account</button></div>`}</div>
                 <div class="space-y-3"><button onclick="document.getElementById('csv').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-file-csv text-green-500"></i> Import CSV</button><input id="csv" type="file" class="hidden" accept=".csv" onchange="handleCSV(this)"><button onclick="Utils.downloadJSON(DB.getSerializableData(), 'backup.json')" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-download text-blue-500"></i> Backup Data</button><button onclick="document.getElementById('restore-json').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-upload text-cyan-400"></i> Restore Backup</button><input id="restore-json" type="file" class="hidden" accept=".json,application/json" onchange="handleJSONRestore(this)"><button onclick="const r=prompt('Type RESET to confirm wipe:'); if(r==='RESET'){localStorage.clear();location.reload()}" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-red-400"><i class="fa-solid fa-trash"></i> Reset App</button></div></div>`; },
             renderSecureLogin(c) { this.tempPasscode = ''; c.innerHTML = `<div class="h-full flex flex-col items-center justify-center px-6"><div class="mb-8 text-center"><div class="w-16 h-16 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-3xl mx-auto mb-4"><i class="fa-solid fa-shield-halved"></i></div><h2 class="text-2xl font-bold text-white mb-2">Secure Vault</h2><p class="text-app-muted text-sm">Enter passcode to access</p></div><div id="dots" class="flex gap-4 mb-10 justify-center h-4">${[...Array(6)].map(() => '<div class="dot"></div>').join('')}</div><div class="grid grid-cols-3 gap-6">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="keypad-btn" onclick="handleKeypad(${n})">${n}</button>`).join('')}<button class="keypad-btn bg-transparent border-none text-sm" onclick="router.navigate('more')">Cancel</button><button class="keypad-btn" onclick="handleKeypad(0)">0</button><button class="keypad-btn bg-transparent border-none text-red-400" onclick="handleKeypad('del')"><i class="fa-solid fa-delete-left"></i></button></div></div>`; },
             renderSecureNotes(c) {
@@ -1720,6 +1794,7 @@
                     const ok = confirm('Restore this backup? This will replace current app data on this device.');
                     if (!ok) return;
                     DB.loadFromObject(data);
+                    if (CloudSync.user) CloudSync.queuePush();
                     showToast('Backup restored');
                     router.navigate('today');
                 } catch (e) {
