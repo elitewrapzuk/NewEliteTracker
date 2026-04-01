@@ -252,20 +252,76 @@
     <script>
         const DEFAULT_TEMPLATES = [
             {
-                id: 'tpl-deposit-reminder',
-                name: 'Deposit Reminder',
-                subject: 'Deposit reminder – {{jobNumber}}',
-                body: 'Hi {{clientName}},\n\nJust a quick reminder for the deposit on {{jobTitle}} ({{jobNumber}}) scheduled for {{jobDate}}.\n\nAmount due: {{balance}}\n\nThanks,\n{{companyName}}',
+                id: 'tpl-quote-sent',
+                name: 'Quote Sent',
+                subject: 'Your Elite Wrapz Quote',
+                body: 'Hi {name},\n\nThank you for considering Elite Wrapz!\n\nYour total quote is {quoteTotal}, with a deposit of {depositTotal} required to secure your booking.\n\nPlease note:\n- Quotes are valid for 30 days.\n- To accept this quote, simply reply to this message.\n- We offer a Price Match Guarantee with proof of an official business quote (letterhead or email with full breakdown).\n- Discounts must be mentioned before your deposit is paid.\n- Deposits are non-refundable unless otherwise stated in our terms.\n\nFull terms & conditions: https://elitewrapz.uk/termsandconditions\n\nBest regards,\nThe Elite Wrapz Team',
                 channel: 'email'
             },
             {
-                id: 'tpl-install-prep',
-                name: 'Install Prep Message',
-                subject: 'Install prep – {{jobDate}}',
-                body: 'Hi {{clientName}},\n\nLooking forward to your install on {{jobDate}} at {{address}}.\n\nIf you have any questions before we arrive, just reply here.\n\nThanks,\n{{companyName}}',
+                id: 'tpl-quote-reminder',
+                name: 'Quote Reminder',
+                subject: 'Following Up on Your Elite Wrapz Quote',
+                body: 'Hi {name},\n\nJust checking in to see if you had a chance to review your quote from Elite Wrapz.\n\nIf you’d like to move forward, we’d love to get you booked in and secure your date. If you have any questions, feel free to reply anytime.\n\nBest regards,\nThe Elite Wrapz Team',
+                channel: 'email'
+            },
+            {
+                id: 'tpl-deposit-request',
+                name: 'Deposit Request',
+                subject: 'Your Elite Wrapz Quote & Deposit Request',
+                body: 'Hi {name},\n\nThank you for choosing Elite Wrapz!\n\nYour quote total is {quoteTotal}, with a deposit of {depositTotal} required to secure your booking. Please use the link below to pay your deposit:\n\n🔗 {paymentLink}\n\n⚠️ Please note:\n- We can only hold your requested date for 24 hours without a deposit.\n- All quotes are valid for 30 days.\n- Any discount codes must be provided before your deposit is paid.\n\nFull terms: https://elitewrapz.uk/termsandconditions\n\nBest regards,\nThe Elite Wrapz Team',
+                channel: 'email'
+            },
+            {
+                id: 'tpl-services-agreement',
+                name: 'Services Agreement',
+                subject: 'Elite Wrapz – Services Agreement Review',
+                body: 'Hi {name},\n\nPlease find attached our Services Agreement for you to review.\n\nIf you’re happy with everything, I can send you a secure link to provide your signature digitally. Alternatively, if we’re meeting in person, I can collect your signature on the day.\n\nIf you have any questions, please let me know before signing.\n\nOnce signed, we’ll be ready to move forward with your project.\n\nBest regards,\nThe Elite Wrapz Team',
+                channel: 'email'
+            },
+            {
+                id: 'tpl-signature-request',
+                name: 'Signature Request',
+                subject: 'Elite Wrapz has requested your signature – {agreementType}',
+                body: 'Hi {name},\n\nWe’ve set up a secure link for you to digitally sign your {agreementType}.\n\nPlease click below to review and sign:\n\n🔗 {signatureLink}\n\nOnce signed, you’ll receive a confirmation email and your copy of the signed document.\n\nIf you have any questions, let us know before completing the signature.\n\nBest regards,\nThe Elite Wrapz Team',
+                channel: 'email'
+            },
+            {
+                id: 'tpl-booking-confirmation',
+                name: 'Booking Confirmation',
+                subject: 'Your Elite Wrapz Booking is Confirmed',
+                body: 'Hi {name},\n\nWe’re pleased to confirm your Elite Wrapz booking:\n\n📅 Date: {bookingDate}\n⏰ Time: {bookingTime}\n\nBefore the day, please make sure all wrap areas are clear of items.\n\nYou’ll also receive a final checklist email 1 day before we arrive.\n\nBest regards,\nThe Elite Wrapz Team',
+                channel: 'email'
+            },
+            {
+                id: 'tpl-wrap-day-prep',
+                name: 'Wrap Day Prep',
+                subject: 'Final Prep Before Your Wrap Day – Elite Wrapz',
+                body: 'Hi {name},\n\nYour big vinyl-wrapping day is almost here, and we’re just as excited as you are! Before we get started, here are a few quick notes to help things run smoothly:\n\n📦 Access & Parking\nPlease let us know about any tricky gates, parking restrictions, or local surprises.\n\n🧹 Clear Surfaces\nKindly make sure worktops and the surrounding area are clear. Insurance rules mean we can’t move personal items.\n\n🐾 Pets & Safety\nPlease keep pets and little ones away from the workspace during installation.\n\n🧴 Cleaning & Primer\nWe use strong cleaning agents and a primer before wrapping. If anyone in your household is pregnant, sensitive to strong smells, or you’d prefer us not to use these, please let us know in advance. The primer smell is temporary and fades quickly, but the cleaner lingers a little longer.\n\n⏳ All-Day Job\nWrapping can take most of the day depending on your kitchen. If you need to pop out, that’s no problem—just please ensure someone is back home for the final handover.\n\n💳 Payments\nIf there are any outstanding payments, now’s the time to get those squared away.\n\nWe’re looking forward to making your kitchen look amazing!\nBest regards,\nElite Wrapz Team',
                 channel: 'whatsapp'
+            },
+            {
+                id: 'tpl-thank-you-reviews',
+                name: 'Thank You & Reviews',
+                subject: 'Thank You for Choosing Elite Wrapz – Share Your Thoughts',
+                body: 'Hi {name},\n\nWe just wanted to say a huge thank you for choosing Elite Wrapz to transform your space – we hope you love the results!\n\nYour feedback means the world to us and helps others discover what we do. Please leave us a review:\n\n⭐ Google: https://share.google/JaMpIl01UkDLu8Qhx\n⭐ Trustpilot: https://uk.trustpilot.com/review/elitewrapz.uk\n⭐ Facebook: https://www.facebook.com/share/1ChEa8KkqQ/?mibextid=\n\n💡 Leave a review on all three and you’ll receive 20% off your next wrap as a thank you!\n\nBest regards,\nThe Elite Wrapz Team',
+                channel: 'email'
             }
         ];
+
+        function mergeWithDefaultTemplates(rawTemplates = []) {
+            const defaults = [...DEFAULT_TEMPLATES];
+            const normalizedExisting = (Array.isArray(rawTemplates) ? rawTemplates : []).map((t, idx) => ({
+                id: (t.id || `tpl-custom-${idx + 1}`).toString(),
+                name: (t.name || `Template ${idx + 1}`).toString(),
+                subject: (t.subject || '').toString(),
+                body: (t.body || '').toString(),
+                channel: (t.channel || 'email').toString().toLowerCase()
+            }));
+            const map = new Map(defaults.map(t => [t.id, t]));
+            normalizedExisting.forEach(t => map.set(t.id, t));
+            return Array.from(map.values());
+        }
 
         // --- DATA MANAGEMENT ---
         const DB = {
@@ -355,7 +411,7 @@
                 this.settings = {
                     monthlyGoal: 5000,
                     ...(this.settings || {}),
-                    templates: Array.isArray((this.settings || {}).templates) && (this.settings || {}).templates.length ? (this.settings || {}).templates : [...DEFAULT_TEMPLATES],
+                    templates: mergeWithDefaultTemplates((this.settings || {}).templates),
                     branding: {
                         companyName: 'ELITE WRAPZ',
                         logoUrl: '',
@@ -412,7 +468,7 @@
                 this.settings = {
                     monthlyGoal: 5000,
                     ...(payload.settings || this.settings || {}),
-                    templates: Array.isArray(((payload.settings || this.settings || {}).templates)) && ((payload.settings || this.settings || {}).templates).length ? ((payload.settings || this.settings || {}).templates) : [...DEFAULT_TEMPLATES],
+                    templates: mergeWithDefaultTemplates((payload.settings || this.settings || {}).templates),
                     branding: {
                         companyName: 'ELITE WRAPZ',
                         logoUrl: '',
@@ -452,13 +508,7 @@
                     value: v.value || '',
                     kind: v.kind || 'Code'
                 }));
-                this.settings.templates = (Array.isArray((this.settings || {}).templates) && this.settings.templates.length ? this.settings.templates : [...DEFAULT_TEMPLATES]).map((t, idx) => ({
-                    id: t.id || this.makeId('tpl'),
-                    name: (t.name || `Template ${idx + 1}`).toString(),
-                    subject: (t.subject || '').toString(),
-                    body: (t.body || '').toString(),
-                    channel: (t.channel || 'email').toString().toLowerCase()
-                }));
+                this.settings.templates = mergeWithDefaultTemplates((this.settings || {}).templates);
                 this.normalizeAndDeduplicateData();
             },
             addVaultEntry(entry) {
@@ -1620,7 +1670,7 @@
                         <button onclick="addTemplate()" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold"><i class="fa-solid fa-plus mr-1"></i>New</button>
                     </div>
                     <h1 class="text-2xl font-bold mb-2">Message Templates</h1>
-                    <p class="text-xs text-app-muted mb-4">Use placeholders like {{clientName}}, {{jobNumber}}, {{jobDate}}, {{balance}}.</p>
+                    <p class="text-xs text-app-muted mb-4">Use placeholders like {name}, {quoteTotal}, {depositTotal}, {bookingDate} (or {{clientName}} style).</p>
 
                     <div class="bg-app-card border border-app-border rounded-xl p-3 mb-5 space-y-2">
                         <p class="text-[11px] text-app-muted uppercase tracking-wider">Context</p>
@@ -2091,22 +2141,41 @@
             const contactFromParam = contactId ? DB.getContactById(contactId) : null;
             const contact = contactFromParam || contactFromJob || (job?.contact ? DB.contacts.find(c => c.name === job.contact) : null) || null;
             const balanceRaw = Math.max(0, (parseFloat(job?.price) || 0) - (parseFloat(job?.deposit) || 0));
+            const quoteRaw = parseFloat(job?.price);
+            const depositRaw = parseFloat(job?.deposit);
+            const quoteTotal = Number.isFinite(quoteRaw) && quoteRaw > 0 ? `£${quoteRaw.toFixed(2)}` : '____';
+            const depositTotal = Number.isFinite(depositRaw) && depositRaw > 0 ? `£${depositRaw.toFixed(2)}` : '____';
+            const bookingDate = job?.date ? Utils.getFriendlyDate(job.date) : '____';
+            const bookingTime = job?.time || '____';
+            const agreementType = job?.agreementType || 'Services Agreement';
+            const signatureLink = job?.signatureLink || '[Insert Link]';
+            const paymentLink = job?.paymentLink || '[Insert Link]';
             const tokens = {
-                clientName: contact?.name || job?.contact || 'Client',
+                clientName: contact?.name || job?.contact || 'Customer',
                 clientPhone: contact?.phone || '',
                 clientEmail: contact?.email || '',
+                name: contact?.name || job?.contact || 'Customer',
                 fao: contact?.fao || '',
                 jobTitle: job?.title || '',
                 jobNumber: job?.jobNumber || '',
                 jobReference: job?.jobReference || '',
                 jobDate: job?.date ? Utils.getFriendlyDate(job.date) : '',
                 jobTime: job?.time || '',
+                bookingDate,
+                bookingTime,
                 address: job?.address || contact?.address || '',
                 service: job?.service || '',
                 balance: `£${balanceRaw.toFixed(2)}`,
+                quoteTotal,
+                depositTotal,
+                paymentLink,
+                agreementType,
+                signatureLink,
                 companyName: (DB.settings?.branding?.companyName || 'ELITE WRAPZ')
             };
-            const apply = (txt) => String(txt || '').replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, k) => (tokens[k] ?? ''));
+            const apply = (txt) => String(txt || '')
+                .replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, k) => (tokens[k] ?? ''))
+                .replace(/\{\s*([a-zA-Z0-9_]+)\s*\}/g, (_, k) => (tokens[k] ?? ''));
             return { template: tpl, job, contact, subject: apply(tpl.subject), body: apply(tpl.body) };
         }
         function saveTemplates(nextTemplates) {
