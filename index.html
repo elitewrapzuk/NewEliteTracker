@@ -207,6 +207,12 @@
                 <i class="fa-solid fa-chevron-right text-app-muted text-xs"></i>
             </button>
 
+            <button onclick="router.navigate('insights'); toggleFabMenu()" class="w-full text-left bg-app-card border border-app-border text-white px-3 py-2.5 rounded-xl flex items-center gap-3 hover:bg-app-lighter transition-all mb-2">
+                <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="flex-1"><span class="block text-sm font-semibold">Insights</span><span class="text-[10px] text-app-muted">Revenue & Jobs</span></div>
+                <i class="fa-solid fa-chevron-right text-app-muted text-xs"></i>
+            </button>
+
             <button onclick="window.open('https://elitewrapzuk.github.io/elitequoter/', '_blank'); toggleFabMenu()" class="w-full text-left bg-app-card border border-app-border text-white px-3 py-2.5 rounded-xl flex items-center gap-3 hover:bg-app-lighter transition-all mb-2">
                 <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                 <div class="flex-1"><span class="block text-sm font-semibold">New Quote</span><span class="text-[10px] text-app-muted">Elite Quoter</span></div>
@@ -1035,6 +1041,7 @@
                     'calendar': () => this.renderCalendar(c),
                     'contacts': () => this.renderContacts(c),
                     'more': () => this.renderMore(c),
+                    'insights': () => this.renderInsights(c),
                     'templates': () => this.renderTemplates(c),
                     'secure-login': () => this.renderSecureLogin(c),
                     'secure-notes': () => this.renderSecureNotes(c),
@@ -1052,12 +1059,10 @@
             },
 
             renderToday(container) {
-                const stats = DB.getDashboardStats();
                 const upcomingJobs = DB.getUpcomingJobs();
                 const materialReminders = DB.getMaterialReminders(5);
                 const actionQueue = DB.getActionQueue(6);
                 const nextJob = upcomingJobs.length > 0 ? upcomingJobs[0] : null;
-                const monthName = new Date().toLocaleDateString('en-US', {month: 'long'});
                 const syncLabel = !CloudSync.user ? 'Local only' : (CloudSync.syncInProgress ? 'Syncing…' : (CloudSync.pendingChanges ? 'Pending upload' : 'Cloud synced'));
                 const syncClass = !CloudSync.user ? 'text-amber-300 border-amber-500/30 bg-amber-500/10' : (CloudSync.syncInProgress ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' : (CloudSync.pendingChanges ? 'text-orange-300 border-orange-500/30 bg-orange-500/10' : 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10'));
                 let currentHeader = '';
@@ -1078,13 +1083,15 @@
                     });
                     jobListHtml += '</div>';
                 }
-                const goalPct = DB.settings.monthlyGoal > 0 ? Math.min(100, Math.round((stats.monthRevenue / DB.settings.monthlyGoal) * 100)) : 0;
 
                 container.innerHTML = `
                     <div class="px-4 md:px-6 pt-10 md:pt-12 pb-6">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-2xl font-bold text-white">${Utils.getGreeting()}, ${DB.user.name}</h1>
                             <div class="flex items-center gap-2">
+                                <button onclick="router.navigate('insights')" class="w-10 h-10 rounded-full bg-app-card border border-app-border text-app-muted hover:text-white hover:border-cyan-500/50 transition-colors flex items-center justify-center" title="Insights">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                </button>
                                 <button onclick="router.navigate('more')" class="w-10 h-10 rounded-full bg-app-card border border-app-border text-app-muted hover:text-white hover:border-blue-500/50 transition-colors flex items-center justify-center" title="More">
                                     <i class="fa-solid fa-gear"></i>
                                 </button>
@@ -1092,9 +1099,11 @@
                             </div>
                         </div>
                         <div class="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs ${syncClass}"><i class="fa-solid fa-cloud"></i>${syncLabel}</div>
-                        <div class="glass-card rounded-2xl p-5 mb-6 relative overflow-hidden group border border-blue-500/20 shadow-lg shadow-blue-900/20">
-                            <div class="absolute top-0 right-0 p-3 opacity-20"><i class="fa-solid fa-location-arrow text-6xl text-blue-400 transform -rotate-45"></i></div>
-                            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Next Up</h3>
+                        <div class="bg-app-card rounded-2xl p-5 mb-6 border border-app-border">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-xs font-bold text-app-muted uppercase tracking-wider">Next Up</h3>
+                                <button onclick="router.navigate('insights')" class="text-[11px] text-cyan-300 font-semibold">View Insights</button>
+                            </div>
                             ${nextJob ? `
                                 ${nextJob.type === 'Holiday' ? `
                                     <h2 class="text-2xl font-bold text-white mb-1">${nextJob.title}</h2>
@@ -1118,25 +1127,6 @@
                                 <button onclick="router.navigate('new-event')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold">Schedule Event</button>
                             `}
                         </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                            <div class="stat-card-revenue p-4 rounded-xl border border-app-border"><p class="text-xs text-app-muted uppercase tracking-wider mb-1">${monthName} Revenue</p><p class="text-2xl font-bold text-emerald-400">£${stats.monthRevenue.toLocaleString()}</p></div>
-                            <div class="stat-card-outstanding p-4 rounded-xl border border-app-border"><p class="text-xs text-app-muted uppercase tracking-wider mb-1">Outstanding</p><p class="text-2xl font-bold text-amber-400">£${stats.outstanding.toLocaleString()}</p></div>
-                            <div class="stat-card-jobs p-4 rounded-xl border border-app-border flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center"><i class="fa-solid fa-briefcase"></i></div><div><p class="text-xl font-bold leading-none">${stats.monthCount}</p><p class="text-[10px] text-app-muted mt-0.5">Jobs this mo.</p></div></div>
-                            <div class="stat-card-completion p-4 rounded-xl border border-app-border flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center"><i class="fa-solid fa-check-double"></i></div><div><p class="text-xl font-bold leading-none">${stats.monthCount > 0 ? Math.round((stats.completedCount/stats.monthCount)*100) : 0}%</p><p class="text-[10px] text-app-muted mt-0.5">Completion</p></div></div>
-                        </div>
-                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-app-muted font-semibold uppercase tracking-wider"><i class="fa-solid fa-bullseye mr-1 text-blue-400"></i>Monthly Goal</span>
-                                <span class="text-xs font-bold" style="color:${goalPct>=100?'#10b981':'#3b82f6'}">${goalPct}%</span>
-                            </div>
-                            <div class="h-2 bg-app-lighter rounded-full overflow-hidden">
-                                <div class="h-full rounded-full goal-bar" style="width:${goalPct}%;background:${goalPct>=100?'#10b981':'#3b82f6'}"></div>
-                            </div>
-                            <div class="flex justify-between items-center mt-1.5">
-                                <span class="text-[11px] text-app-muted">£${stats.monthRevenue.toLocaleString()}</span>
-                                <span class="text-[11px] text-app-muted">Goal: £${(DB.settings.monthlyGoal||0).toLocaleString()}</span>
-                            </div>
-                        </div>
 
                         ${materialReminders.length ? `<div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
                             <div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i><h3 class="text-sm font-semibold text-amber-300">Material Reminders (next 5 days)</h3></div>
@@ -1156,6 +1146,35 @@
                         <div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-calendar-days text-blue-500"></i><h2 class="font-semibold text-lg">Upcoming Schedule</h2></div>
                         <div class="relative mb-3"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted text-sm"></i><input type="text" id="upcoming-search" oninput="filterUpcoming(this.value)" placeholder="Search by job number (EW-...) or title..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-blue-500"></div>
                         <div id="upcoming-list">${jobListHtml}</div>
+                    </div>`;
+            },
+
+            renderInsights(container) {
+                const stats = DB.getDashboardStats();
+                const monthName = new Date().toLocaleDateString('en-US', {month: 'long'});
+                const completion = stats.monthCount > 0 ? Math.round((stats.completedCount / stats.monthCount) * 100) : 0;
+                container.innerHTML = `
+                    <div class="pt-12 px-5 pb-24 animate-fade-in">
+                        <div class="flex items-center justify-between mb-5">
+                            <button onclick="router.navigate('today')" class="text-app-muted flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                            <h1 class="text-lg font-bold text-white">Insights</h1>
+                            <span class="w-8"></span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">${monthName} Revenue</p><p class="text-2xl font-bold text-emerald-400">£${stats.monthRevenue.toLocaleString()}</p></div>
+                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Outstanding</p><p class="text-2xl font-bold text-amber-400">£${stats.outstanding.toLocaleString()}</p></div>
+                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Jobs This Month</p><p class="text-2xl font-bold text-white">${stats.monthCount}</p></div>
+                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Completion</p><p class="text-2xl font-bold text-cyan-300">${completion}%</p></div>
+                        </div>
+
+                        <div class="bg-app-card border border-app-border rounded-xl p-4">
+                            <p class="text-xs text-app-muted mb-2">Monthly Goal (optional)</p>
+                            <div class="flex gap-2">
+                                <input id="goal-input" type="number" min="0" value="${DB.settings.monthlyGoal || 0}" class="flex-1 bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white" placeholder="Set goal">
+                                <button onclick="DB.setRevenueGoal(document.getElementById('goal-input').value || 0)" class="px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold">Save</button>
+                            </div>
+                        </div>
                     </div>`;
             },
 
