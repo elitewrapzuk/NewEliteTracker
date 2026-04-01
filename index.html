@@ -1278,11 +1278,54 @@
             renderProjects(container) {
                 const statusFilter = this.params.projectFilter || 'All';
                 const sortBy = this.params.projectSort || 'newest';
+                const monthFilter = this.params.projectMonth || 'all';
+                const typeFilter = this.params.projectType || 'All';
+                const paymentFilter = this.params.projectPayFilter || 'All';
+                const materialFilter = this.params.projectMatFilter || 'All';
+                const groupMode = this.params.projectGroupMode || 'month';
+                const query = (this.params.projectSearch || '').trim().toLowerCase();
+
+                const asType = (j) => j.type || 'Job';
+                const monthKey = (j) => (j.date || '').slice(0, 7);
+                const monthLabel = (key) => {
+                    if (!key || key.length < 7) return 'No Date';
+                    const [y, m] = key.split('-').map(Number);
+                    return new Date(y, (m || 1) - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                };
+                const isJobType = (j) => asType(j) === 'Job';
+                const priceOf = (j) => parseFloat(j.price) || 0;
+                const depositOf = (j) => parseFloat(j.deposit) || 0;
+                const balanceOf = (j) => priceOf(j) - depositOf(j);
+                const isPaid = (j) => isJobType(j) && (j.fullPaymentPaid || balanceOf(j) <= 0);
+
+                const monthOptions = [...new Set(DB.jobs.map(monthKey).filter(Boolean))]
+                    .sort((a, b) => (a < b ? 1 : -1));
+
                 let jobs = [...DB.jobs];
-                if (statusFilter !== 'All') jobs = jobs.filter(j => j.status === statusFilter);
-                if (sortBy === 'newest') jobs.sort((a,b) => new Date(b.date+'T12:00:00') - new Date(a.date+'T12:00:00'));
-                else if (sortBy === 'oldest') jobs.sort((a,b) => new Date(a.date+'T12:00:00') - new Date(b.date+'T12:00:00'));
-                else if (sortBy === 'price') jobs.sort((a,b) => (parseFloat(b.price)||0) - (parseFloat(a.price)||0));
+                if (statusFilter !== 'All') jobs = jobs.filter(j => (j.status || 'Scheduled') === statusFilter);
+                if (typeFilter !== 'All') jobs = jobs.filter(j => asType(j) === typeFilter);
+                if (monthFilter !== 'all') jobs = jobs.filter(j => monthKey(j) === monthFilter);
+                if (paymentFilter === 'Paid') jobs = jobs.filter(j => isPaid(j));
+                if (paymentFilter === 'Outstanding') jobs = jobs.filter(j => isJobType(j) && !isPaid(j) && balanceOf(j) > 0);
+                if (paymentFilter === 'Payment Plan') jobs = jobs.filter(j => !!j.paymentPlanEnabled);
+                if (paymentFilter === 'Deposit Missing') jobs = jobs.filter(j => isJobType(j) && depositOf(j) > 0 && !j.depositPaid);
+                if (materialFilter === 'Missing Ordered') jobs = jobs.filter(j => isJobType(j) && !j.materialsOrdered);
+                if (materialFilter === 'Missing Delivered') jobs = jobs.filter(j => isJobType(j) && !j.materialsDelivered);
+
+                if (query) {
+                    jobs = jobs.filter(j =>
+                        (j.title || '').toLowerCase().includes(query) ||
+                        (j.jobNumber || '').toLowerCase().includes(query) ||
+                        (j.jobReference || '').toLowerCase().includes(query) ||
+                        (j.contact || '').toLowerCase().includes(query) ||
+                        (j.address || '').toLowerCase().includes(query)
+                    );
+                }
+
+                if (sortBy === 'newest') jobs.sort((a,b) => new Date((b.date||'')+'T12:00:00') - new Date((a.date||'')+'T12:00:00'));
+                else if (sortBy === 'oldest') jobs.sort((a,b) => new Date((a.date||'')+'T12:00:00') - new Date((b.date||'')+'T12:00:00'));
+                else if (sortBy === 'price') jobs.sort((a,b) => priceOf(b) - priceOf(a));
+                else if (sortBy === 'balance') jobs.sort((a,b) => balanceOf(b) - balanceOf(a));
 
                 const statusColors = {
                     'Scheduled': 'bg-blue-500/20 text-blue-400 border-blue-500/40',
@@ -1290,46 +1333,114 @@
                     'Cancelled': 'bg-red-500/20 text-red-400 border-red-500/40'
                 };
                 const filters = ['All','Scheduled','Completed','Cancelled'];
-                const sorts = [{v:'newest',l:'Newest'},{v:'oldest',l:'Oldest'},{v:'price',l:'By Price'}];
+                const types = ['All','Job','Consultation','Holiday','Personal'];
+                const payFilters = ['All','Outstanding','Paid','Payment Plan','Deposit Missing'];
+                const matFilters = ['All','Missing Ordered','Missing Delivered'];
+                const sorts = [
+                    {v:'newest',l:'Newest'},
+                    {v:'oldest',l:'Oldest'},
+                    {v:'price',l:'Price'},
+                    {v:'balance',l:'Balance'}
+                ];
+
+                const activeJobs = jobs.filter(j => (j.status || 'Scheduled') !== 'Cancelled');
+                const totalValue = activeJobs.reduce((a, j) => a + priceOf(j), 0);
+                const outstanding = activeJobs.reduce((a, j) => a + (isJobType(j) && !isPaid(j) ? Math.max(0, balanceOf(j)) : 0), 0);
+                const completedCount = jobs.filter(j => j.status === 'Completed').length;
+                const completionPct = jobs.length ? Math.round((completedCount / jobs.length) * 100) : 0;
+
+                const grouped = jobs.reduce((acc, j) => {
+                    const key = groupMode === 'month' ? (monthKey(j) || 'no-date') : 'all';
+                    if (!acc[key]) acc[key] = [];
+                    acc[key].push(j);
+                    return acc;
+                }, {});
+                const groupKeys = Object.keys(grouped).sort((a,b) => (a < b ? 1 : -1));
+
+                const cardsHtml = jobs.length === 0
+                    ? `<div class="border-2 border-dashed border-app-lighter rounded-xl p-8 flex flex-col items-center text-center"><p class="text-app-muted mb-3">No projects found with current filters</p><button onclick="router.params.projectSearch=''; router.params.projectFilter='All'; router.params.projectMonth='all'; router.params.projectType='All'; router.params.projectPayFilter='All'; router.params.projectMatFilter='All'; router.renderProjects(document.getElementById('app-content'))" class="text-blue-400 text-sm font-semibold">Clear filters</button></div>`
+                    : groupKeys.map(gk => `
+                        ${groupMode === 'month' ? `<div class="sticky top-0 z-10 bg-app-bg/95 backdrop-blur py-2 mt-1 mb-2 border-b border-app-border"><p class="text-xs uppercase tracking-wider font-bold text-blue-400">${gk === 'no-date' ? 'No Date' : monthLabel(gk)} · ${grouped[gk].length}</p></div>` : ''}
+                        <div class="space-y-3 mb-4">
+                            ${grouped[gk].map(j => {
+                                const sc = statusColors[j.status] || 'bg-app-lighter text-app-muted border-app-border';
+                                const isJob = isJobType(j);
+                                const bal = balanceOf(j);
+                                const dueText = isJob ? (isPaid(j) ? 'PAID' : `Due £${Math.max(0, bal).toFixed(2)}`) : (asType(j));
+                                const dueClass = isJob ? (isPaid(j) ? 'text-emerald-400' : 'text-amber-400') : 'text-app-muted';
+                                return `<div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 active:scale-[0.99] transition-transform cursor-pointer">
+                                    <div class="flex justify-between items-start gap-3 mb-2">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                                ${j.jobNumber ? `<span class="text-[11px] font-mono font-bold text-blue-300 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded">${j.jobNumber}</span>` : ''}
+                                                <span class="text-[10px] text-app-muted uppercase tracking-wider">${asType(j)}</span>
+                                                ${j.paymentPlanEnabled ? `<span class="text-[10px] px-2 py-0.5 rounded border border-indigo-500/30 text-indigo-300 bg-indigo-500/10">Plan</span>` : ''}
+                                                ${isJob && j.durationDays > 1 ? `<span class="text-[10px] px-2 py-0.5 rounded border border-orange-500/30 text-orange-300 bg-orange-500/10">${j.durationDays}d</span>` : ''}
+                                            </div>
+                                            <h3 class="font-semibold text-white truncate">${j.title}</h3>
+                                        </div>
+                                        <span class="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${sc}">${j.status || 'Scheduled'}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-xs mb-2">
+                                        <p class="text-app-muted truncate"><i class="fa-regular fa-calendar mr-1"></i>${Utils.getFriendlyDate(j.date)}</p>
+                                        <p class="text-right font-semibold ${dueClass}">${dueText}</p>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-xs text-app-muted truncate mr-3">${j.contact ? `<i class="fa-regular fa-user mr-1"></i>${j.contact}` : (j.address ? `<i class="fa-solid fa-location-dot mr-1"></i>${j.address}` : 'No contact')}</p>
+                                        ${isJob && priceOf(j) ? `<p class="text-sm font-bold text-white">£${priceOf(j).toFixed(2)}</p>` : ''}
+                                    </div>
+                                    ${isJob ? `<div class="mt-2 text-[10px] text-app-muted">Materials: ${j.materialsOrdered ? 'Ordered' : 'Not ordered'} · ${j.materialsDelivered ? 'Delivered' : 'Not delivered'}</div>` : ''}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    `).join('');
 
                 container.innerHTML = `
                 <div class="pt-12 px-5 pb-24 animate-fade-in">
                     <div class="flex items-center gap-4 mb-4">
-                        <button onclick="router.navigate('more')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button>
-                        <div class="flex-1"><h1 class="text-2xl font-bold">Projects</h1><p class="text-app-muted text-xs">${DB.jobs.length} total events</p></div>
+                        <button onclick="router.navigate('today')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button>
+                        <div class="flex-1"><h1 class="text-2xl font-bold">Projects Hub</h1><p class="text-app-muted text-xs">${DB.jobs.length} total events</p></div>
                         <button onclick="generateAllProjectsPDF()" class="w-9 h-9 rounded-full bg-purple-600/20 text-purple-400 flex items-center justify-center active:scale-95 transition-transform" title="Export all as PDF"><i class="fa-solid fa-file-pdf"></i></button>
                     </div>
-                    <div class="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
-                        ${filters.map(f=>`<button onclick="router.params.projectFilter='${f}'; router.renderProjects(document.getElementById('app-content'))" class="flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold border transition-all ${statusFilter===f?'bg-blue-600 border-blue-600 text-white':'bg-app-card border-app-border text-app-muted'}">${f}</button>`).join('')}
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-[10px] uppercase text-app-muted">Filtered</p><p class="text-lg font-bold text-white">${jobs.length}</p></div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-[10px] uppercase text-app-muted">Value</p><p class="text-lg font-bold text-emerald-400">£${totalValue.toFixed(0)}</p></div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-[10px] uppercase text-app-muted">Outstanding</p><p class="text-lg font-bold text-amber-400">£${outstanding.toFixed(0)}</p></div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-[10px] uppercase text-app-muted">Complete</p><p class="text-lg font-bold text-blue-400">${completionPct}%</p></div>
+                    </div>
+
+                    <div class="relative mb-3"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3 text-app-muted text-xs"></i><input type="text" value="${this.params.projectSearch || ''}" oninput="router.params.projectSearch=this.value; router.renderProjects(document.getElementById('app-content'))" placeholder="Search job #, title, reference, client..." class="w-full bg-app-card border border-app-border rounded-xl py-2.5 pl-10 pr-3 text-sm text-white focus:outline-none focus:border-blue-500"></div>
+
+                    <div class="flex gap-2 mb-2 overflow-x-auto pb-1 no-scrollbar">
+                        ${filters.map(f=>`<button onclick="router.params.projectFilter='${f}'; router.renderProjects(document.getElementById('app-content'))" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${statusFilter===f?'bg-blue-600 border-blue-600 text-white':'bg-app-card border-app-border text-app-muted'}">${f}</button>`).join('')}
+                    </div>
+                    <div class="flex gap-2 mb-2 overflow-x-auto pb-1 no-scrollbar">
+                        ${types.map(t=>`<button onclick="router.params.projectType='${t}'; router.renderProjects(document.getElementById('app-content'))" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${typeFilter===t?'bg-indigo-600 border-indigo-600 text-white':'bg-app-card border-app-border text-app-muted'}">${t}</button>`).join('')}
+                    </div>
+                    <div class="flex gap-2 mb-2 overflow-x-auto pb-1 no-scrollbar">
+                        <button onclick="router.params.projectMonth='all'; router.renderProjects(document.getElementById('app-content'))" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${monthFilter==='all'?'bg-cyan-600 border-cyan-600 text-white':'bg-app-card border-app-border text-app-muted'}">All Months</button>
+                        ${monthOptions.slice(0, 14).map(m=>`<button onclick="router.params.projectMonth='${m}'; router.renderProjects(document.getElementById('app-content'))" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${monthFilter===m?'bg-cyan-600 border-cyan-600 text-white':'bg-app-card border-app-border text-app-muted'}">${monthLabel(m)}</button>`).join('')}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <select onchange="router.params.projectPayFilter=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">
+                            ${payFilters.map(x=>`<option value="${x}" ${paymentFilter===x?'selected':''}>Payment: ${x}</option>`).join('')}
+                        </select>
+                        <select onchange="router.params.projectMatFilter=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">
+                            ${matFilters.map(x=>`<option value="${x}" ${materialFilter===x?'selected':''}>Materials: ${x}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        ${sorts.map(s=>`<button onclick="router.params.projectSort='${s.v}'; router.renderProjects(document.getElementById('app-content'))" class="py-2 rounded-lg text-xs font-semibold border transition-all ${sortBy===s.v?'bg-app-lighter border-blue-500/50 text-blue-400':'bg-app-card border-app-border text-app-muted'}">Sort: ${s.l}</button>`).join('')}
                     </div>
                     <div class="flex gap-2 mb-4">
-                        ${sorts.map(s=>`<button onclick="router.params.projectSort='${s.v}'; router.renderProjects(document.getElementById('app-content'))" class="flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${sortBy===s.v?'bg-app-lighter border-blue-500/50 text-blue-400':'bg-app-card border-app-border text-app-muted'}">${s.l}</button>`).join('')}
+                        <button onclick="router.params.projectGroupMode='month'; router.renderProjects(document.getElementById('app-content'))" class="flex-1 py-2 rounded-lg text-xs font-semibold border ${groupMode==='month' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">Group by Month</button>
+                        <button onclick="router.params.projectGroupMode='list'; router.renderProjects(document.getElementById('app-content'))" class="flex-1 py-2 rounded-lg text-xs font-semibold border ${groupMode==='list' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">Flat List</button>
                     </div>
-                    <div class="space-y-3">
-                        ${jobs.length === 0 ? `<div class="border-2 border-dashed border-app-lighter rounded-xl p-8 flex flex-col items-center text-center"><p class="text-app-muted mb-3">No projects found</p></div>` :
-                        jobs.map(j => {
-                            const sc = statusColors[j.status] || 'bg-app-lighter text-app-muted border-app-border';
-                            const isJob = !j.type || j.type === 'Job';
-                            return `<div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 active:scale-95 transition-transform cursor-pointer">
-                                <div class="flex justify-between items-start mb-2">
-                                    <div class="flex-1 min-w-0 mr-3">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            ${j.jobNumber ? `<span class="text-xs font-mono font-bold text-blue-400">${j.jobNumber}</span>` : ''}
-                                            <span class="text-xs text-app-muted">${j.type||'Job'}</span>
-                                        </div>
-                                        <h3 class="font-semibold text-white truncate">${j.title}</h3>
-                                    </div>
-                                    <span class="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${sc}">${j.status}</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <p class="text-xs text-app-muted"><i class="fa-regular fa-calendar mr-1"></i>${Utils.getFriendlyDate(j.date)}</p>
-                                    ${isJob && j.price ? `<p class="text-sm font-bold text-white">£${parseFloat(j.price).toFixed(2)}</p>` : ''}
-                                </div>
-                                ${j.contact ? `<p class="text-xs text-app-muted mt-1"><i class="fa-regular fa-user mr-1"></i>${j.contact}</p>` : ''}
-                                ${j.address ? `<p class="text-xs text-app-muted truncate mt-1"><i class="fa-solid fa-location-dot mr-1"></i>${j.address}</p>` : ''}
-                            </div>`;
-                        }).join('')}
-                    </div>
+
+                    <div class="space-y-1">${cardsHtml}</div>
                 </div>`;
             },
             renderMore(container) { container.innerHTML = `
