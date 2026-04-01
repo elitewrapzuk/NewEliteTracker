@@ -419,6 +419,7 @@
                     n.accomCheckOut = n.accomCheckOut || '';
                     n.accomNotes = n.accomNotes || '';
                     n.accomScreenshot = n.accomScreenshot || null;
+                    n.profit = n.profit !== undefined && n.profit !== null && n.profit !== '' ? parseFloat(n.profit) || 0 : '';
                     const key = n.id || `${(n.jobNumber || '').toLowerCase()}|${n.date || ''}|${(n.title || '').toLowerCase()}`;
                     if (!jobsByKey.has(key)) jobsByKey.set(key, n);
                 });
@@ -546,6 +547,7 @@
                     }
                     if (!Array.isArray(n.beforePhotos)) n.beforePhotos = Array.isArray(n.photos) ? [...n.photos] : [];
                     if (!Array.isArray(n.afterPhotos)) n.afterPhotos = [];
+                    n.profit = n.profit !== undefined && n.profit !== null && n.profit !== '' ? parseFloat(n.profit) || 0 : '';
                     return n;
                 });
                 this.vaultEntries = (this.vaultEntries || []).map((v, idx) => ({
@@ -587,6 +589,7 @@
                     documents: [],
                     price: job.price || 0,
                     deposit: job.deposit || 0,
+                    profit: job.profit !== undefined && job.profit !== null && job.profit !== '' ? parseFloat(job.profit) || 0 : '',
                     durationDays: job.durationDays ? parseInt(job.durationDays) : 1,
                     depositPaid: false,
                     fullPaymentPaid: false,
@@ -631,7 +634,8 @@
                         contact: contact ? contact.name : (updatedFields.contact || existing.contact || ''),
                         durationDays: updatedFields.durationDays ? parseInt(updatedFields.durationDays) : existing.durationDays || 1,
                         price: updatedFields.price !== undefined ? updatedFields.price : existing.price,
-                        deposit: updatedFields.deposit !== undefined ? updatedFields.deposit : existing.deposit
+                        deposit: updatedFields.deposit !== undefined ? updatedFields.deposit : existing.deposit,
+                        profit: updatedFields.profit !== undefined ? (updatedFields.profit === '' ? '' : (parseFloat(updatedFields.profit) || 0)) : (existing.profit ?? '')
                     };
                     this.save();
                     showToast('Event updated');
@@ -722,7 +726,6 @@
                 const j = this.jobs.find(x => x.id === id);
                 if (j && j.documents) { j.documents.splice(index, 1); this.save(); }
             },
-            setRevenueGoal(a) { this.settings.monthlyGoal = parseFloat(a); this.save(); showToast('Goal updated'); },
             toggleChecklist(id, idx) { const j = this.jobs.find(x => x.id === id); if (j && j.checklist[idx]) { j.checklist[idx].done = !j.checklist[idx].done; this.save(); } },
             addChecklist(id, txt) { const j = this.jobs.find(x => x.id === id); if (j) { if (!j.checklist) j.checklist = []; j.checklist.push({ text: txt, done: false }); this.save(); } },
             saveSignOff(id, signature, clientName) {
@@ -760,19 +763,30 @@
                 const now = new Date();
                 const currentMonth = now.getMonth();
                 const currentYear = now.getFullYear();
+                const allJobEvents = this.jobs.filter(j => j.status !== 'Cancelled' && (j.type === 'Job' || !j.type));
                 const monthJobs = this.jobs.filter(j => {
                     const d = new Date(j.date + 'T12:00:00');
                     return d.getMonth() === currentMonth && d.getFullYear() === currentYear && j.status !== 'Cancelled' && (j.type === 'Job' || !j.type);
                 });
                 const totalRevenue = monthJobs.reduce((acc, j) => acc + (parseFloat(j.price)||0), 0);
                 const completedCount = monthJobs.filter(j => j.status === 'Completed').length;
+                const totalRevenueAll = allJobEvents.reduce((acc, j) => acc + (parseFloat(j.price) || 0), 0);
+                const totalProfitAll = allJobEvents.reduce((acc, j) => acc + (parseFloat(j.profit) || 0), 0);
                 const outstanding = this.jobs.reduce((acc, j) => {
                     if(j.status === 'Cancelled' || j.fullPaymentPaid || (j.type && j.type !== 'Job')) return acc;
                     const price = parseFloat(j.price) || 0;
                     const deposit = parseFloat(j.deposit) || 0;
                     return acc + (price - deposit);
                 }, 0);
-                return { monthRevenue: totalRevenue, monthCount: monthJobs.length, completedCount: completedCount, outstanding: outstanding };
+                return {
+                    monthRevenue: totalRevenue,
+                    monthCount: monthJobs.length,
+                    completedCount: completedCount,
+                    outstanding: outstanding,
+                    totalRevenueAll,
+                    totalProfitAll,
+                    totalJobsAll: allJobEvents.length
+                };
             },
             getMaterialReminders(daysAhead = 5) {
                 const today = new Date();
@@ -1151,8 +1165,6 @@
 
             renderInsights(container) {
                 const stats = DB.getDashboardStats();
-                const monthName = new Date().toLocaleDateString('en-US', {month: 'long'});
-                const completion = stats.monthCount > 0 ? Math.round((stats.completedCount / stats.monthCount) * 100) : 0;
                 container.innerHTML = `
                     <div class="pt-12 px-5 pb-24 animate-fade-in">
                         <div class="flex items-center justify-between mb-5">
@@ -1161,19 +1173,16 @@
                             <span class="w-8"></span>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">${monthName} Revenue</p><p class="text-2xl font-bold text-emerald-400">£${stats.monthRevenue.toLocaleString()}</p></div>
-                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Outstanding</p><p class="text-2xl font-bold text-amber-400">£${stats.outstanding.toLocaleString()}</p></div>
-                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Jobs This Month</p><p class="text-2xl font-bold text-white">${stats.monthCount}</p></div>
-                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Completion</p><p class="text-2xl font-bold text-cyan-300">${completion}%</p></div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Total Jobs (So Far)</p><p class="text-2xl font-bold text-white">${stats.totalJobsAll.toLocaleString()}</p></div>
+                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Total Revenue (So Far)</p><p class="text-2xl font-bold text-emerald-400">£${stats.totalRevenueAll.toLocaleString()}</p></div>
+                            <div class="bg-app-card border border-app-border rounded-xl p-4"><p class="text-xs text-app-muted mb-1">Total Profit (So Far)</p><p class="text-2xl font-bold text-cyan-300">£${stats.totalProfitAll.toLocaleString()}</p></div>
                         </div>
 
                         <div class="bg-app-card border border-app-border rounded-xl p-4">
-                            <p class="text-xs text-app-muted mb-2">Monthly Goal (optional)</p>
-                            <div class="flex gap-2">
-                                <input id="goal-input" type="number" min="0" value="${DB.settings.monthlyGoal || 0}" class="flex-1 bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white" placeholder="Set goal">
-                                <button onclick="DB.setRevenueGoal(document.getElementById('goal-input').value || 0)" class="px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold">Save</button>
-                            </div>
+                            <p class="text-xs text-app-muted mb-1">Outstanding</p>
+                            <p class="text-xl font-bold text-amber-400">£${stats.outstanding.toLocaleString()}</p>
+                            <p class="text-[11px] text-app-muted mt-2">Profit is optional per job. If left blank, it counts as £0 in totals.</p>
                         </div>
                     </div>`;
             },
@@ -1410,7 +1419,7 @@
                         </div>
                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Vinyl Codes & Locations</label><textarea name="vinylCodes" rows="2" placeholder="Codes and where applied..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Estimated Duration (Days)</label><input type="number" name="durationDays" id="j-duration-days-job" value="1" min="1" oninput="checkConflict()" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
-                        <div class="grid grid-cols-2 gap-4 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" id="inp-price" name="price" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" id="inp-deposit" name="deposit" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
+                        <div class="grid grid-cols-3 gap-3 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" id="inp-price" name="price" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" id="inp-deposit" name="deposit" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Profit (£)</label><input type="number" name="profit" placeholder="Optional" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
                         <div id="balance-display" class="hidden text-right text-xs font-bold text-red-400 mb-5">Balance: £0.00</div>
                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Service</label><select name="service" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option>Kitchen Wrap</option><option>Window Film</option><option>Other</option></select></div>
                     </div>
@@ -1514,7 +1523,7 @@
                             </div>
                             <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Vinyl Codes & Locations</label><textarea name="vinylCodes" rows="2" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">${job.vinylCodes||''}</textarea></div>
                             <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Estimated Duration (Days)</label><input type="number" name="durationDays" value="${job.durationDays||1}" min="1" oninput="checkConflict()" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
-                            <div class="grid grid-cols-2 gap-4 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" id="inp-price" name="price" oninput="calcBalance()" value="${job.price||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" id="inp-deposit" name="deposit" oninput="calcBalance()" value="${job.deposit||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
+                            <div class="grid grid-cols-3 gap-3 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" id="inp-price" name="price" oninput="calcBalance()" value="${job.price||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" id="inp-deposit" name="deposit" oninput="calcBalance()" value="${job.deposit||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Profit (£)</label><input type="number" name="profit" value="${job.profit ?? ''}" placeholder="Optional" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
                             <div id="balance-display" class="${job.price>0?'text-right text-xs font-bold text-red-400 mb-5':'hidden'}">Balance: £${((parseFloat(job.price)||0)-(parseFloat(job.deposit)||0)).toFixed(2)}</div>
                             <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Service</label><select name="service" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option ${job.service==='Kitchen Wrap'?'selected':''}>Kitchen Wrap</option><option ${job.service==='Window Film'?'selected':''}>Window Film</option><option ${job.service==='Other'?'selected':''}>Other</option></select></div>
                         </div>
@@ -1898,7 +1907,7 @@
                             </div>
                         </div>
                         <div class="flex justify-between items-start mb-2"><h1 class="text-2xl font-bold flex-1 mr-4">${job.title}</h1>
-                        ${isJob ? `<div class="text-right"><span class="text-lg font-bold text-white block">£${parseFloat(job.price).toFixed(2)}</span><span class="text-xs ${balance > 0 ? 'text-red-400' : 'text-emerald-400'} font-medium">${balance > 0 ? 'Due: £'+balance.toFixed(2) : 'Paid in Full'}</span></div>` : ''}</div>
+                        ${isJob ? `<div class="text-right"><span class="text-lg font-bold text-white block">£${parseFloat(job.price).toFixed(2)}</span><span class="text-xs ${balance > 0 ? 'text-red-400' : 'text-emerald-400'} font-medium block">${balance > 0 ? 'Due: £'+balance.toFixed(2) : 'Paid in Full'}</span>${(job.profit !== '' && job.profit !== undefined && job.profit !== null) ? `<span class="text-xs text-cyan-300 font-medium block mt-0.5">Profit: £${(parseFloat(job.profit)||0).toFixed(2)}</span>` : ''}</div>` : ''}</div>
                         ${job.jobNumber ? `<div class="mb-2"><span class="bg-blue-500/20 border border-blue-500/40 text-blue-300 text-sm px-3 py-1 rounded-full font-mono font-bold"><i class="fa-solid fa-hashtag text-[11px] mr-1"></i>${job.jobNumber}</span></div>` : ''}
                         ${job.jobReference ? `<div class="mb-4"><span class="bg-app-lighter border border-app-border text-xs px-2 py-1 rounded text-app-muted font-mono"><i class="fa-solid fa-hashtag text-[10px] mr-1"></i>${job.jobReference}</span></div>` : ''}
                         <div class="grid grid-cols-2 gap-2 mb-4">
