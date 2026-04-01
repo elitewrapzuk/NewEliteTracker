@@ -265,6 +265,55 @@
                 { id: 'vault-gateway', label: 'Gateway ID', value: '54 02 69 02 45 51', kind: 'Code' },
                 { id: 'vault-eori', label: 'EORI Number', value: 'GB045268219000', kind: 'Code' }
             ],
+            makeId(prefix = 'id') {
+                return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            },
+            uniqueList(list = []) {
+                return [...new Set((Array.isArray(list) ? list : []).filter(Boolean))];
+            },
+            normalizeAndDeduplicateData() {
+                // Contacts
+                const contactsByKey = new Map();
+                (this.contacts || []).forEach(c => {
+                    const id = c?.id || this.makeId('contact');
+                    const name = (c?.name || '').trim();
+                    const email = (c?.email || '').trim().toLowerCase();
+                    const key = id || (email ? `email:${email}` : `name:${name.toLowerCase()}`);
+                    if (!contactsByKey.has(key)) contactsByKey.set(key, { ...c, id, name });
+                });
+                this.contacts = Array.from(contactsByKey.values());
+
+                // Jobs
+                const jobsByKey = new Map();
+                (this.jobs || []).forEach(j => {
+                    const id = j?.id || this.makeId('job');
+                    const n = { ...j, id };
+                    n.checklist = Array.isArray(n.checklist) ? n.checklist : [];
+                    n.photos = this.uniqueList(n.photos);
+                    n.beforePhotos = this.uniqueList(Array.isArray(n.beforePhotos) ? n.beforePhotos : (Array.isArray(n.photos) ? n.photos : []));
+                    n.afterPhotos = this.uniqueList(n.afterPhotos);
+                    n.documents = Array.isArray(n.documents) ? n.documents : [];
+                    n.durationDays = n.durationDays ? parseInt(n.durationDays) : 1;
+                    const key = n.id || `${(n.jobNumber || '').toLowerCase()}|${n.date || ''}|${(n.title || '').toLowerCase()}`;
+                    if (!jobsByKey.has(key)) jobsByKey.set(key, n);
+                });
+                this.jobs = Array.from(jobsByKey.values());
+
+                // Vault
+                const vaultByKey = new Map();
+                (this.vaultEntries || []).forEach(v => {
+                    const id = v?.id || this.makeId('vault');
+                    const n = {
+                        id,
+                        label: (v?.label || 'Untitled').trim(),
+                        value: (v?.value || '').toString(),
+                        kind: (v?.kind || 'Code').trim()
+                    };
+                    const key = n.id || `${n.label.toLowerCase()}|${n.value}`;
+                    if (!vaultByKey.has(key)) vaultByKey.set(key, n);
+                });
+                this.vaultEntries = Array.from(vaultByKey.values());
+            },
 
             init() {
                 const sJ = localStorage.getItem('app_jobs');
@@ -283,12 +332,13 @@
                         const parts = line.split(':');
                         const label = (parts.shift() || `Item ${idx + 1}`).trim();
                         const value = parts.join(':').trim();
-                        return { id: `vault-${Date.now()}-${idx}`, label, value, kind: 'Code' };
+                        return { id: this.makeId('vault'), label, value, kind: 'Code' };
                     }).filter(x => x.value);
                 }
                 this.migrateData();
             },
             save(options = {}) {
+                this.normalizeAndDeduplicateData();
                 localStorage.setItem('app_jobs', JSON.stringify(this.jobs));
                 localStorage.setItem('app_contacts', JSON.stringify(this.contacts));
                 localStorage.setItem('app_secure_notes', this.secureNotes);
@@ -297,6 +347,7 @@
                 if (!options.skipCloud) CloudSync.queuePush();
             },
             getSerializableData() {
+                this.normalizeAndDeduplicateData();
                 return {
                     jobs: this.jobs,
                     contacts: this.contacts,
@@ -314,14 +365,14 @@
                     const parts = line.split(':');
                     const label = (parts.shift() || `Item ${idx + 1}`).trim();
                     const value = parts.join(':').trim();
-                    return { id: `vault-${Date.now()}-${idx}`, label, value, kind: 'Code' };
+                    return { id: this.makeId('vault'), label, value, kind: 'Code' };
                 }).filter(x => x.value) : this.vaultEntries);
                 this.settings = { monthlyGoal: 5000, ...(payload.settings || this.settings || {}) };
                 this.migrateData();
                 this.save({ skipCloud: true });
             },
             migrateData() {
-                this.contacts = (this.contacts || []).map(c => ({ ...c, id: c.id || (Date.now().toString() + Math.random().toString().substring(2, 6)) }));
+                this.contacts = (this.contacts || []).map(c => ({ ...c, id: c.id || this.makeId('contact') }));
                 this.jobs = (this.jobs || []).map(j => {
                     const n = { ...j };
                     if (n.contactId && !n.contact) {
@@ -337,14 +388,15 @@
                     return n;
                 });
                 this.vaultEntries = (this.vaultEntries || []).map((v, idx) => ({
-                    id: v.id || `vault-${Date.now()}-${idx}`,
+                    id: v.id || this.makeId('vault'),
                     label: v.label || 'Untitled',
                     value: v.value || '',
                     kind: v.kind || 'Code'
                 }));
+                this.normalizeAndDeduplicateData();
             },
             addVaultEntry(entry) {
-                this.vaultEntries.unshift({ id: `vault-${Date.now()}-${Math.random().toString().slice(2, 6)}`, ...entry });
+                this.vaultEntries.unshift({ id: this.makeId('vault'), ...entry });
                 this.save();
             },
             updateVaultEntry(id, updates) {
@@ -363,7 +415,7 @@
                 this.jobs.push({
                     ...job,
                     contact: contact ? contact.name : (job.contact || ''),
-                    id: Date.now().toString(),
+                    id: this.makeId('job'),
                     status: 'Scheduled',
                     checklist: [],
                     photos: [],
@@ -408,7 +460,14 @@
                     showToast('Event updated');
                 }
             },
-            addContact(c) { this.contacts.push({ ...c, id: Date.now().toString() + Math.random().toString().substring(2, 6) }); this.save(); },
+            addContact(c) {
+                const email = (c.email || '').trim().toLowerCase();
+                const name = (c.name || '').trim().toLowerCase();
+                const exists = this.contacts.some(x => (email && (x.email || '').trim().toLowerCase() === email) || ((x.name || '').trim().toLowerCase() === name));
+                if (exists) { showToast('Contact already exists'); return; }
+                this.contacts.push({ ...c, id: this.makeId('contact') });
+                this.save();
+            },
             updateContact(c) {
                 const index = this.contacts.findIndex(x => x.id === c.id);
                 if (index !== -1) {
@@ -430,11 +489,14 @@
             importContacts(newC) {
                 let count = 0;
                 newC.forEach(nc => {
-                    if (!this.contacts.some(c => (c.email && c.email === nc.email) || c.name === nc.name)) {
-                        this.contacts.push({ ...nc, id: Date.now().toString() + Math.random().toString().substring(2, 6) });
+                    const email = (nc.email || '').trim().toLowerCase();
+                    const name = (nc.name || '').trim().toLowerCase();
+                    if (!this.contacts.some(c => ((c.email || '').trim().toLowerCase() === email && email) || (c.name || '').trim().toLowerCase() === name)) {
+                        this.contacts.push({ ...nc, id: this.makeId('contact') });
                         count++;
                     }
                 });
+                this.normalizeAndDeduplicateData();
                 this.save(); return count;
             },
             updateJobStatus(id, s) {
