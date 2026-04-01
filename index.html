@@ -323,10 +323,24 @@
             return Array.from(map.values());
         }
 
+        const DEFAULT_CONTACT_TAGS = [
+            { id: 'tag-customer', name: 'Customer', color: '#3b82f6' },
+            { id: 'tag-supplier', name: 'Supplier', color: '#f59e0b' }
+        ];
+
+        function normalizeContactTags(rawTags = []) {
+            const source = Array.isArray(rawTags) && rawTags.length ? rawTags : DEFAULT_CONTACT_TAGS;
+            return source.map((t, idx) => ({
+                id: (t.id || `tag-${idx + 1}`).toString(),
+                name: (t.name || `Tag ${idx + 1}`).toString(),
+                color: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test((t.color || '').toString()) ? t.color.toString() : '#64748b'
+            }));
+        }
+
         // --- DATA MANAGEMENT ---
         const DB = {
             jobs: [], contacts: [], user: { name: "Richard", email: "richarddyatess@gmail.com" },
-            settings: { monthlyGoal: 5000, templates: [...DEFAULT_TEMPLATES], branding: { companyName: 'ELITE WRAPZ', logoUrl: '', accentColor: '#3b82f6' } },
+            settings: { monthlyGoal: 5000, templates: [...DEFAULT_TEMPLATES], contactTags: [...DEFAULT_CONTACT_TAGS], branding: { companyName: 'ELITE WRAPZ', logoUrl: '', accentColor: '#3b82f6' } },
             updatedAt: null,
             secureNotes: "Gateway ID: 54 02 69 02 45 51\nEORI: GB045268219000",
             vaultEntries: [
@@ -347,7 +361,12 @@
                     const name = (c?.name || '').trim();
                     const email = (c?.email || '').trim().toLowerCase();
                     const key = id || (email ? `email:${email}` : `name:${name.toLowerCase()}`);
-                    if (!contactsByKey.has(key)) contactsByKey.set(key, { ...c, id, name });
+                    if (!contactsByKey.has(key)) contactsByKey.set(key, {
+                        ...c,
+                        id,
+                        name,
+                        tagIds: this.uniqueList(Array.isArray(c?.tagIds) ? c.tagIds : (c?.tagId ? [c.tagId] : []))
+                    });
                 });
                 this.contacts = Array.from(contactsByKey.values());
 
@@ -412,6 +431,7 @@
                     monthlyGoal: 5000,
                     ...(this.settings || {}),
                     templates: mergeWithDefaultTemplates((this.settings || {}).templates),
+                    contactTags: normalizeContactTags((this.settings || {}).contactTags),
                     branding: {
                         companyName: 'ELITE WRAPZ',
                         logoUrl: '',
@@ -469,6 +489,7 @@
                     monthlyGoal: 5000,
                     ...(payload.settings || this.settings || {}),
                     templates: mergeWithDefaultTemplates((payload.settings || this.settings || {}).templates),
+                    contactTags: normalizeContactTags((payload.settings || this.settings || {}).contactTags),
                     branding: {
                         companyName: 'ELITE WRAPZ',
                         logoUrl: '',
@@ -486,7 +507,8 @@
                     company: c.company || '',
                     fao: c.fao || '',
                     website: c.website || '',
-                    notes: c.notes || ''
+                    notes: c.notes || '',
+                    tagIds: this.uniqueList(Array.isArray(c.tagIds) ? c.tagIds : (c.tags ? String(c.tags).split(',').map(x => x.trim()).filter(Boolean) : []))
                 }));
                 this.jobs = (this.jobs || []).map(j => {
                     const n = { ...j };
@@ -509,6 +531,7 @@
                     kind: v.kind || 'Code'
                 }));
                 this.settings.templates = mergeWithDefaultTemplates((this.settings || {}).templates);
+                this.settings.contactTags = normalizeContactTags((this.settings || {}).contactTags);
                 this.normalizeAndDeduplicateData();
             },
             addVaultEntry(entry) {
@@ -601,14 +624,14 @@
                 const name = (c.name || '').trim().toLowerCase();
                 const exists = this.contacts.some(x => (email && (x.email || '').trim().toLowerCase() === email) || ((x.name || '').trim().toLowerCase() === name));
                 if (exists) { showToast('Contact already exists'); return; }
-                this.contacts.push({ ...c, id: this.makeId('contact') });
+                this.contacts.push({ ...c, id: this.makeId('contact'), tagIds: this.uniqueList(Array.isArray(c.tagIds) ? c.tagIds : []) });
                 this.save();
             },
             updateContact(c) {
                 const index = this.contacts.findIndex(x => x.id === c.id);
                 if (index !== -1) {
                     const oldName = this.contacts[index].name;
-                    this.contacts[index] = c;
+                    this.contacts[index] = { ...c, tagIds: this.uniqueList(Array.isArray(c.tagIds) ? c.tagIds : []) };
                     this.jobs = this.jobs.map(j => {
                         if (j.contactId === c.id || (!j.contactId && j.contact === oldName)) return { ...j, contactId: c.id, contact: c.name };
                         return j;
@@ -628,7 +651,7 @@
                     const email = (nc.email || '').trim().toLowerCase();
                     const name = (nc.name || '').trim().toLowerCase();
                     if (!this.contacts.some(c => ((c.email || '').trim().toLowerCase() === email && email) || (c.name || '').trim().toLowerCase() === name)) {
-                        this.contacts.push({ ...nc, id: this.makeId('contact') });
+                        this.contacts.push({ ...nc, id: this.makeId('contact'), tagIds: this.uniqueList(Array.isArray(nc.tagIds) ? nc.tagIds : []) });
                         count++;
                     }
                 });
@@ -704,6 +727,7 @@
             },
             getJobById(id) { return this.jobs.find(j => j.id === id); },
             getContactById(id) { return this.contacts.find(c => c.id === id); },
+            getContactTagById(id) { return ((this.settings || {}).contactTags || []).find(t => t.id === id); },
             getJobsForContact(contact) {
                 if (!contact) return [];
                 return this.jobs.filter(j => (contact.id && j.contactId === contact.id) || (!j.contactId && j.contact === contact.name));
@@ -1178,18 +1202,20 @@
             },
 
             renderContacts(container) {
+                const activeTag = this.params.contactTagFilter || 'all';
+                const searchTerm = this.params.contactSearch || '';
+                const tags = ((DB.settings || {}).contactTags || []);
+                const filteredContacts = getFilteredContacts(searchTerm, activeTag);
                 container.innerHTML = `
                     <div class="pt-12 px-5 pb-20">
                         <div class="flex justify-between items-center mb-4"><h1 class="text-2xl font-bold">Contacts</h1><button onclick="router.navigate('new-contact')" class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg"><i class="fa-solid fa-user-plus"></i></button></div>
-                        <div class="relative mb-4"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted"></i><input type="text" onkeyup="filterContacts(this.value)" placeholder="Search..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-blue-500"></div>
+                        <div class="relative mb-3"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted"></i><input id="contacts-search" type="text" value="${Utils.escapeHtml(searchTerm)}" oninput="router.params.contactSearch=this.value; filterContacts(this.value)" placeholder="Search..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-blue-500"></div>
+                        <div class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
+                            <button onclick="router.params.contactTagFilter='all'; router.renderContacts(document.getElementById('app-content'))" class="px-3 py-1.5 rounded-full text-[11px] font-semibold border ${activeTag==='all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">All</button>
+                            ${tags.map(t => `<button onclick="router.params.contactTagFilter='${t.id}'; router.renderContacts(document.getElementById('app-content'))" class="px-3 py-1.5 rounded-full text-[11px] font-semibold border ${activeTag===t.id ? 'text-white' : 'text-app-muted'}" style="border-color:${activeTag===t.id ? t.color : '#334155'};background:${activeTag===t.id ? t.color : 'transparent'}">${Utils.escapeHtml(t.name)}</button>`).join('')}
+                        </div>
                         <div id="contacts-list" class="space-y-3">
-                            ${DB.contacts.length === 0 ? this.components.emptyState('No contacts', 'Add Contact', 'new-contact') : 
-                              DB.contacts.sort((a,b)=>a.name.localeCompare(b.name)).map(c => `
-                                <div onclick="router.navigate('contact-details', {id: '${c.id}'})" class="bg-app-card p-4 rounded-xl border border-app-border flex items-center gap-4 active:scale-95 transition-transform cursor-pointer">
-                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold">${Utils.getInitials(c.name)}</div>
-                                    <div class="flex-1"><h3 class="font-semibold text-white">${c.name}</h3><p class="text-xs text-app-muted">${c.company || 'Private'} · ${DB.getJobsForContact(c).length} job${DB.getJobsForContact(c).length === 1 ? '' : 's'}</p></div>
-                                    <i class="fa-solid fa-chevron-right text-app-muted"></i>
-                                </div>`).join('')}
+                            ${filteredContacts.length === 0 ? this.components.emptyState('No contacts', 'Add Contact', 'new-contact') : renderContactCards(filteredContacts)}
                         </div>
                     </div>`;
             },
@@ -1224,6 +1250,7 @@
                         </div>
                     </div>
                     <div class="flex flex-col items-center mb-8"><div class="w-24 h-24 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-3xl shadow-xl mb-4">${Utils.getInitials(con.name)}</div><h1 class="text-2xl font-bold text-center">${con.name}</h1><p class="text-app-muted text-center">${con.company||'Private'}</p>
+                    ${renderContactTagBadges(con, true)}
                     <button onclick="router.navigate('new-event', { contactId: '${con.id}' })" class="mt-3 px-4 py-2 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs font-semibold"><i class="fa-solid fa-calendar-plus mr-1"></i>New Job for Contact</button>
                     <button onclick="router.navigate('templates', { contactId: '${con.id}' })" class="mt-2 px-4 py-2 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold"><i class="fa-regular fa-message mr-1"></i>Message Templates</button>
                     <div class="grid grid-cols-4 gap-3 w-full mt-6">
@@ -1357,13 +1384,14 @@
             renderNewContact(c) {
                 c.innerHTML = `
                 <div class="pt-12 px-5 pb-24"><div class="flex items-center gap-4 mb-6"><button onclick="router.navigate('contacts')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-xl font-bold">New Contact</h1></div>
-                <form onsubmit="event.preventDefault(); DB.addContact(Object.fromEntries(new FormData(event.target))); router.navigate('contacts');" class="space-y-5">
+                <form onsubmit="handleNewContact(event)" class="space-y-5">
                     <div><label class="text-xs text-app-muted block mb-1">Name</label><input name="name" required placeholder="Name" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                     <div><label class="text-xs text-app-muted block mb-1">Company</label><input name="company" placeholder="Company" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                     <div><label class="text-xs text-app-muted block mb-1">FAO / Contact Person</label><input name="fao" placeholder="e.g. Jane Smith" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                     <div class="grid grid-cols-2 gap-4"><div><label class="text-xs text-app-muted block mb-1">Phone</label><input name="phone" type="tel" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Email</label><input name="email" type="email" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
                     <div><label class="text-xs text-app-muted block mb-1">Website</label><input name="website" placeholder="example.com" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                     <div><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" placeholder="Address" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    ${renderContactTagCheckboxes()}
                     <div><label class="text-xs text-app-muted block mb-1">Notes</label><textarea name="notes" rows="3" placeholder="Custom notes, preferences, access info..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg mt-4">Save Contact</button>
                 </form></div>`;
@@ -1374,13 +1402,14 @@
                 if(!con) { this.navigate('contacts'); return; }
                 c.innerHTML = `
                 <div class="pt-12 px-5 pb-24"><div class="flex items-center gap-4 mb-6"><button onclick="router.navigate('contact-details', {id:'${id}'})" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-xl font-bold">Edit Contact</h1></div>
-                <form onsubmit="event.preventDefault(); const d=Object.fromEntries(new FormData(event.target)); d.id='${id}'; DB.updateContact(d); router.navigate('contact-details', {id:'${id}'});" class="space-y-5">
+                <form onsubmit="handleEditContact(event, '${id}')" class="space-y-5">
                     <div><label class="text-xs text-app-muted block mb-1">Name</label><input name="name" value="${con.name}" required class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
                     <div><label class="text-xs text-app-muted block mb-1">Company</label><input name="company" value="${con.company||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
                     <div><label class="text-xs text-app-muted block mb-1">FAO / Contact Person</label><input name="fao" value="${con.fao||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
                     <div class="grid grid-cols-2 gap-4"><div><label class="text-xs text-app-muted block mb-1">Phone</label><input name="phone" value="${con.phone||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div><div><label class="text-xs text-app-muted block mb-1">Email</label><input name="email" value="${con.email||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div></div>
                     <div><label class="text-xs text-app-muted block mb-1">Website</label><input name="website" value="${con.website||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
                     <div><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" value="${con.address||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
+                    ${renderContactTagCheckboxes(con.tagIds || [])}
                     <div><label class="text-xs text-app-muted block mb-1">Notes</label><textarea name="notes" rows="3" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white">${con.notes||''}</textarea></div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg mt-4">Update Contact</button>
                 </form></div>`;
@@ -1654,6 +1683,7 @@
                 <div class="bg-app-card border border-app-border rounded-xl overflow-hidden mb-6"><button onclick="router.navigate('templates')" class="w-full p-4 flex items-center justify-between text-white hover:bg-app-lighter"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg"><i class="fa-regular fa-message"></i></div><div><h4 class="font-medium">Message Templates</h4><p class="text-xs text-app-muted">Email / WhatsApp copy presets</p></div></div><i class="fa-solid fa-chevron-right text-app-muted"></i></button></div>
                 <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex items-center justify-between mb-2"><h4 class="font-medium text-white">Cloud Sync</h4><span class="text-[10px] px-2 py-1 rounded-full ${CloudSync.user ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${CloudSync.user ? 'Connected' : 'Offline'}</span></div><p class="text-xs text-app-muted mb-3">${CloudSync.user ? `Auto-sync on open/focus is enabled · ${CloudSync.lastSyncStatus}${CloudSync.lastSyncedAt ? ` · ${new Date(CloudSync.lastSyncedAt).toLocaleString('en-GB')}` : ''}` : 'Optional: sync data across devices with Firebase.'}</p>${CloudSync.user ? `<p class="text-xs text-app-muted mb-3">Signed in as <span class="text-white">${CloudSync.user.email}</span></p><div class="grid grid-cols-3 gap-2"><button onclick="cloudSyncNow()" class="bg-cyan-600/20 border border-cyan-600/30 text-cyan-300 py-2.5 rounded-lg text-xs font-semibold">Pull Cloud</button><button onclick="cloudUploadNow()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Upload Local</button><button onclick="cloudSignOut()" class="bg-red-600/20 border border-red-600/30 text-red-300 py-2.5 rounded-lg text-xs font-semibold">Sign Out</button></div>` : `<div class="grid grid-cols-2 gap-2"><button onclick="cloudLoginPrompt()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Log In</button><button onclick="cloudSignupPrompt()" class="bg-emerald-600/20 border border-emerald-600/30 text-emerald-300 py-2.5 rounded-lg text-xs font-semibold">Create Account</button></div>`}</div>
                 <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h4 class="font-medium text-white mb-2">Branding</h4><p class="text-xs text-app-muted mb-3">Used in PDF headers and reports.</p><div class="space-y-2"><input id="brand-company" value="${(DB.settings.branding||{}).companyName||'ELITE WRAPZ'}" placeholder="Company name" class="w-full bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"><input id="brand-logo" value="${(DB.settings.branding||{}).logoUrl||''}" placeholder="Logo URL (optional)" class="w-full bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"><div class="flex items-center gap-2"><input id="brand-color" type="color" value="${(DB.settings.branding||{}).accentColor||'#3b82f6'}" class="w-12 h-10 rounded border border-app-border bg-app-lighter"><input id="brand-color-text" value="${(DB.settings.branding||{}).accentColor||'#3b82f6'}" placeholder="#3b82f6" class="flex-1 bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"></div><button onclick="saveBrandingSettings()" class="w-full bg-blue-600/20 border border-blue-500/40 text-blue-300 py-2.5 rounded-lg text-sm font-semibold">Save Branding</button></div></div>
+                <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h4 class="font-medium text-white mb-2">Contact Tags</h4><p class="text-xs text-app-muted mb-3">Create tags like Customer/Supplier and choose colours.</p><div class="flex flex-wrap gap-2 mb-3">${(((DB.settings||{}).contactTags)||[]).map(t=>`<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-semibold" style="color:${t.color};border-color:${t.color}88;background:${t.color}22">${Utils.escapeHtml(t.name)} <button onclick="deleteContactTag('${t.id}')" class="text-red-300 hover:text-red-200"><i class="fa-solid fa-xmark"></i></button></span>`).join('') || '<span class="text-xs text-app-muted">No tags yet.</span>'}</div><div class="grid grid-cols-3 gap-2"><input id="contact-tag-name" placeholder="Tag name" class="col-span-2 bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"><input id="contact-tag-color" type="color" value="#64748b" class="bg-app-lighter border border-app-border rounded-lg p-1.5 h-10"></div><button onclick="addContactTag()" class="w-full mt-2 bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 py-2.5 rounded-lg text-sm font-semibold">Add Tag</button></div>
                 <div class="space-y-3"><button onclick="document.getElementById('csv').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-file-csv text-green-500"></i> Import Contacts CSV</button><input id="csv" type="file" class="hidden" accept=".csv" onchange="handleCSV(this)"><button onclick="Utils.downloadJSON(DB.getSerializableData(), 'backup.json')" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-download text-blue-500"></i> Backup Data</button><button onclick="document.getElementById('restore-json').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-upload text-cyan-400"></i> Restore Backup</button><input id="restore-json" type="file" class="hidden" accept=".json,application/json" onchange="handleJSONRestore(this)"><button onclick="const r=prompt('Type RESET to confirm wipe:'); if(r==='RESET'){localStorage.clear();location.reload()}" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-red-400"><i class="fa-solid fa-trash"></i> Reset App</button></div></div>`; },
             renderTemplates(container) {
                 const templates = Array.isArray((DB.settings || {}).templates) ? DB.settings.templates : [];
@@ -1900,6 +1930,39 @@
         };
 
         // --- HANDLERS ---
+        function renderContactTagBadges(contact, centered = false) {
+            const tags = ((contact?.tagIds || []).map(id => DB.getContactTagById(id)).filter(Boolean));
+            if (!tags.length) return '';
+            return `<div class="flex flex-wrap gap-1.5 ${centered ? 'justify-center mt-2' : 'mt-1'}">${tags.map(t => `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border" style="background:${t.color}22;border-color:${t.color}88;color:${t.color}">${Utils.escapeHtml(t.name)}</span>`).join('')}</div>`;
+        }
+        function renderContactTagCheckboxes(selectedIds = []) {
+            const tags = ((DB.settings || {}).contactTags || []);
+            if (!tags.length) return '<p class="text-xs text-app-muted">No contact tags set. Add tags from More → Contact Tags.</p>';
+            const selected = new Set(selectedIds || []);
+            return `<div><label class="text-xs text-app-muted block mb-2">Tags</label><div class="flex flex-wrap gap-2">${tags.map(t => `<label class="cursor-pointer"><input type="checkbox" name="tagIds" value="${t.id}" ${selected.has(t.id) ? 'checked' : ''} class="peer sr-only"><span class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all inline-flex" style="color:${t.color};border-color:${t.color}88;background:${selected.has(t.id) ? t.color + '22' : 'transparent'}">${Utils.escapeHtml(t.name)}</span></label>`).join('')}</div></div>`;
+        }
+        function renderContactCards(contacts = []) {
+            return contacts.map(c=>`<div onclick="router.navigate('contact-details', {id: '${c.id}'})" class="bg-app-card p-4 rounded-xl border border-app-border flex items-center gap-4 active:scale-95 transition-transform cursor-pointer"><div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold">${Utils.getInitials(c.name)}</div><div class="flex-1 min-w-0"><h3 class="font-semibold text-white truncate">${Utils.escapeHtml(c.name)}</h3><p class="text-xs text-app-muted truncate">${Utils.escapeHtml(c.company || 'Private')} · ${DB.getJobsForContact(c).length} job${DB.getJobsForContact(c).length === 1 ? '' : 's'}</p>${renderContactTagBadges(c)}</div><i class="fa-solid fa-chevron-right text-app-muted"></i></div>`).join('');
+        }
+        function getFilteredContacts(search = '', tagFilter = 'all') {
+            const q = (search || '').trim().toLowerCase();
+            return DB.contacts
+                .filter(c => tagFilter === 'all' ? true : ((c.tagIds || []).includes(tagFilter)))
+                .filter(c => {
+                    if (!q) return true;
+                    return (c.name || '').toLowerCase().includes(q)
+                        || (c.company || '').toLowerCase().includes(q)
+                        || (c.email || '').toLowerCase().includes(q)
+                        || (c.phone || '').toLowerCase().includes(q);
+                })
+                .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+        }
+        function getContactFormData(formEl) {
+            const fd = new FormData(formEl);
+            const d = Object.fromEntries(fd.entries());
+            d.tagIds = Array.from(new Set(fd.getAll('tagIds').map(x => String(x))));
+            return d;
+        }
         function toggleFabMenu() {
             const m=document.getElementById('fab-menu'), o=document.getElementById('fab-overlay'), i=document.getElementById('fab-icon');
             m.classList.toggle('hidden'); m.classList.toggle('flex'); o.classList.toggle('hidden');
@@ -1941,6 +2004,19 @@
             d.id = id;
             DB.updateJob(d);
             router.navigate('job-details', {id: id});
+        }
+        function handleNewContact(e) {
+            e.preventDefault();
+            const d = getContactFormData(e.target);
+            DB.addContact(d);
+            router.navigate('contacts');
+        }
+        function handleEditContact(e, id) {
+            e.preventDefault();
+            const d = getContactFormData(e.target);
+            d.id = id;
+            DB.updateContact(d);
+            router.navigate('contact-details', {id});
         }
         function applyJobNumber(d) {
             if (d.jobNumberSuffix !== undefined) {
@@ -2008,8 +2084,10 @@
         }
         function filterContacts(q) {
             const l = document.getElementById('contacts-list');
-            const res = DB.contacts.filter(c=>c.name.toLowerCase().includes(q.toLowerCase()));
-            l.innerHTML = res.length ? res.map(c=>`<div onclick="router.navigate('contact-details', {id: '${c.id}'})" class="bg-app-card p-4 rounded-xl border border-app-border flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">${Utils.getInitials(c.name)}</div><div><h3 class="font-semibold text-white">${c.name}</h3><p class="text-xs text-app-muted">${c.company || 'Private'} · ${DB.getJobsForContact(c).length} job${DB.getJobsForContact(c).length === 1 ? '' : 's'}</p></div></div>`).join('') : '<p class="text-center text-app-muted">No match</p>';
+            if (!l) return;
+            const activeTag = router.params.contactTagFilter || 'all';
+            const res = getFilteredContacts(q, activeTag);
+            l.innerHTML = res.length ? renderContactCards(res) : '<p class="text-center text-app-muted">No match</p>';
         }
         function checkConflict() {
             const d = document.getElementById('j-date')?.value;
@@ -2122,6 +2200,27 @@
             if (c) c.value = accentColor;
             if (ct) ct.value = accentColor;
             showToast('Branding saved');
+        }
+        function addContactTag() {
+            const name = (document.getElementById('contact-tag-name')?.value || '').trim();
+            const colorRaw = (document.getElementById('contact-tag-color')?.value || '#64748b').trim();
+            const color = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(colorRaw) ? colorRaw : '#64748b';
+            if (!name) { showToast('Tag name required'); return; }
+            const tags = Array.isArray((DB.settings || {}).contactTags) ? [...DB.settings.contactTags] : [];
+            if (tags.some(t => (t.name || '').toLowerCase() === name.toLowerCase())) { showToast('Tag already exists'); return; }
+            tags.push({ id: DB.makeId('tag'), name, color });
+            DB.settings = { ...(DB.settings || {}), contactTags: tags };
+            DB.save();
+            showToast('Contact tag added');
+            router.renderMore(document.getElementById('app-content'));
+        }
+        function deleteContactTag(id) {
+            if (!confirm('Delete this contact tag?')) return;
+            DB.settings = { ...(DB.settings || {}), contactTags: (((DB.settings || {}).contactTags) || []).filter(t => t.id !== id) };
+            DB.contacts = (DB.contacts || []).map(c => ({ ...c, tagIds: (c.tagIds || []).filter(x => x !== id) }));
+            DB.save();
+            showToast('Contact tag deleted');
+            router.renderMore(document.getElementById('app-content'));
         }
         function getTemplateContextIds() {
             return {
