@@ -577,7 +577,7 @@
                         </div>
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2"><i class="fa-solid fa-calendar-days text-blue-500"></i><h2 class="font-semibold text-lg">Upcoming Schedule</h2></div>
-                            <button onclick="router.navigate('projects')" class="text-xs text-blue-400 font-semibold flex items-center gap-1 hover:text-blue-300"><i class="fa-solid fa-folder-open"></i> All Projects</button>
+                            <button onclick="router.navigate('projects')" aria-label="View all projects" class="text-xs text-blue-400 font-semibold flex items-center gap-1 hover:text-blue-300"><i class="fa-solid fa-folder-open"></i> All Projects</button>
                         </div>
                         <div class="relative mb-4">
                             <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted text-sm"></i>
@@ -834,12 +834,12 @@
                 container.innerHTML = `
                 <div class="pt-12 px-5 pb-28 page-enter">
                     <div class="flex items-center gap-3 mb-5">
-                        <button onclick="router.navigate('today')" class="w-9 h-9 rounded-full bg-app-card border border-app-border flex items-center justify-center text-app-muted hover:text-white"><i class="fa-solid fa-arrow-left"></i></button>
+                        <button onclick="router.navigate('today')" aria-label="Go back to dashboard" class="w-9 h-9 rounded-full bg-app-card border border-app-border flex items-center justify-center text-app-muted hover:text-white"><i class="fa-solid fa-arrow-left"></i></button>
                         <div class="flex-1">
                             <h1 class="text-xl font-bold text-white">Projects</h1>
                             <p class="text-xs text-app-muted">${totalJobs.length} total job${totalJobs.length !== 1 ? 's' : ''}</p>
                         </div>
-                        <button onclick="router.navigate('new-event')" class="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/30"><i class="fa-solid fa-plus"></i></button>
+                        <button onclick="router.navigate('new-event')" aria-label="Create new event" class="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/30"><i class="fa-solid fa-plus"></i></button>
                     </div>
                     <div class="relative mb-4">
                         <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted text-sm"></i>
