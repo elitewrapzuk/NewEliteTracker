@@ -1125,6 +1125,8 @@
                 const avgValue = jobs.length ? paidValue / jobs.length : 0;
                 const lastJob = jobs.length ? [...jobs].sort((a, b) => new Date(b.date + 'T12:00:00') - new Date(a.date + 'T12:00:00'))[0] : null;
                 const cleanPhone = Utils.sanitizePhone(con.phone);
+                const websiteRaw = (con.website || '').trim();
+                const websiteHref = websiteRaw ? (/^https?:\/\//i.test(websiteRaw) ? websiteRaw : `https://${websiteRaw}`) : '';
                 c.innerHTML = `
                 <div class="pt-8 px-5 pb-32 animate-fade-in">
                     <div class="flex justify-between items-center mb-6">
@@ -1139,7 +1141,7 @@
                         <a href="tel:${cleanPhone}" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-solid fa-phone text-blue-500 text-xl"></i><span class="text-xs text-app-muted">Call</span></a>
                         <a href="sms:${cleanPhone}" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-solid fa-comment-dots text-emerald-500 text-xl"></i><span class="text-xs text-app-muted">Text</span></a>
                         <a href="mailto:${con.email}" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-solid fa-envelope text-purple-500 text-xl"></i><span class="text-xs text-app-muted">Email</span></a>
-                        <a href="https://wa.me/${cleanPhone}" target="_blank" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-brands fa-whatsapp text-green-500 text-xl"></i><span class="text-xs text-app-muted">WA</span></a>
+                        ${websiteHref ? `<a href="${websiteHref}" target="_blank" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-solid fa-globe text-cyan-400 text-xl"></i><span class="text-xs text-app-muted">Website</span></a>` : `<a href="https://wa.me/${cleanPhone}" target="_blank" class="flex flex-col items-center gap-2 p-3 bg-app-card border border-app-border rounded-xl active:bg-app-lighter"><i class="fa-brands fa-whatsapp text-green-500 text-xl"></i><span class="text-xs text-app-muted">WA</span></a>`}
                     </div></div>
                     
                     <div class="bg-app-card border border-app-border rounded-xl p-5 mb-6">
@@ -1168,6 +1170,10 @@
                             </div>
                             ${con.address ? `<button onclick="Utils.copyToClipboard('${con.address}', 'Address')" class="w-8 h-8 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-regular fa-copy"></i></button>` : ''}
                         </div>
+
+                        ${con.fao ? `<div class="flex items-center justify-between mt-3 border-t border-app-border/50 pt-3"><div class="flex items-center gap-3 overflow-hidden"><div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-user-tie"></i></div><span class="text-sm text-white truncate">${con.fao}</span></div><button onclick="Utils.copyToClipboard(decodeURIComponent('${encodeURIComponent(con.fao)}'), 'FAO')" class="w-8 h-8 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-regular fa-copy"></i></button></div>` : ''}
+                        ${websiteRaw ? `<div class="flex items-center justify-between mt-3 ${con.fao ? '' : 'border-t border-app-border/50 pt-3'}"><div class="flex items-center gap-3 overflow-hidden"><div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-globe"></i></div><a href="${websiteHref}" target="_blank" class="text-sm text-white truncate hover:text-cyan-300">${websiteRaw}</a></div><button onclick="Utils.copyToClipboard(decodeURIComponent('${encodeURIComponent(websiteRaw)}'), 'Website')" class="w-8 h-8 flex items-center justify-center text-app-muted hover:text-white rounded-lg hover:bg-app-lighter"><i class="fa-regular fa-copy"></i></button></div>` : ''}
+                        ${con.notes ? `<div class="mt-3 border-t border-app-border/50 pt-3"><div class="flex items-center gap-2 mb-1"><i class="fa-regular fa-note-sticky text-yellow-400"></i><p class="text-xs text-app-muted uppercase tracking-wider">Notes</p></div><p class="text-sm text-white/90 whitespace-pre-wrap">${con.notes}</p></div>` : ''}
                     </div>
 
                     <div class="grid grid-cols-3 gap-3 mb-4">
@@ -1265,8 +1271,11 @@
                 <form onsubmit="event.preventDefault(); DB.addContact(Object.fromEntries(new FormData(event.target))); router.navigate('contacts');" class="space-y-5">
                     <div><label class="text-xs text-app-muted block mb-1">Name</label><input name="name" required placeholder="Name" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                     <div><label class="text-xs text-app-muted block mb-1">Company</label><input name="company" placeholder="Company" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <div><label class="text-xs text-app-muted block mb-1">FAO / Contact Person</label><input name="fao" placeholder="e.g. Jane Smith" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                     <div class="grid grid-cols-2 gap-4"><div><label class="text-xs text-app-muted block mb-1">Phone</label><input name="phone" type="tel" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Email</label><input name="email" type="email" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
+                    <div><label class="text-xs text-app-muted block mb-1">Website</label><input name="website" placeholder="example.com" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                     <div><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" placeholder="Address" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                    <div><label class="text-xs text-app-muted block mb-1">Notes</label><textarea name="notes" rows="3" placeholder="Custom notes, preferences, access info..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg mt-4">Save Contact</button>
                 </form></div>`;
             },
@@ -1279,8 +1288,11 @@
                 <form onsubmit="event.preventDefault(); const d=Object.fromEntries(new FormData(event.target)); d.id='${id}'; DB.updateContact(d); router.navigate('contact-details', {id:'${id}'});" class="space-y-5">
                     <div><label class="text-xs text-app-muted block mb-1">Name</label><input name="name" value="${con.name}" required class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
                     <div><label class="text-xs text-app-muted block mb-1">Company</label><input name="company" value="${con.company||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
+                    <div><label class="text-xs text-app-muted block mb-1">FAO / Contact Person</label><input name="fao" value="${con.fao||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
                     <div class="grid grid-cols-2 gap-4"><div><label class="text-xs text-app-muted block mb-1">Phone</label><input name="phone" value="${con.phone||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div><div><label class="text-xs text-app-muted block mb-1">Email</label><input name="email" value="${con.email||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div></div>
+                    <div><label class="text-xs text-app-muted block mb-1">Website</label><input name="website" value="${con.website||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
                     <div><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" value="${con.address||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"></div>
+                    <div><label class="text-xs text-app-muted block mb-1">Notes</label><textarea name="notes" rows="3" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white">${con.notes||''}</textarea></div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg mt-4">Update Contact</button>
                 </form></div>`;
             },
@@ -1552,7 +1564,7 @@
                 <div class="bg-app-card border border-app-border rounded-xl overflow-hidden mb-6"><button onclick="router.navigate('secure-login')" class="w-full p-4 flex items-center justify-between text-white hover:bg-app-lighter"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-lg"><i class="fa-solid fa-lock"></i></div><div><h4 class="font-medium">Secure Vault</h4><p class="text-xs text-app-muted">Important IDs & Codes</p></div></div><i class="fa-solid fa-chevron-right text-app-muted"></i></button></div>
                 <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex items-center justify-between mb-2"><h4 class="font-medium text-white">Cloud Sync</h4><span class="text-[10px] px-2 py-1 rounded-full ${CloudSync.user ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${CloudSync.user ? 'Connected' : 'Offline'}</span></div><p class="text-xs text-app-muted mb-3">${CloudSync.user ? `Auto-sync on open/focus is enabled · ${CloudSync.lastSyncStatus}${CloudSync.lastSyncedAt ? ` · ${new Date(CloudSync.lastSyncedAt).toLocaleString('en-GB')}` : ''}` : 'Optional: sync data across devices with Firebase.'}</p>${CloudSync.user ? `<p class="text-xs text-app-muted mb-3">Signed in as <span class="text-white">${CloudSync.user.email}</span></p><div class="grid grid-cols-3 gap-2"><button onclick="cloudSyncNow()" class="bg-cyan-600/20 border border-cyan-600/30 text-cyan-300 py-2.5 rounded-lg text-xs font-semibold">Pull Cloud</button><button onclick="cloudUploadNow()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Upload Local</button><button onclick="cloudSignOut()" class="bg-red-600/20 border border-red-600/30 text-red-300 py-2.5 rounded-lg text-xs font-semibold">Sign Out</button></div>` : `<div class="grid grid-cols-2 gap-2"><button onclick="cloudLoginPrompt()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Log In</button><button onclick="cloudSignupPrompt()" class="bg-emerald-600/20 border border-emerald-600/30 text-emerald-300 py-2.5 rounded-lg text-xs font-semibold">Create Account</button></div>`}</div>
                 <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h4 class="font-medium text-white mb-2">Branding</h4><p class="text-xs text-app-muted mb-3">Used in PDF headers and reports.</p><div class="space-y-2"><input id="brand-company" value="${(DB.settings.branding||{}).companyName||'ELITE WRAPZ'}" placeholder="Company name" class="w-full bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"><input id="brand-logo" value="${(DB.settings.branding||{}).logoUrl||''}" placeholder="Logo URL (optional)" class="w-full bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"><div class="flex items-center gap-2"><input id="brand-color" type="color" value="${(DB.settings.branding||{}).accentColor||'#3b82f6'}" class="w-12 h-10 rounded border border-app-border bg-app-lighter"><input id="brand-color-text" value="${(DB.settings.branding||{}).accentColor||'#3b82f6'}" placeholder="#3b82f6" class="flex-1 bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"></div><button onclick="saveBrandingSettings()" class="w-full bg-blue-600/20 border border-blue-500/40 text-blue-300 py-2.5 rounded-lg text-sm font-semibold">Save Branding</button></div></div>
-                <div class="space-y-3"><button onclick="document.getElementById('csv').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-file-csv text-green-500"></i> Import CSV</button><input id="csv" type="file" class="hidden" accept=".csv" onchange="handleCSV(this)"><button onclick="Utils.downloadJSON(DB.getSerializableData(), 'backup.json')" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-download text-blue-500"></i> Backup Data</button><button onclick="document.getElementById('restore-json').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-upload text-cyan-400"></i> Restore Backup</button><input id="restore-json" type="file" class="hidden" accept=".json,application/json" onchange="handleJSONRestore(this)"><button onclick="const r=prompt('Type RESET to confirm wipe:'); if(r==='RESET'){localStorage.clear();location.reload()}" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-red-400"><i class="fa-solid fa-trash"></i> Reset App</button></div></div>`; },
+                <div class="space-y-3"><button onclick="document.getElementById('csv').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-file-csv text-green-500"></i> Import Contacts CSV</button><input id="csv" type="file" class="hidden" accept=".csv" onchange="handleCSV(this)"><button onclick="Utils.downloadJSON(DB.getSerializableData(), 'backup.json')" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-download text-blue-500"></i> Backup Data</button><button onclick="document.getElementById('restore-json').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-upload text-cyan-400"></i> Restore Backup</button><input id="restore-json" type="file" class="hidden" accept=".json,application/json" onchange="handleJSONRestore(this)"><button onclick="const r=prompt('Type RESET to confirm wipe:'); if(r==='RESET'){localStorage.clear();location.reload()}" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-red-400"><i class="fa-solid fa-trash"></i> Reset App</button></div></div>`; },
             renderSecureLogin(c) { this.tempPasscode = ''; c.innerHTML = `<div class="h-full flex flex-col items-center justify-center px-6"><div class="mb-8 text-center"><div class="w-16 h-16 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-3xl mx-auto mb-4"><i class="fa-solid fa-shield-halved"></i></div><h2 class="text-2xl font-bold text-white mb-2">Secure Vault</h2><p class="text-app-muted text-sm">Enter passcode to access</p></div><div id="dots" class="flex gap-4 mb-10 justify-center h-4">${[...Array(6)].map(() => '<div class="dot"></div>').join('')}</div><div class="grid grid-cols-3 gap-6">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="keypad-btn" onclick="handleKeypad(${n})">${n}</button>`).join('')}<button class="keypad-btn bg-transparent border-none text-sm" onclick="router.navigate('more')">Cancel</button><button class="keypad-btn" onclick="handleKeypad(0)">0</button><button class="keypad-btn bg-transparent border-none text-red-400" onclick="handleKeypad('del')"><i class="fa-solid fa-delete-left"></i></button></div></div>`; },
             renderSecureNotes(c) {
                 c.innerHTML = `
@@ -2192,8 +2204,30 @@
         function handleCSV(input) {
             const f=input.files[0]; if(!f)return;
             Papa.parse(f, { header:true, skipEmptyLines:true, complete: (res) => {
-                const map = res.data.map(r => ({ name: r['Name']||r['First Name']+' '+r['Last Name'], company: r['Company Name'], phone: r['Phone'], email: r['Email'], address: r['Street']||'' }));
-                showToast(`Imported ${DB.importContacts(map)} contacts`); router.navigate('contacts');
+                const pick = (row, keys = []) => {
+                    for (const k of keys) {
+                        if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return String(row[k]).trim();
+                    }
+                    return '';
+                };
+                const map = res.data.map(r => {
+                    const first = pick(r, ['First Name','FirstName','Given Name']);
+                    const last = pick(r, ['Last Name','LastName','Surname','Family Name']);
+                    const full = `${first} ${last}`.trim();
+                    return {
+                        name: pick(r, ['Name','Full Name','Contact Name']) || full,
+                        company: pick(r, ['Company','Company Name','Organisation','Organization']),
+                        fao: pick(r, ['FAO','Attn','Attention','Contact Person']),
+                        phone: pick(r, ['Phone','Mobile','Telephone','Tel']),
+                        email: pick(r, ['Email','E-mail']),
+                        website: pick(r, ['Website','Web','URL','Site']),
+                        address: pick(r, ['Address','Street','Address 1','Location']),
+                        notes: pick(r, ['Notes','Note','Comments','Comment'])
+                    };
+                }).filter(c => c.name || c.email || c.phone);
+                const imported = DB.importContacts(map);
+                showToast(`Imported ${imported} contacts`);
+                router.navigate('contacts');
             }});
         }
         function handleJSONRestore(input) {
