@@ -253,7 +253,7 @@
         // --- DATA MANAGEMENT ---
         const DB = {
             jobs: [], contacts: [], user: { name: "Richard", email: "richarddyatess@gmail.com" },
-            settings: { monthlyGoal: 5000 },
+            settings: { monthlyGoal: 5000, branding: { companyName: 'ELITE WRAPZ', logoUrl: '', accentColor: '#3b82f6' } },
             updatedAt: null,
             secureNotes: "Gateway ID: 54 02 69 02 45 51\nEORI: GB045268219000",
             vaultEntries: [
@@ -335,6 +335,16 @@
                 if (sC) this.contacts = JSON.parse(sC);
                 if (sN) this.secureNotes = sN;
                 if (sS) this.settings = JSON.parse(sS);
+                this.settings = {
+                    monthlyGoal: 5000,
+                    ...(this.settings || {}),
+                    branding: {
+                        companyName: 'ELITE WRAPZ',
+                        logoUrl: '',
+                        accentColor: '#3b82f6',
+                        ...((this.settings && this.settings.branding) || {})
+                    }
+                };
                 this.updatedAt = sU || new Date().toISOString();
                 if (sV) {
                     try { this.vaultEntries = JSON.parse(sV); } catch (_) {}
@@ -381,7 +391,16 @@
                     const value = parts.join(':').trim();
                     return { id: this.makeId('vault'), label, value, kind: 'Code' };
                 }).filter(x => x.value) : this.vaultEntries);
-                this.settings = { monthlyGoal: 5000, ...(payload.settings || this.settings || {}) };
+                this.settings = {
+                    monthlyGoal: 5000,
+                    ...(payload.settings || this.settings || {}),
+                    branding: {
+                        companyName: 'ELITE WRAPZ',
+                        logoUrl: '',
+                        accentColor: '#3b82f6',
+                        ...((((payload.settings || this.settings || {}).branding) || {}))
+                    }
+                };
                 this.migrateData();
                 this.save({ skipCloud: true, preserveTimestamp: true });
             },
@@ -637,6 +656,29 @@
                     })
                     .filter(j => !j.materialsOrdered || !j.materialsDelivered)
                     .sort((a, b) => new Date(a.date + 'T12:00:00') - new Date(b.date + 'T12:00:00'));
+            },
+            getActionQueue(limit = 8) {
+                const now = new Date();
+                const todayIso = Utils.formatDate(now);
+                const soon = new Date(now);
+                soon.setDate(soon.getDate() + 2);
+                const soonIso = Utils.formatDate(soon);
+                const queue = [];
+                this.jobs.forEach(j => {
+                    const isJob = !j.type || j.type === 'Job';
+                    if (!isJob || j.status === 'Cancelled') return;
+                    const balance = (parseFloat(j.price) || 0) - (parseFloat(j.deposit) || 0);
+                    if (j.date <= todayIso && !j.fullPaymentPaid && balance > 0) {
+                        queue.push({ id: j.id, level: 'high', text: `Payment due · £${balance.toFixed(2)} · ${j.jobNumber || j.title}` });
+                    }
+                    if (j.date <= todayIso && !j.clientSignature && j.status !== 'Completed') {
+                        queue.push({ id: j.id, level: 'med', text: `Sign-off needed · ${j.jobNumber || j.title}` });
+                    }
+                    if (j.date >= todayIso && j.date <= soonIso && (!j.materialsOrdered || !j.materialsDelivered)) {
+                        queue.push({ id: j.id, level: 'med', text: `Materials check · ${j.jobNumber || j.title}` });
+                    }
+                });
+                return queue.slice(0, limit);
             }
         };
 
@@ -680,6 +722,7 @@
             user: null,
             pushTimer: null,
             syncInProgress: false,
+            pendingChanges: false,
             lastSyncedAt: null,
             lastSyncStatus: 'Idle',
             lastSyncAttemptAt: 0,
@@ -727,9 +770,12 @@
                 await this.auth.signOut();
                 this.lastSyncStatus = 'Signed out';
                 this.lastSyncedAt = null;
+                this.pendingChanges = false;
             },
             queuePush() {
                 if (!this.user || !this.store || this.syncInProgress) return;
+                this.pendingChanges = true;
+                this.lastSyncStatus = 'Pending upload';
                 clearTimeout(this.pushTimer);
                 this.pushTimer = setTimeout(() => this.pushRemoteData(), 800);
             },
@@ -771,6 +817,7 @@
                     await this.store.collection('trackerData').doc(this.user.uid).set(DB.getSerializableData(), { merge: true });
                     this.lastSyncedAt = new Date().toISOString();
                     this.lastSyncStatus = 'Synced';
+                    this.pendingChanges = false;
                     if (!options.silent) showToast('Cloud data uploaded');
                 } finally {
                     this.syncInProgress = false;
@@ -795,11 +842,13 @@
                         }
                         this.lastSyncedAt = new Date().toISOString();
                         this.lastSyncStatus = 'Synced';
+                        this.pendingChanges = false;
                         if (!options.silent) showToast('Cloud data synced');
                     } else {
                         await ref.set(DB.getSerializableData(), { merge: true });
                         this.lastSyncedAt = new Date().toISOString();
                         this.lastSyncStatus = 'Initialized';
+                        this.pendingChanges = false;
                         if (!options.silent) showToast('Cloud store initialized');
                     }
                 } finally {
@@ -858,8 +907,11 @@
                 const stats = DB.getDashboardStats();
                 const upcomingJobs = DB.getUpcomingJobs();
                 const materialReminders = DB.getMaterialReminders(5);
+                const actionQueue = DB.getActionQueue(6);
                 const nextJob = upcomingJobs.length > 0 ? upcomingJobs[0] : null;
                 const monthName = new Date().toLocaleDateString('en-US', {month: 'long'});
+                const syncLabel = !CloudSync.user ? 'Local only' : (CloudSync.syncInProgress ? 'Syncing…' : (CloudSync.pendingChanges ? 'Pending upload' : 'Cloud synced'));
+                const syncClass = !CloudSync.user ? 'text-amber-300 border-amber-500/30 bg-amber-500/10' : (CloudSync.syncInProgress ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' : (CloudSync.pendingChanges ? 'text-orange-300 border-orange-500/30 bg-orange-500/10' : 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10'));
                 let currentHeader = '';
                 let jobListHtml = upcomingJobs.length === 0 ? this.components.emptyState('No upcoming events', 'Add Event', 'new-event') : '<div class="space-y-4 pb-20 animate-fade-in">';
                 if (upcomingJobs.length > 0) {
@@ -891,6 +943,7 @@
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 font-bold">R</div>
                             </div>
                         </div>
+                        <div class="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs ${syncClass}"><i class="fa-solid fa-cloud"></i>${syncLabel}</div>
                         <div class="glass-card rounded-2xl p-5 mb-6 relative overflow-hidden group border border-blue-500/20 shadow-lg shadow-blue-900/20">
                             <div class="absolute top-0 right-0 p-3 opacity-20"><i class="fa-solid fa-location-arrow text-6xl text-blue-400 transform -rotate-45"></i></div>
                             <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Next Up</h3>
@@ -949,6 +1002,8 @@
                                 </button>`).join('')}
                             </div>
                         </div>` : ''}
+
+                        ${actionQueue.length ? `<div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6"><div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-bolt text-red-400"></i><h3 class="text-sm font-semibold text-red-300">Action Queue</h3></div><div class="space-y-2">${actionQueue.map(a => `<button onclick="router.navigate('job-details', {id:'${a.id}'})" class="w-full text-left bg-app-card border border-app-border rounded-lg p-3 hover:bg-app-lighter transition-colors"><p class="text-xs ${a.level==='high'?'text-red-300':'text-amber-300'} font-semibold">${a.level==='high'?'High Priority':'Action Needed'}</p><p class="text-sm text-white">${a.text}</p></button>`).join('')}</div></div>` : ''}
 
                         <div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-calendar-days text-blue-500"></i><h2 class="font-semibold text-lg">Upcoming Schedule</h2></div>
                         <div class="relative mb-3"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted text-sm"></i><input type="text" id="upcoming-search" oninput="filterUpcoming(this.value)" placeholder="Search by job number (EW-...) or title..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-blue-500"></div>
@@ -1058,6 +1113,14 @@
                 const todayIso = Utils.formatDate(new Date());
                 const upcoming = jobs.filter(j => j.date >= todayIso);
                 const past = jobs.filter(j => j.date < todayIso).sort((a, b) => new Date(b.date + 'T' + (b.time || '00:00')) - new Date(a.date + 'T' + (a.time || '00:00')));
+                const paidValue = jobs.reduce((a, j) => a + (parseFloat(j.price) || 0), 0);
+                const outstandingValue = jobs.reduce((a, j) => {
+                    if ((j.type && j.type !== 'Job') || j.status === 'Cancelled') return a;
+                    if (j.fullPaymentPaid) return a;
+                    return a + Math.max(0, (parseFloat(j.price) || 0) - (parseFloat(j.deposit) || 0));
+                }, 0);
+                const avgValue = jobs.length ? paidValue / jobs.length : 0;
+                const lastJob = jobs.length ? [...jobs].sort((a, b) => new Date(b.date + 'T12:00:00') - new Date(a.date + 'T12:00:00'))[0] : null;
                 const cleanPhone = Utils.sanitizePhone(con.phone);
                 c.innerHTML = `
                 <div class="pt-8 px-5 pb-32 animate-fade-in">
@@ -1108,6 +1171,12 @@
                         <div class="bg-app-card border border-app-border rounded-xl p-3 text-center"><p class="text-xs text-app-muted">Total Jobs</p><p class="text-xl font-bold text-white">${jobs.length}</p></div>
                         <div class="bg-app-card border border-app-border rounded-xl p-3 text-center"><p class="text-xs text-app-muted">Upcoming</p><p class="text-xl font-bold text-blue-400">${upcoming.length}</p></div>
                         <div class="bg-app-card border border-app-border rounded-xl p-3 text-center"><p class="text-xs text-app-muted">Past</p><p class="text-xl font-bold text-app-muted">${past.length}</p></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-xs text-app-muted">Lifetime Value</p><p class="text-lg font-bold text-emerald-400">£${paidValue.toFixed(0)}</p></div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-xs text-app-muted">Outstanding</p><p class="text-lg font-bold ${outstandingValue>0?'text-amber-400':'text-emerald-400'}">£${outstandingValue.toFixed(0)}</p></div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-xs text-app-muted">Avg Job Value</p><p class="text-lg font-bold text-white">£${avgValue.toFixed(0)}</p></div>
+                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-xs text-app-muted">Last Job</p><p class="text-sm font-semibold text-white truncate">${lastJob ? Utils.getFriendlyDate(lastJob.date) : 'None'}</p></div>
                     </div>
 
                     <h3 class="text-sm font-semibold text-app-muted mb-3">Upcoming & Current Jobs</h3>
@@ -1356,9 +1425,29 @@
                     return acc;
                 }, {});
                 const groupKeys = Object.keys(grouped).sort((a,b) => (a < b ? 1 : -1));
+                const timelineJobs = [...jobs].sort((a, b) => new Date((a.date || '') + 'T12:00:00') - new Date((b.date || '') + 'T12:00:00'));
+                const timelineHtml = timelineJobs.map((j, idx) => {
+                    const isJob = isJobType(j);
+                    const start = new Date((j.date || '') + 'T12:00:00');
+                    const end = new Date(start);
+                    const dur = Math.max(1, parseInt(j.durationDays || 1) || 1);
+                    end.setDate(end.getDate() + (dur - 1));
+                    const endIso = Utils.formatDate(end);
+                    return `<div class="relative pl-6 pb-4">
+                        <div class="absolute left-2 top-1 w-2.5 h-2.5 rounded-full ${j.status==='Completed'?'bg-emerald-400':j.status==='Cancelled'?'bg-red-400':'bg-blue-400'}"></div>
+                        ${idx < timelineJobs.length - 1 ? '<div class="absolute left-[11px] top-4 bottom-0 w-px bg-app-border"></div>' : ''}
+                        <div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-3 cursor-pointer active:scale-[0.99] transition-transform">
+                            <div class="flex items-center justify-between gap-2 mb-1"><p class="text-xs text-blue-300 font-semibold">${j.jobNumber || asType(j)}</p><p class="text-[10px] text-app-muted">${j.status || 'Scheduled'}</p></div>
+                            <p class="text-sm font-semibold text-white truncate">${j.title}</p>
+                            <p class="text-xs text-app-muted mt-1">${Utils.getFriendlyDate(j.date)}${dur > 1 ? ` → ${Utils.getFriendlyDate(endIso)} · ${dur} days` : ''}</p>
+                            <p class="text-[11px] mt-1 ${isJob && !isPaid(j) ? 'text-amber-300' : 'text-app-muted'}">${j.contact || j.address || 'No client/location'}${isJob ? ` · ${isPaid(j) ? 'PAID' : `Due £${Math.max(0, balanceOf(j)).toFixed(2)}`}` : ''}</p>
+                        </div>
+                    </div>`;
+                }).join('');
 
                 const cardsHtml = jobs.length === 0
                     ? `<div class="border-2 border-dashed border-app-lighter rounded-xl p-8 flex flex-col items-center text-center"><p class="text-app-muted mb-3">No projects found with current filters</p><button onclick="router.params.projectSearch=''; router.params.projectFilter='All'; router.params.projectMonth='all'; router.params.projectType='All'; router.params.projectPayFilter='All'; router.params.projectMatFilter='All'; router.renderProjects(document.getElementById('app-content'))" class="text-blue-400 text-sm font-semibold">Clear filters</button></div>`
+                    : groupMode === 'timeline' ? `<div class="bg-app-card/40 border border-app-border rounded-xl p-3">${timelineHtml}</div>`
                     : groupKeys.map(gk => `
                         ${groupMode === 'month' ? `<div class="sticky top-0 z-10 bg-app-bg/95 backdrop-blur py-2 mt-1 mb-2 border-b border-app-border"><p class="text-xs uppercase tracking-wider font-bold text-blue-400">${gk === 'no-date' ? 'No Date' : monthLabel(gk)} · ${grouped[gk].length}</p></div>` : ''}
                         <div class="space-y-3 mb-4">
@@ -1435,9 +1524,10 @@
                     <div class="grid grid-cols-2 gap-2 mb-4">
                         ${sorts.map(s=>`<button onclick="router.params.projectSort='${s.v}'; router.renderProjects(document.getElementById('app-content'))" class="py-2 rounded-lg text-xs font-semibold border transition-all ${sortBy===s.v?'bg-app-lighter border-blue-500/50 text-blue-400':'bg-app-card border-app-border text-app-muted'}">Sort: ${s.l}</button>`).join('')}
                     </div>
-                    <div class="flex gap-2 mb-4">
-                        <button onclick="router.params.projectGroupMode='month'; router.renderProjects(document.getElementById('app-content'))" class="flex-1 py-2 rounded-lg text-xs font-semibold border ${groupMode==='month' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">Group by Month</button>
-                        <button onclick="router.params.projectGroupMode='list'; router.renderProjects(document.getElementById('app-content'))" class="flex-1 py-2 rounded-lg text-xs font-semibold border ${groupMode==='list' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">Flat List</button>
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <button onclick="router.params.projectGroupMode='month'; router.renderProjects(document.getElementById('app-content'))" class="py-2 rounded-lg text-xs font-semibold border ${groupMode==='month' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">By Month</button>
+                        <button onclick="router.params.projectGroupMode='list'; router.renderProjects(document.getElementById('app-content'))" class="py-2 rounded-lg text-xs font-semibold border ${groupMode==='list' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">Flat List</button>
+                        <button onclick="router.params.projectGroupMode='timeline'; router.renderProjects(document.getElementById('app-content'))" class="py-2 rounded-lg text-xs font-semibold border ${groupMode==='timeline' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">Timeline</button>
                     </div>
 
                     <div class="space-y-1">${cardsHtml}</div>
@@ -1447,6 +1537,7 @@
                 <div class="pt-12 px-5 pb-20 animate-fade-in"><div class="mb-6"><h1 class="text-2xl font-bold">More</h1><p class="text-app-muted text-sm">${DB.user.email}</p></div>
                 <div class="bg-app-card border border-app-border rounded-xl overflow-hidden mb-6"><button onclick="router.navigate('secure-login')" class="w-full p-4 flex items-center justify-between text-white hover:bg-app-lighter"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-lg"><i class="fa-solid fa-lock"></i></div><div><h4 class="font-medium">Secure Vault</h4><p class="text-xs text-app-muted">Important IDs & Codes</p></div></div><i class="fa-solid fa-chevron-right text-app-muted"></i></button></div>
                 <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex items-center justify-between mb-2"><h4 class="font-medium text-white">Cloud Sync</h4><span class="text-[10px] px-2 py-1 rounded-full ${CloudSync.user ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${CloudSync.user ? 'Connected' : 'Offline'}</span></div><p class="text-xs text-app-muted mb-3">${CloudSync.user ? `Auto-sync on open/focus is enabled · ${CloudSync.lastSyncStatus}${CloudSync.lastSyncedAt ? ` · ${new Date(CloudSync.lastSyncedAt).toLocaleString('en-GB')}` : ''}` : 'Optional: sync data across devices with Firebase.'}</p>${CloudSync.user ? `<p class="text-xs text-app-muted mb-3">Signed in as <span class="text-white">${CloudSync.user.email}</span></p><div class="grid grid-cols-3 gap-2"><button onclick="cloudSyncNow()" class="bg-cyan-600/20 border border-cyan-600/30 text-cyan-300 py-2.5 rounded-lg text-xs font-semibold">Pull Cloud</button><button onclick="cloudUploadNow()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Upload Local</button><button onclick="cloudSignOut()" class="bg-red-600/20 border border-red-600/30 text-red-300 py-2.5 rounded-lg text-xs font-semibold">Sign Out</button></div>` : `<div class="grid grid-cols-2 gap-2"><button onclick="cloudLoginPrompt()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Log In</button><button onclick="cloudSignupPrompt()" class="bg-emerald-600/20 border border-emerald-600/30 text-emerald-300 py-2.5 rounded-lg text-xs font-semibold">Create Account</button></div>`}</div>
+                <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h4 class="font-medium text-white mb-2">Branding</h4><p class="text-xs text-app-muted mb-3">Used in PDF headers and reports.</p><div class="space-y-2"><input id="brand-company" value="${(DB.settings.branding||{}).companyName||'ELITE WRAPZ'}" placeholder="Company name" class="w-full bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"><input id="brand-logo" value="${(DB.settings.branding||{}).logoUrl||''}" placeholder="Logo URL (optional)" class="w-full bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"><div class="flex items-center gap-2"><input id="brand-color" type="color" value="${(DB.settings.branding||{}).accentColor||'#3b82f6'}" class="w-12 h-10 rounded border border-app-border bg-app-lighter"><input id="brand-color-text" value="${(DB.settings.branding||{}).accentColor||'#3b82f6'}" placeholder="#3b82f6" class="flex-1 bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"></div><button onclick="saveBrandingSettings()" class="w-full bg-blue-600/20 border border-blue-500/40 text-blue-300 py-2.5 rounded-lg text-sm font-semibold">Save Branding</button></div></div>
                 <div class="space-y-3"><button onclick="document.getElementById('csv').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-file-csv text-green-500"></i> Import CSV</button><input id="csv" type="file" class="hidden" accept=".csv" onchange="handleCSV(this)"><button onclick="Utils.downloadJSON(DB.getSerializableData(), 'backup.json')" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-download text-blue-500"></i> Backup Data</button><button onclick="document.getElementById('restore-json').click()" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-white"><i class="fa-solid fa-upload text-cyan-400"></i> Restore Backup</button><input id="restore-json" type="file" class="hidden" accept=".json,application/json" onchange="handleJSONRestore(this)"><button onclick="const r=prompt('Type RESET to confirm wipe:'); if(r==='RESET'){localStorage.clear();location.reload()}" class="w-full bg-app-card border border-app-border p-4 rounded-xl flex items-center gap-3 text-red-400"><i class="fa-solid fa-trash"></i> Reset App</button></div></div>`; },
             renderSecureLogin(c) { this.tempPasscode = ''; c.innerHTML = `<div class="h-full flex flex-col items-center justify-center px-6"><div class="mb-8 text-center"><div class="w-16 h-16 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-3xl mx-auto mb-4"><i class="fa-solid fa-shield-halved"></i></div><h2 class="text-2xl font-bold text-white mb-2">Secure Vault</h2><p class="text-app-muted text-sm">Enter passcode to access</p></div><div id="dots" class="flex gap-4 mb-10 justify-center h-4">${[...Array(6)].map(() => '<div class="dot"></div>').join('')}</div><div class="grid grid-cols-3 gap-6">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="keypad-btn" onclick="handleKeypad(${n})">${n}</button>`).join('')}<button class="keypad-btn bg-transparent border-none text-sm" onclick="router.navigate('more')">Cancel</button><button class="keypad-btn" onclick="handleKeypad(0)">0</button><button class="keypad-btn bg-transparent border-none text-red-400" onclick="handleKeypad('del')"><i class="fa-solid fa-delete-left"></i></button></div></div>`; },
             renderSecureNotes(c) {
@@ -1496,6 +1587,31 @@
                 const contactData = DB.contacts.find(c => c.id === job.contactId) || DB.contacts.find(c => c.name === job.contact);
                 const signedOff = !!job.clientSignature;
                 const signedOffDate = signedOff ? new Date(job.signedOffAt).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + ' ' + new Date(job.signedOffAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
+                const detailsTab = this.params.jobDetailsTab || 'overview';
+
+                if (detailsTab === 'files') {
+                    container.innerHTML = `
+                    <div class="pt-8 px-5 pb-32 animate-fade-in">
+                        <div class="flex justify-between items-center mb-6">
+                            <button onclick="router.navigate('today')" class="text-app-muted flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                            <button onclick="router.navigate('edit-event', {id: '${id}'})" class="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center active:scale-95 transition-transform"><i class="fa-solid fa-pen"></i></button>
+                        </div>
+                        <div class="mb-4"><h1 class="text-2xl font-bold text-white truncate">${job.jobNumber || job.title}</h1><p class="text-xs text-app-muted">${job.title}</p></div>
+                        <div class="grid grid-cols-2 gap-2 mb-6">
+                            <button onclick="router.navigate('job-details', {id:'${id}', jobDetailsTab:'overview'})" class="py-2 rounded-lg text-xs font-semibold border bg-app-card border-app-border text-app-muted">Overview</button>
+                            <button onclick="router.navigate('job-details', {id:'${id}', jobDetailsTab:'files'})" class="py-2 rounded-lg text-xs font-semibold border bg-blue-600 border-blue-600 text-white">Files</button>
+                        </div>
+
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-folder-open"></i> Documents</h3><button onclick="document.getElementById('doc-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add File</button><input type="file" id="doc-upload-files" class="hidden" onchange="handleDocUpload(event, '${id}')"></div><div class="space-y-2">${documents.length === 0 ? '<p class="text-sm text-app-muted italic">No documents attached.</p>' : documents.map((doc, i) => `<div class="flex items-center justify-between p-3 bg-app-lighter rounded-lg border border-app-border"><div class="flex items-center gap-3 overflow-hidden"><div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-lines"></i></div><a href="${doc.data}" download="${doc.name}" class="text-sm text-white truncate hover:text-blue-400 transition-colors">${doc.name}</a></div><button onclick="deleteDoc('${id}', ${i})" class="text-app-muted hover:text-red-400 px-2"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div></div>` : ''}
+
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera"></i> Before Photos</h3><button onclick="document.getElementById('before-photo-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add</button><input type="file" id="before-photo-upload-files" accept="image/*" multiple class="hidden" onchange="handleBeforePhotoUpload(event, '${id}')"></div><div class="flex gap-2 overflow-x-auto pb-2">${beforePhotos.length === 0 ? '<p class="text-sm text-app-muted italic">No before photos yet.</p>' : beforePhotos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border group cursor-pointer" onclick="openPhotoLightbox('${id}', ${i}, 'before')"><img src="${src}" class="w-full h-full object-cover pointer-events-none"><button onclick="event.stopPropagation(); deleteBeforePhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-times"></i></button></div>`).join('')}</div></div>` : ''}
+
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera-retro"></i> After Photos</h3><button onclick="document.getElementById('after-photo-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add</button><input type="file" id="after-photo-upload-files" accept="image/*" multiple class="hidden" onchange="handleAfterPhotoUpload(event, '${id}')"></div><div class="flex gap-2 overflow-x-auto pb-2">${afterPhotos.length === 0 ? '<p class="text-sm text-app-muted italic">No after photos yet.</p>' : afterPhotos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border group cursor-pointer" onclick="openPhotoLightbox('${id}', ${i}, 'after')"><img src="${src}" class="w-full h-full object-cover pointer-events-none"><button onclick="event.stopPropagation(); deleteAfterPhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-times"></i></button></div>`).join('')}</div></div>` : ''}
+
+                        ${(job.accomScreenshot && job.accomScreenshot.data) ? `<div class="bg-app-card border border-app-border rounded-xl p-4"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold mb-2"><i class="fa-solid fa-bed"></i> Accommodation Screenshot</h3><img src="${job.accomScreenshot.data}" class="w-full max-h-64 object-contain rounded-lg cursor-pointer" onclick="openGenericLightbox('${job.accomScreenshot.data}', 'Accommodation Screenshot')"></div>` : ''}
+                    </div>`;
+                    return;
+                }
 
                 container.innerHTML = `
                     <div class="pt-8 px-5 pb-32 animate-fade-in">
@@ -1510,6 +1626,10 @@
                         ${isJob ? `<div class="text-right"><span class="text-lg font-bold text-white block">£${parseFloat(job.price).toFixed(2)}</span><span class="text-xs ${balance > 0 ? 'text-red-400' : 'text-emerald-400'} font-medium">${balance > 0 ? 'Due: £'+balance.toFixed(2) : 'Paid in Full'}</span></div>` : ''}</div>
                         ${job.jobNumber ? `<div class="mb-2"><span class="bg-blue-500/20 border border-blue-500/40 text-blue-300 text-sm px-3 py-1 rounded-full font-mono font-bold"><i class="fa-solid fa-hashtag text-[11px] mr-1"></i>${job.jobNumber}</span></div>` : ''}
                         ${job.jobReference ? `<div class="mb-4"><span class="bg-app-lighter border border-app-border text-xs px-2 py-1 rounded text-app-muted font-mono"><i class="fa-solid fa-hashtag text-[10px] mr-1"></i>${job.jobReference}</span></div>` : ''}
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <button onclick="router.navigate('job-details', {id:'${id}', jobDetailsTab:'overview'})" class="py-2 rounded-lg text-xs font-semibold border bg-blue-600 border-blue-600 text-white">Overview</button>
+                            <button onclick="router.navigate('job-details', {id:'${id}', jobDetailsTab:'files'})" class="py-2 rounded-lg text-xs font-semibold border bg-app-card border-app-border text-app-muted">Files</button>
+                        </div>
 
                         ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 mb-4 flex items-center gap-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Signed Off &amp; Complete</p><p class="text-xs text-app-muted">By ${job.signedOffName} · ${signedOffDate}</p></div></div>` : ''}
 
@@ -1800,6 +1920,26 @@
             const b = document.getElementById('balance-display');
             if(p > 0) { b.innerText = `Balance: £${(p-d).toFixed(2)}`; b.classList.remove('hidden'); } else { b.classList.add('hidden'); }
         }
+        function saveBrandingSettings() {
+            const companyName = (document.getElementById('brand-company')?.value || 'ELITE WRAPZ').trim();
+            const logoUrl = (document.getElementById('brand-logo')?.value || '').trim();
+            const accentColorRaw = (document.getElementById('brand-color-text')?.value || document.getElementById('brand-color')?.value || '#3b82f6').trim();
+            const accentColor = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(accentColorRaw) ? accentColorRaw : '#3b82f6';
+            DB.settings = {
+                ...(DB.settings || {}),
+                branding: {
+                    companyName: companyName || 'ELITE WRAPZ',
+                    logoUrl,
+                    accentColor
+                }
+            };
+            DB.save();
+            const c = document.getElementById('brand-color');
+            const ct = document.getElementById('brand-color-text');
+            if (c) c.value = accentColor;
+            if (ct) ct.value = accentColor;
+            showToast('Branding saved');
+        }
         function generateInvoice(id) {
             const j=DB.getJobById(id);
             const text = `INVOICE\nJob: ${j.title}\nRef: ${j.jobReference || 'N/A'}\nDate: ${j.date}\nService: ${j.service}\n\nTotal Due: £${parseFloat(j.price).toFixed(2)}\n\nThank you for your business!`;
@@ -1808,6 +1948,10 @@
         function generateJobPDF(id) {
             const j = DB.getJobById(id);
             if (!j) return;
+            const branding = (DB.settings && DB.settings.branding) || {};
+            const companyName = branding.companyName || 'ELITE WRAPZ';
+            const brandColor = branding.accentColor || '#3b82f6';
+            const logoUrl = branding.logoUrl || '';
             const contact = DB.contacts.find(c => c.id === j.contactId) || DB.contacts.find(c => c.name === j.contact);
             const balance = (parseFloat(j.price)||0) - (parseFloat(j.deposit)||0);
             const signedDate = j.signedOffAt ? new Date(j.signedOffAt).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : '';
@@ -1815,8 +1959,8 @@
             if (!printWin) { showToast('Please allow pop-ups to generate PDFs'); return; }
             printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Job Details - ${j.title}</title><style>
                 body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#1e293b;background:#fff;font-size:14px;}
-                .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #3b82f6;padding-bottom:16px;margin-bottom:20px;}
-                .logo{font-size:22px;font-weight:800;color:#3b82f6;letter-spacing:-0.5px;}
+                .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid ${brandColor};padding-bottom:16px;margin-bottom:20px;}
+                .logo{font-size:22px;font-weight:800;color:${brandColor};letter-spacing:-0.5px;}
                 .job-num{background:#eff6ff;border:1px solid #bfdbfe;color:#2563eb;padding:4px 10px;border-radius:20px;font-family:monospace;font-weight:700;font-size:13px;}
                 h1{font-size:20px;font-weight:700;margin:0 0 4px;color:#0f172a;}
                 .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-bottom:12px;}
@@ -1841,7 +1985,8 @@
             <div class="content-wrap">
             <div class="header">
                 <div>
-                    <div class="logo">ELITE WRAPZ</div>
+                    ${logoUrl ? `<img src="${logoUrl}" style="max-height:46px;max-width:160px;object-fit:contain;display:block;margin-bottom:4px;">` : ''}
+                    <div class="logo">${companyName}</div>
                     <div style="font-size:11px;color:#64748b;margin-top:2px;">Job Details Report</div>
                 </div>
                 <div style="text-align:right;">
@@ -1915,9 +2060,9 @@
                 <div>Signed by <strong>${j.signedOffName||'Client'}</strong> on ${signedDate}</div>
                 <img src="${j.clientSignature}" class="sig-img" style="display:block;margin-top:8px;">
             </div>` : ''}
-            <div class="footer">ELITE WRAPZ · Job Tracker · Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+            <div class="footer">${companyName} · Job Tracker · Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
             <div class="no-print" style="text-align:center;margin-top:20px;">
-                <button onclick="window.print()" style="background:#3b82f6;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px;"><i>🖨</i> Print / Save PDF</button>
+                <button onclick="window.print()" style="background:${brandColor};color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px;"><i>🖨</i> Print / Save PDF</button>
                 <button onclick="window.close()" style="background:#e2e8f0;color:#334155;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Close</button>
             </div>
             </div>
@@ -1928,14 +2073,18 @@
         }
         function generateAllProjectsPDF() {
             const jobs = [...DB.jobs].sort((a,b) => new Date(b.date+'T12:00:00') - new Date(a.date+'T12:00:00'));
+            const branding = (DB.settings && DB.settings.branding) || {};
+            const companyName = branding.companyName || 'ELITE WRAPZ';
+            const brandColor = branding.accentColor || '#3b82f6';
+            const logoUrl = branding.logoUrl || '';
             const statusColors = {Scheduled:'#dbeafe',Completed:'#d1fae5',Cancelled:'#fee2e2'};
             const statusTextColors = {Scheduled:'#1d4ed8',Completed:'#065f46',Cancelled:'#991b1b'};
             const printWin = window.open('', '_blank');
             if (!printWin) { showToast('Please allow pop-ups to generate PDFs'); return; }
             printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Projects Report</title><style>
                 body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#1e293b;font-size:13px;}
-                .header{border-bottom:3px solid #3b82f6;padding-bottom:12px;margin-bottom:20px;display:flex;justify-content:space-between;}
-                .logo{font-size:20px;font-weight:800;color:#3b82f6;}
+                .header{border-bottom:3px solid ${brandColor};padding-bottom:12px;margin-bottom:20px;display:flex;justify-content:space-between;}
+                .logo{font-size:20px;font-weight:800;color:${brandColor};}
                 table{width:100%;border-collapse:collapse;margin-bottom:20px;}
                 th{background:#f1f5f9;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;border-bottom:2px solid #e2e8f0;}
                 td{padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;}
@@ -1946,7 +2095,7 @@
                 @media print{.no-print{display:none;}}
             </style></head><body>
             <div class="header">
-                <div><div class="logo">ELITE WRAPZ</div><div style="font-size:11px;color:#64748b;">All Projects Report · ${jobs.length} records</div></div>
+                <div>${logoUrl ? `<img src="${logoUrl}" style="max-height:42px;max-width:150px;object-fit:contain;display:block;margin-bottom:4px;">` : ''}<div class="logo">${companyName}</div><div style="font-size:11px;color:#64748b;">All Projects Report · ${jobs.length} records</div></div>
                 <div style="font-size:12px;color:#64748b;">${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
             </div>
             <table>
@@ -1960,9 +2109,9 @@
                     <td><span class="badge" style="background:${statusColors[j.status]||'#f1f5f9'};color:${statusTextColors[j.status]||'#334155'}">${j.status}</span></td>
                 </tr>`).join('')}</tbody>
             </table>
-            <div class="footer">ELITE WRAPZ · Job Tracker · Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+            <div class="footer">${companyName} · Job Tracker · Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
             <div class="no-print" style="text-align:center;margin-top:20px;">
-                <button onclick="window.print()" style="background:#3b82f6;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px;">🖨 Print / Save PDF</button>
+                <button onclick="window.print()" style="background:${brandColor};color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px;">🖨 Print / Save PDF</button>
                 <button onclick="window.close()" style="background:#e2e8f0;color:#334155;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Close</button>
             </div>
             </body></html>`);
