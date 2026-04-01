@@ -1355,6 +1355,7 @@
                 const paymentFilter = this.params.projectPayFilter || 'All';
                 const materialFilter = this.params.projectMatFilter || 'All';
                 const groupMode = this.params.projectGroupMode || 'month';
+                const showAdvanced = !!this.params.projectShowAdvanced;
                 const query = (this.params.projectSearch || '').trim().toLowerCase();
 
                 const asType = (j) => j.type || 'Job';
@@ -1449,7 +1450,7 @@
                 }).join('');
 
                 const cardsHtml = jobs.length === 0
-                    ? `<div class="border-2 border-dashed border-app-lighter rounded-xl p-8 flex flex-col items-center text-center"><p class="text-app-muted mb-3">No projects found with current filters</p><button onclick="router.params.projectSearch=''; router.params.projectFilter='All'; router.params.projectMonth='all'; router.params.projectType='All'; router.params.projectPayFilter='All'; router.params.projectMatFilter='All'; router.renderProjects(document.getElementById('app-content'))" class="text-blue-400 text-sm font-semibold">Clear filters</button></div>`
+                    ? `<div class="border-2 border-dashed border-app-lighter rounded-xl p-8 flex flex-col items-center text-center"><p class="text-app-muted mb-3">No projects found with current filters</p><button onclick="router.params.projectSearch=''; router.params.projectFilter='All'; router.params.projectMonth='all'; router.params.projectType='All'; router.params.projectPayFilter='All'; router.params.projectMatFilter='All'; router.params.projectShowAdvanced=false; router.renderProjects(document.getElementById('app-content'))" class="text-blue-400 text-sm font-semibold">Clear filters</button></div>`
                     : groupMode === 'timeline' ? `<div class="bg-app-card/40 border border-app-border rounded-xl p-3">${timelineHtml}</div>`
                     : groupKeys.map(gk => `
                         ${groupMode === 'month' ? `<div class="sticky top-0 z-10 bg-app-bg/95 backdrop-blur py-2 mt-1 mb-2 border-b border-app-border"><p class="text-xs uppercase tracking-wider font-bold text-blue-400">${gk === 'no-date' ? 'No Date' : monthLabel(gk)} · ${grouped[gk].length}</p></div>` : ''}
@@ -1507,31 +1508,34 @@
                     <div class="flex gap-2 mb-2 overflow-x-auto pb-1 no-scrollbar">
                         ${filters.map(f=>`<button onclick="router.params.projectFilter='${f}'; router.renderProjects(document.getElementById('app-content'))" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${statusFilter===f?'bg-blue-600 border-blue-600 text-white':'bg-app-card border-app-border text-app-muted'}">${f}</button>`).join('')}
                     </div>
-                    <div class="flex gap-2 mb-2 overflow-x-auto pb-1 no-scrollbar">
-                        ${types.map(t=>`<button onclick="router.params.projectType='${t}'; router.renderProjects(document.getElementById('app-content'))" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${typeFilter===t?'bg-indigo-600 border-indigo-600 text-white':'bg-app-card border-app-border text-app-muted'}">${t}</button>`).join('')}
-                    </div>
-                    <div class="flex gap-2 mb-2 overflow-x-auto pb-1 no-scrollbar">
-                        <button onclick="router.params.projectMonth='all'; router.renderProjects(document.getElementById('app-content'))" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${monthFilter==='all'?'bg-cyan-600 border-cyan-600 text-white':'bg-app-card border-app-border text-app-muted'}">All Months</button>
-                        ${monthOptions.slice(0, 14).map(m=>`<button onclick="router.params.projectMonth='${m}'; router.renderProjects(document.getElementById('app-content'))" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${monthFilter===m?'bg-cyan-600 border-cyan-600 text-white':'bg-app-card border-app-border text-app-muted'}">${monthLabel(m)}</button>`).join('')}
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <select onchange="router.params.projectType=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">
+                            ${types.map(t=>`<option value="${t}" ${typeFilter===t?'selected':''}>Type: ${t}</option>`).join('')}
+                        </select>
+                        <select onchange="router.params.projectMonth=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">
+                            <option value="all" ${monthFilter==='all'?'selected':''}>Month: All Months</option>
+                            ${monthOptions.slice(0, 18).map(m=>`<option value="${m}" ${monthFilter===m?'selected':''}>Month: ${monthLabel(m)}</option>`).join('')}
+                        </select>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2 mb-3">
-                        <select onchange="router.params.projectPayFilter=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">
-                            ${payFilters.map(x=>`<option value="${x}" ${paymentFilter===x?'selected':''}>Payment: ${x}</option>`).join('')}
+                        <select onchange="router.params.projectSort=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">
+                            ${sorts.map(s=>`<option value="${s.v}" ${sortBy===s.v?'selected':''}>Sort: ${s.l}</option>`).join('')}
                         </select>
-                        <select onchange="router.params.projectMatFilter=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">
-                            ${matFilters.map(x=>`<option value="${x}" ${materialFilter===x?'selected':''}>Materials: ${x}</option>`).join('')}
+                        <select onchange="router.params.projectGroupMode=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">
+                            <option value="month" ${groupMode==='month'?'selected':''}>View: By Month</option>
+                            <option value="list" ${groupMode==='list'?'selected':''}>View: Flat List</option>
+                            <option value="timeline" ${groupMode==='timeline'?'selected':''}>View: Timeline</option>
                         </select>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2 mb-4">
-                        ${sorts.map(s=>`<button onclick="router.params.projectSort='${s.v}'; router.renderProjects(document.getElementById('app-content'))" class="py-2 rounded-lg text-xs font-semibold border transition-all ${sortBy===s.v?'bg-app-lighter border-blue-500/50 text-blue-400':'bg-app-card border-app-border text-app-muted'}">Sort: ${s.l}</button>`).join('')}
+                    <div class="mb-4">
+                        <button onclick="router.params.projectShowAdvanced=${showAdvanced ? 'false' : 'true'}; router.renderProjects(document.getElementById('app-content'))" class="w-full py-2 rounded-lg text-xs font-semibold border ${showAdvanced ? 'bg-app-lighter border-blue-500/40 text-blue-300' : 'bg-app-card border-app-border text-app-muted'}">
+                            <i class="fa-solid ${showAdvanced ? 'fa-chevron-up' : 'fa-sliders'} mr-1"></i>${showAdvanced ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
+                        </button>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mb-4">
-                        <button onclick="router.params.projectGroupMode='month'; router.renderProjects(document.getElementById('app-content'))" class="py-2 rounded-lg text-xs font-semibold border ${groupMode==='month' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">By Month</button>
-                        <button onclick="router.params.projectGroupMode='list'; router.renderProjects(document.getElementById('app-content'))" class="py-2 rounded-lg text-xs font-semibold border ${groupMode==='list' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">Flat List</button>
-                        <button onclick="router.params.projectGroupMode='timeline'; router.renderProjects(document.getElementById('app-content'))" class="py-2 rounded-lg text-xs font-semibold border ${groupMode==='timeline' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">Timeline</button>
-                    </div>
+
+                    ${showAdvanced ? `<div class="grid grid-cols-2 gap-2 mb-4"><select onchange="router.params.projectPayFilter=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">${payFilters.map(x=>`<option value="${x}" ${paymentFilter===x?'selected':''}>Payment: ${x}</option>`).join('')}</select><select onchange="router.params.projectMatFilter=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">${matFilters.map(x=>`<option value="${x}" ${materialFilter===x?'selected':''}>Materials: ${x}</option>`).join('')}</select></div>` : ''}
 
                     <div class="space-y-1">${cardsHtml}</div>
                 </div>`;
