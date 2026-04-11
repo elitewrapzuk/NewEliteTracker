@@ -1453,6 +1453,7 @@
                                 <div><label class="text-xs text-app-muted block mb-1">Cupboard Doors</label><input type="number" min="0" name="cupboardDoorCount" placeholder="e.g. 18" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                             </div>
                             <div><label class="text-xs text-app-muted block mb-1">Drawer Fronts</label><input type="number" min="0" name="drawerCount" placeholder="e.g. 6" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                            <div class="mt-3"><label class="text-xs text-app-muted block mb-1">Irregular / Large Fronts</label><textarea name="irregularFronts" rows="3" placeholder="One per line: Width x Height Label (Qty)\nExample: 930 x 740 ISLAND END (1)" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
                         </div>
                     </div>
 
@@ -1565,6 +1566,7 @@
                                     <div><label class="text-xs text-app-muted block mb-1">Cupboard Doors</label><input type="number" min="0" name="cupboardDoorCount" value="${job.cupboardDoorCount || ''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                                 </div>
                                 <div><label class="text-xs text-app-muted block mb-1">Drawer Fronts</label><input type="number" min="0" name="drawerCount" value="${job.drawerCount || ''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                                <div class="mt-3"><label class="text-xs text-app-muted block mb-1">Irregular / Large Fronts</label><textarea name="irregularFronts" rows="3" placeholder="One per line: Width x Height Label (Qty)" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">${job.irregularFronts || ''}</textarea></div>
                             </div>
                         </div>
                         <div id="contact-fields" class="${job.type==='Holiday'||job.type==='Personal'?'hidden':''}">
@@ -1967,7 +1969,7 @@
 
                         ${!isHoliday ? `<div class="mb-6"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${Utils.getEventTypeColor(job.type, job.status)}">${job.status}</span> <span class="ml-2 text-xs text-app-muted italic">${job.type||'Job'}</span></div>` : ''}
                         
-                        ${isJob ? `<div class="grid grid-cols-3 gap-3 mb-6"><button onclick="generateInvoice('${id}')" class="bg-emerald-600/10 border border-emerald-600/30 text-emerald-500 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-invoice"></i> Copy Invoice</button><button onclick="generateJobPDF('${id}')" class="bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button><button onclick="router.navigate('templates', { jobId: '${id}', contactId: '${job.contactId || ''}' })" class="bg-cyan-600/10 border border-cyan-600/30 text-cyan-300 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-regular fa-message"></i> Template</button></div>` : isHoliday ? '' : `<div class="mb-6"><button onclick="generateJobPDF('${id}')" class="w-full bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button></div>`}
+                        ${isJob ? `<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"><button onclick="generateInvoice('${id}')" class="bg-emerald-600/10 border border-emerald-600/30 text-emerald-500 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-invoice"></i> Copy Invoice</button><button onclick="generateJobPDF('${id}')" class="bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button><button onclick="router.navigate('templates', { jobId: '${id}', contactId: '${job.contactId || ''}' })" class="bg-cyan-600/10 border border-cyan-600/30 text-cyan-300 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-regular fa-message"></i> Template</button><button onclick="openOptimiserForJob('${id}')" class="bg-pink-600/10 border border-pink-600/30 text-pink-300 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-ruler-combined"></i> Optimiser</button></div>` : isHoliday ? '' : `<div class="mb-6"><button onclick="generateJobPDF('${id}')" class="w-full bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button></div>`}
                         
                         ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold">Update Status</h3><div class="flex gap-2 justify-between">${['Scheduled','Completed','Cancelled'].map(s => `<button onclick="DB.updateJobStatus('${id}', '${s}'); router.renderJobDetails(document.getElementById('app-content'), '${id}')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium border ${job.status===s ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-lighter border-app-border text-app-muted'}">${s}</button>`).join('')}</div></div>` : ''}
 
@@ -1984,8 +1986,9 @@
                             ${job.jobDescription ? `<div class="mb-3"><p class="text-xs text-app-muted mb-1">Brief Details</p><p class="text-sm text-white">${job.jobDescription}</p></div>` : ''}
                             ${(job.vinylBrand || job.vinylFinish || job.vinylColour || job.vinylEdgeDetail) ? `<div class="grid grid-cols-2 gap-2 mb-3 text-xs"><div class="bg-app-lighter border border-app-border rounded-lg p-2"><p class="text-app-muted mb-0.5">Brand</p><p class="text-white">${job.vinylBrand || '—'}</p></div><div class="bg-app-lighter border border-app-border rounded-lg p-2"><p class="text-app-muted mb-0.5">Finish</p><p class="text-white">${job.vinylFinish || '—'}</p></div><div class="bg-app-lighter border border-app-border rounded-lg p-2"><p class="text-app-muted mb-0.5">Colour</p><p class="text-white">${job.vinylColour || '—'}</p></div><div class="bg-app-lighter border border-app-border rounded-lg p-2"><p class="text-app-muted mb-0.5">Edge / Trim</p><p class="text-white">${job.vinylEdgeDetail || '—'}</p></div></div>` : ''}
                             ${(job.worktopLengthMetres || job.cupboardDoorCount || job.drawerCount) ? `<div class="grid grid-cols-3 gap-2 mb-3 text-xs"><div class="bg-app-lighter border border-app-border rounded-lg p-2"><p class="text-app-muted mb-0.5">Worktop (m)</p><p class="text-white">${job.worktopLengthMetres || '—'}</p></div><div class="bg-app-lighter border border-app-border rounded-lg p-2"><p class="text-app-muted mb-0.5">Cupboard Doors</p><p class="text-white">${job.cupboardDoorCount || '—'}</p></div><div class="bg-app-lighter border border-app-border rounded-lg p-2"><p class="text-app-muted mb-0.5">Drawers</p><p class="text-white">${job.drawerCount || '—'}</p></div></div>` : ''}
+                            ${job.irregularFronts ? `<div class="mb-3"><p class="text-xs text-app-muted mb-1">Irregular / Large Fronts</p><pre class="text-xs text-white whitespace-pre-wrap bg-app-lighter border border-app-border rounded-lg p-2">${Utils.escapeHtml(job.irregularFronts)}</pre></div>` : ''}
                             ${job.vinylCodes ? `<div><p class="text-xs text-app-muted mb-1">Vinyl Codes / Locations</p><p class="text-sm text-white font-mono bg-app-lighter p-2 rounded-lg border border-app-border">${job.vinylCodes}</p></div>` : ''}
-                            ${!job.jobDescription && !job.vinylCodes && !job.vinylBrand && !job.vinylFinish && !job.vinylColour && !job.vinylEdgeDetail && !job.worktopLengthMetres && !job.cupboardDoorCount && !job.drawerCount ? '<p class="text-sm text-app-muted italic">No details added.</p>' : ''}
+                            ${!job.jobDescription && !job.vinylCodes && !job.vinylBrand && !job.vinylFinish && !job.vinylColour && !job.vinylEdgeDetail && !job.worktopLengthMetres && !job.cupboardDoorCount && !job.drawerCount && !job.irregularFronts ? '<p class="text-sm text-app-muted italic">No details added.</p>' : ''}
                         </div>
                         <div class="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-emerald-500 uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-boxes-stacked"></i> Materials</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Ordered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsOrdered')" ${job.materialsOrdered ? 'checked' : ''} class="custom-checkbox-green"></div><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Delivered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsDelivered')" ${job.materialsDelivered ? 'checked' : ''} class="custom-checkbox-green"></div></div></div>
                         <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-file-contract"></i> Payments &amp; Admin</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-white">Deposit Paid (£${parseFloat(job.deposit).toFixed(2)})</span><input type="checkbox" onchange="togglePaymentStatus('${id}','depositPaid',this.checked)" ${job.depositPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-app-muted block mb-1">Deposit Paid Date</label><input type="date" value="${job.depositPaidDate||''}" onchange="DB.updateJobFields('${id}', { depositPaidDate: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><div><label class="text-[11px] text-app-muted block mb-1">Deposit Method</label><select onchange="DB.updateJobFields('${id}', { depositPaidMethod: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white"><option value="" ${!job.depositPaidMethod?'selected':''}>Select</option><option ${job.depositPaidMethod==='Paylink'?'selected':''}>Paylink</option><option ${job.depositPaidMethod==='Bank Transfer'?'selected':''}>Bank Transfer</option><option ${job.depositPaidMethod==='Cash'?'selected':''}>Cash</option><option ${job.depositPaidMethod==='Card'?'selected':''}>Card</option><option ${job.depositPaidMethod==='Finance'?'selected':''}>Finance</option><option ${job.depositPaidMethod==='Other'?'selected':''}>Other</option></select></div></div><div class="flex items-center justify-between"><span class="text-sm text-white">Paid in Full</span><input type="checkbox" onchange="togglePaymentStatus('${id}','fullPaymentPaid',this.checked)" ${job.fullPaymentPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-app-muted block mb-1">Paid in Full Date</label><input type="date" value="${job.fullPaymentPaidDate||''}" onchange="DB.updateJobFields('${id}', { fullPaymentPaidDate: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><div><label class="text-[11px] text-app-muted block mb-1">Paid in Full Method</label><select onchange="DB.updateJobFields('${id}', { fullPaymentPaidMethod: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white"><option value="" ${!job.fullPaymentPaidMethod?'selected':''}>Select</option><option ${job.fullPaymentPaidMethod==='Paylink'?'selected':''}>Paylink</option><option ${job.fullPaymentPaidMethod==='Bank Transfer'?'selected':''}>Bank Transfer</option><option ${job.fullPaymentPaidMethod==='Cash'?'selected':''}>Cash</option><option ${job.fullPaymentPaidMethod==='Card'?'selected':''}>Card</option><option ${job.fullPaymentPaidMethod==='Finance'?'selected':''}>Finance</option><option ${job.fullPaymentPaidMethod==='Other'?'selected':''}>Other</option></select></div></div><div class="pt-2 border-t border-app-border/60"><label class="flex items-center justify-between mb-2"><span class="text-sm text-white">Payment Plan</span><input type="checkbox" onchange="DB.updateJobFields('${id}', { paymentPlanEnabled: this.checked })" ${job.paymentPlanEnabled ? 'checked' : ''} class="custom-checkbox"></label><textarea rows="2" placeholder="Plan details: instalments, due dates, terms..." onchange="DB.updateJobFields('${id}', { paymentPlanDetails: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white">${job.paymentPlanDetails||''}</textarea></div><div class="flex items-center justify-between"><span class="text-sm text-white">Agreement Signed</span><div class="flex gap-4 items-center"><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementSigned')" ${job.agreementSigned ? 'checked' : ''} class="custom-checkbox"> Signed</label><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementNA')" ${job.agreementNA ? 'checked' : ''} class="custom-checkbox"> N/A</label></div></div></div></div>
@@ -2055,6 +2058,8 @@
             unit: 'mm',
             pieces: [],
             lastResult: null,
+            prefillJobId: null,
+            keyHandler: null,
             unitFactors: { mm: 1, cm: 10, m: 1000 },
             toMm(v) { return (parseFloat(v) || 0) * (this.unitFactors[this.unit] || 1); },
             fromMm(v) { return Math.round((parseFloat(v) || 0) / (this.unitFactors[this.unit] || 1)); }
@@ -2085,7 +2090,12 @@
                         <input id="opt-quick-qty" type="number" min="1" value="1" placeholder="Qty" class="bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white">
                         <input id="opt-quick-code" type="text" placeholder="Code / Location" class="bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white">
                     </div>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <select id="opt-quick-part" class="bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white"><option value="Face">Face</option><option value="Edge">Edge</option><option value="Panel">Panel</option><option value="Other">Other</option></select>
+                        <label class="flex items-center gap-2 text-xs text-app-muted bg-app-lighter border border-app-border rounded-lg px-3"><input id="opt-quick-grain" type="checkbox" class="custom-checkbox">Grain Lock</label>
+                    </div>
                     <button onclick="optimiserAddPiece()" class="w-full bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 py-2.5 rounded-lg text-sm font-semibold">Add Piece</button>
+                    <p class="text-[11px] text-app-muted mt-2">Shortcuts: Enter add · +/- qty · Cmd/Ctrl+Enter optimize · Cmd/Ctrl+D duplicate last</p>
                 </div>
 
                 <div class="bg-app-card border border-app-border rounded-xl p-4 mb-4">
@@ -2128,13 +2138,90 @@
 
                 <div class="bg-app-card border border-app-border rounded-xl p-3 overflow-x-auto">
                     <table class="w-full text-xs">
-                        <thead><tr class="text-app-muted border-b border-app-border"><th class="text-left py-2">Code</th><th class="text-left py-2">Original</th><th class="text-left py-2">With Overhang</th><th class="text-left py-2">Orientation</th></tr></thead>
+                        <thead><tr class="text-app-muted border-b border-app-border"><th class="text-left py-2">Cut #</th><th class="text-left py-2">Code</th><th class="text-left py-2">Part</th><th class="text-left py-2">Original</th><th class="text-left py-2">With Overhang</th><th class="text-left py-2">Orientation</th></tr></thead>
                         <tbody id="opt-summary-tbody"></tbody>
                     </table>
                 </div>
             </div>`;
             optimiserRefreshPieces();
             optimiserDraw([] , 1220, 2000, 50, []);
+            optimiserApplyJobPrefill();
+            optimiserBindHotkeys();
+        }
+
+        function openOptimiserForJob(jobId) {
+            Optimiser.prefillJobId = jobId;
+            router.navigate('optimiser', { jobId });
+        }
+
+        function optimiserApplyJobPrefill() {
+            const jobId = router.params?.jobId || Optimiser.prefillJobId;
+            if (!jobId) return;
+            const job = DB.getJobById(jobId);
+            if (!job) return;
+            Optimiser.pieces = [];
+            const generated = optimiserBuildPiecesFromJob(job);
+            Optimiser.pieces.push(...generated);
+            Optimiser.prefillJobId = null;
+            if (generated.length) showToast(`Loaded ${generated.length} pieces from ${job.jobNumber || job.title}`);
+            optimiserRefreshPieces();
+        }
+
+        function optimiserBuildPiecesFromJob(job) {
+            // Standard UK kitchen defaults (mm)
+            const stdDoor = { w: 597, h: 715 };
+            const stdDrawer = { w: 597, h: 140 };
+            const pieces = [];
+            const doors = Math.max(0, parseInt(job.cupboardDoorCount || 0) || 0);
+            const drawers = Math.max(0, parseInt(job.drawerCount || 0) || 0);
+            const grainLock = /woodgrain/i.test(String(job.vinylFinish || ''));
+            for (let i = 0; i < doors; i++) pieces.push({ w: stdDoor.w, h: stdDoor.h, code: `${job.jobNumber || 'JOB'} DOOR ${i + 1}`, partType: 'Face', grainLock });
+            for (let i = 0; i < drawers; i++) pieces.push({ w: stdDrawer.w, h: stdDrawer.h, code: `${job.jobNumber || 'JOB'} DRAWER ${i + 1}`, partType: 'Face', grainLock });
+            pieces.push(...optimiserParseIrregularFronts(job.irregularFronts || '', grainLock, job.jobNumber || 'JOB'));
+            return pieces;
+        }
+
+        function optimiserParseIrregularFronts(raw, grainLock = false, prefix = 'JOB') {
+            const out = [];
+            const lines = String(raw || '').split('\n').map(x => x.trim()).filter(Boolean);
+            lines.forEach(line => {
+                const m = line.match(/(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*([^()]*)?\s*(?:\((\d+)\))?$/i);
+                if (!m) return;
+                const w = parseFloat(m[1] || '0');
+                const h = parseFloat(m[2] || '0');
+                const label = (m[3] || 'IRREG').trim();
+                const qty = Math.max(1, parseInt(m[4] || '1') || 1);
+                if (w < 20 || h < 20) return;
+                for (let i = 0; i < qty; i++) out.push({ w, h, code: `${prefix} ${label}${qty > 1 ? ' ' + (i + 1) : ''}`.trim(), partType: 'Face', grainLock });
+            });
+            return out;
+        }
+
+        function optimiserBindHotkeys() {
+            if (Optimiser.keyHandler) window.removeEventListener('keydown', Optimiser.keyHandler);
+            Optimiser.keyHandler = (e) => {
+                if (router.currentRoute !== 'optimiser') return;
+                if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'enter') { e.preventDefault(); optimiserOptimize(); return; }
+                if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {
+                    e.preventDefault();
+                    const last = Optimiser.pieces[Optimiser.pieces.length - 1];
+                    if (last) { Optimiser.pieces.push({ ...last, code: `${last.code || 'PIECE'} COPY` }); optimiserRefreshPieces(); }
+                    return;
+                }
+                const qty = document.getElementById('opt-quick-qty');
+                if (!qty) return;
+                if (e.key === '+' || e.key === '=') { qty.value = String(Math.max(1, (parseInt(qty.value || '1') || 1) + 1)); }
+                if (e.key === '-') { qty.value = String(Math.max(1, (parseInt(qty.value || '1') || 1) - 1)); }
+            };
+            window.addEventListener('keydown', Optimiser.keyHandler);
+
+            ['opt-quick-width', 'opt-quick-height', 'opt-quick-qty', 'opt-quick-code'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); optimiserAddPiece(); }
+                });
+            });
         }
 
         function optimiserSetUnit(unit) {
@@ -2152,9 +2239,11 @@
             const height = parseFloat(document.getElementById('opt-quick-height')?.value || '0');
             const qty = Math.max(1, parseInt(document.getElementById('opt-quick-qty')?.value || '1') || 1);
             const code = (document.getElementById('opt-quick-code')?.value || '').trim();
+            const partType = (document.getElementById('opt-quick-part')?.value || 'Face').trim();
+            const grainLock = !!document.getElementById('opt-quick-grain')?.checked;
             if (!width || !height || width <= 0 || height <= 0) { showToast('Enter valid width and height'); return; }
             const w = Optimiser.toMm(width), h = Optimiser.toMm(height);
-            for (let i = 0; i < qty; i++) Optimiser.pieces.push({ w, h, code });
+            for (let i = 0; i < qty; i++) Optimiser.pieces.push({ w, h, code, partType, grainLock });
             document.getElementById('opt-quick-width').value = '';
             document.getElementById('opt-quick-height').value = '';
             document.getElementById('opt-quick-qty').value = '1';
@@ -2168,6 +2257,18 @@
             const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
             let imported = 0;
             lines.forEach(line => {
+                const csvCols = line.split(/\t|,/).map(x => x.trim()).filter(Boolean);
+                if (csvCols.length >= 2 && !Number.isNaN(parseFloat(csvCols[0])) && !Number.isNaN(parseFloat(csvCols[1]))) {
+                    const w = Optimiser.toMm(parseFloat(csvCols[0] || '0'));
+                    const h = Optimiser.toMm(parseFloat(csvCols[1] || '0'));
+                    const qty = Math.max(1, parseInt(csvCols[2] || '1') || 1);
+                    const code = (csvCols[3] || csvCols[2] || '').replace(/^\d+$/, '').trim();
+                    if (w >= 20 && h >= 20) {
+                        for (let i = 0; i < qty; i++) Optimiser.pieces.push({ w, h, code, partType: 'Face', grainLock: false });
+                        imported += qty;
+                        return;
+                    }
+                }
                 const patterns = [
                     /(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*([A-Za-z0-9\-\s_]*)?\s*(?:\((\d+)\))?$/i,
                     /(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+([A-Za-z0-9\-\s_]*)?\s*(?:\((\d+)\))?$/i
@@ -2180,7 +2281,7 @@
                     const code = (m[3] || '').trim();
                     const qty = Math.max(1, parseInt(m[4] || '1') || 1);
                     if (w < 20 || h < 20) break;
-                    for (let i = 0; i < qty; i++) Optimiser.pieces.push({ w, h, code });
+                    for (let i = 0; i < qty; i++) Optimiser.pieces.push({ w, h, code, partType: 'Face', grainLock: false });
                     imported += qty;
                     break;
                 }
@@ -2204,7 +2305,7 @@
                 list.innerHTML = '<p class="text-xs text-app-muted text-center py-3">No pieces yet</p>';
                 return;
             }
-            list.innerHTML = Optimiser.pieces.map((p, i) => `<div class="bg-app-lighter border border-app-border rounded-lg p-2 flex items-center justify-between gap-2"><p class="text-xs text-white truncate"><span class="text-cyan-300 font-semibold">${Utils.escapeHtml(p.code || ('#'+(i+1)))}</span> · ${Optimiser.fromMm(p.w)}×${Optimiser.fromMm(p.h)} ${Optimiser.unit}</p><button onclick="optimiserRemovePiece(${i})" class="text-red-400 text-xs px-2">✕</button></div>`).join('');
+            list.innerHTML = Optimiser.pieces.map((p, i) => `<div class="bg-app-lighter border border-app-border rounded-lg p-2 flex items-center justify-between gap-2"><p class="text-xs text-white truncate"><span class="text-cyan-300 font-semibold">${Utils.escapeHtml(p.code || ('#'+(i+1)))}</span> · ${Optimiser.fromMm(p.w)}×${Optimiser.fromMm(p.h)} ${Optimiser.unit} · <span class="text-app-muted">${Utils.escapeHtml(p.partType || 'Face')}${p.grainLock ? ' · Grain Lock' : ''}</span></p><button onclick="optimiserRemovePiece(${i})" class="text-red-400 text-xs px-2">✕</button></div>`).join('');
         }
 
         function optimiserOptimize() {
@@ -2219,6 +2320,7 @@
             const sortedArea = [...Optimiser.pieces].sort((a, b) => (b.w * b.h) - (a.w * a.h));
             const autoLen = rollLengthInput > 0 ? rollLengthInput : optimiserAutoLength(sortedArea, rollW, overhang, allowRotation);
             const result = optimiserRunBest(superNest ? Optimiser.pieces : sortedArea, rollW, autoLen, overhang, allowRotation, superNest);
+            result.placed = optimiserAssignCutOrder(result.placed);
 
             optimiserDraw(result.placed, rollW, autoLen, overhang, result.freeRects);
             optimiserRenderSummary(result.placed, overhang);
@@ -2226,12 +2328,13 @@
             const rollArea = rollW * autoLen;
             const wasteArea = Math.max(0, rollArea - usedArea);
             const lmExact = autoLen / 1000;
-            const lmRounded = Math.ceil(lmExact);
+            const lmWithWastage = lmExact * 1.2;
+            const lmRounded = Math.ceil(lmWithWastage);
             const eff = rollArea > 0 ? Math.round((1 - (wasteArea / rollArea)) * 100) : 0;
 
             const stats = document.getElementById('opt-stats');
             stats.classList.remove('hidden');
-            stats.innerHTML = `<strong>${lmExact.toFixed(2)}m required</strong> (order ${lmRounded}m) · <strong>${(usedArea/1e6).toFixed(2)}m²</strong> used · <strong>${(wasteArea/1e6).toFixed(2)}m²</strong> waste · <strong>${eff}%</strong> efficiency`;
+            stats.innerHTML = `<strong>${lmExact.toFixed(2)}m net required</strong> · <strong>${lmWithWastage.toFixed(2)}m incl 20% wastage</strong> (order ${lmRounded}m) · <strong>${(usedArea/1e6).toFixed(2)}m²</strong> used · <strong>${(wasteArea/1e6).toFixed(2)}m²</strong> waste · <strong>${eff}%</strong> efficiency`;
 
             const alert = document.getElementById('opt-alert');
             if (result.failed.length) {
@@ -2295,7 +2398,7 @@
                         const s = score(f, W, H);
                         if (!best || s < best.score) best = { x: f.x, y: f.y, w: W, h: H, orientation: 'Normal', score: s };
                     }
-                    if (allowRotation && H <= f.w && W <= f.h) {
+                    if (allowRotation && !p.grainLock && H <= f.w && W <= f.h) {
                         const s = score(f, H, W);
                         if (!best || s < best.score) best = { x: f.x, y: f.y, w: H, h: W, orientation: 'Rotated', score: s };
                     }
@@ -2347,6 +2450,12 @@
             return rects;
         }
 
+        function optimiserAssignCutOrder(placed = []) {
+            const sorted = [...placed].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+            sorted.forEach((p, idx) => { p.cutOrder = idx + 1; });
+            return sorted;
+        }
+
         function optimiserDraw(placed, rollW, rollH, overhang, freeRects = []) {
             const canvas = document.getElementById('opt-canvas');
             if (!canvas) return;
@@ -2395,14 +2504,24 @@
                 ctx.lineWidth = 1.8;
                 ctx.strokeRect(x, y, w, h);
 
+                ctx.fillStyle = 'rgba(2,6,23,.85)';
+                ctx.fillRect(x + 3, y + 3, 28, 16);
+                ctx.fillStyle = '#01FABF';
+                ctx.font = 'bold 10px Inter';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`#${p.cutOrder || '-'}`, x + 7, y + 11);
+
                 const cx = x + (w / 2), cy = y + (h / 2);
                 ctx.fillStyle = '#e2e8f0';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.font = 'bold 12px Inter';
-                if (p.code) ctx.fillText(p.code, cx, cy - 8);
+                if (p.code) ctx.fillText(p.code, cx, cy - 12);
                 ctx.font = '11px Inter';
-                ctx.fillText(`${Optimiser.fromMm(p.w - (2 * overhang))}×${Optimiser.fromMm(p.h - (2 * overhang))} ${Optimiser.unit}`, cx, cy + 8);
+                ctx.fillText(`${Optimiser.fromMm(p.w - (2 * overhang))}×${Optimiser.fromMm(p.h - (2 * overhang))} ${Optimiser.unit}`, cx, cy + 4);
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(`${p.partType || 'Face'}${p.grainLock ? ' · Grain Lock' : ''}`, cx, cy + 18);
             });
 
             ctx.save();
@@ -2415,14 +2534,16 @@
         function optimiserRenderSummary(placed, overhang) {
             const tbody = document.getElementById('opt-summary-tbody');
             if (!tbody) return;
-            tbody.innerHTML = placed.map(p => `<tr class="border-b border-app-border/50"><td class="py-2 pr-2 text-cyan-300 font-semibold">${Utils.escapeHtml(p.code || '-')}</td><td class="py-2 pr-2 text-white">${Optimiser.fromMm(p.w - (2*overhang))}×${Optimiser.fromMm(p.h - (2*overhang))} ${Optimiser.unit}</td><td class="py-2 pr-2 text-white">${Optimiser.fromMm(p.w)}×${Optimiser.fromMm(p.h)} ${Optimiser.unit}</td><td class="py-2 text-app-muted">${p.orientation}</td></tr>`).join('');
+            tbody.innerHTML = placed.map(p => `<tr class="border-b border-app-border/50"><td class="py-2 pr-2 text-cyan-300 font-semibold">${p.cutOrder || '-'}</td><td class="py-2 pr-2 text-cyan-300 font-semibold">${Utils.escapeHtml(p.code || '-')}</td><td class="py-2 pr-2 text-app-muted">${Utils.escapeHtml(p.partType || 'Face')}${p.grainLock ? ' · Grain' : ''}</td><td class="py-2 pr-2 text-white">${Optimiser.fromMm(p.w - (2*overhang))}×${Optimiser.fromMm(p.h - (2*overhang))} ${Optimiser.unit}</td><td class="py-2 pr-2 text-white">${Optimiser.fromMm(p.w)}×${Optimiser.fromMm(p.h)} ${Optimiser.unit}</td><td class="py-2 text-app-muted">${p.orientation}</td></tr>`).join('');
         }
 
         function optimiserExportCSV() {
             if (!Optimiser.lastResult || !Optimiser.lastResult.placed?.length) { showToast('Run optimize first'); return; }
-            const rows = [['Code', `Original (${Optimiser.unit})`, `With Overhang (${Optimiser.unit})`, 'Orientation', 'X(mm)', 'Y(mm)']];
+            const rows = [['Cut #', 'Code', 'Part', `Original (${Optimiser.unit})`, `With Overhang (${Optimiser.unit})`, 'Orientation', 'X(mm)', 'Y(mm)']];
             Optimiser.lastResult.placed.forEach(p => rows.push([
+                p.cutOrder || '',
                 p.code || '',
+                `${p.partType || 'Face'}${p.grainLock ? ' (Grain Lock)' : ''}`,
                 `${Optimiser.fromMm(p.w - (2 * Optimiser.lastResult.overhang))}x${Optimiser.fromMm(p.h - (2 * Optimiser.lastResult.overhang))}`,
                 `${Optimiser.fromMm(p.w)}x${Optimiser.fromMm(p.h)}`,
                 p.orientation,
