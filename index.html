@@ -565,6 +565,7 @@
                     }
                     if (!Array.isArray(n.beforePhotos)) n.beforePhotos = Array.isArray(n.photos) ? [...n.photos] : [];
                     if (!Array.isArray(n.afterPhotos)) n.afterPhotos = [];
+                    n.externalSignOff = !!n.externalSignOff;
                     n.profit = n.profit !== undefined && n.profit !== null && n.profit !== '' ? parseFloat(n.profit) || 0 : '';
                     return n;
                 });
@@ -630,6 +631,7 @@
                     accomNotes: job.accomNotes || '',
                     accomScreenshot: job.accomScreenshot || null,
                     clientSignature: null,
+                    externalSignOff: false,
                     signedOffAt: null,
                     signedOffName: null
                 });
@@ -748,7 +750,11 @@
             addChecklist(id, txt) { const j = this.jobs.find(x => x.id === id); if (j) { if (!j.checklist) j.checklist = []; j.checklist.push({ text: txt, done: false }); this.save(); } },
             saveSignOff(id, signature, clientName) {
                 const j = this.jobs.find(x => x.id === id);
-                if (j) { j.clientSignature = signature; j.signedOffAt = new Date().toISOString(); j.signedOffName = clientName || 'Client'; j.status = 'Completed'; this.save(); showToast('Job signed off & complete!'); }
+                if (j) { j.clientSignature = signature; j.externalSignOff = false; j.signedOffAt = new Date().toISOString(); j.signedOffName = clientName || 'Client'; j.status = 'Completed'; this.save(); showToast('Job signed off & complete!'); }
+            },
+            saveExternalSignOff(id, clientName) {
+                const j = this.jobs.find(x => x.id === id);
+                if (j) { j.externalSignOff = true; j.clientSignature = null; j.signedOffAt = new Date().toISOString(); j.signedOffName = clientName || 'Client'; j.status = 'Completed'; this.save(); showToast('External sign-off recorded'); }
             },
             
             getJobsForDate(d) { 
@@ -834,10 +840,10 @@
                     const todayDate = new Date(todayIso + 'T12:00:00');
                     const daysUntil = Math.round((jobDate - todayDate) / 86400000);
                     const balance = (parseFloat(j.price) || 0) - (parseFloat(j.deposit) || 0);
-                    if (daysUntil <= 0 && !j.fullPaymentPaid && balance > 0) {
+                    if (j.status === 'Completed' && !j.fullPaymentPaid && balance > 0) {
                         queue.push({ id: j.id, level: 'high', text: `Payment due · £${balance.toFixed(2)} · ${j.jobNumber || j.title}` });
                     }
-                    if (daysUntil <= 0 && !j.clientSignature && j.status !== 'Completed') {
+                    if (j.status === 'Completed' && !j.clientSignature && !j.externalSignOff) {
                         queue.push({ id: j.id, level: 'med', text: `Sign-off needed · ${j.jobNumber || j.title}` });
                     }
                     if (daysUntil >= 0 && daysUntil <= 2 && !j.materialsOrdered && j.status !== 'Completed') {
@@ -1686,7 +1692,7 @@
                         <div class="absolute left-2 top-1 w-2.5 h-2.5 rounded-full ${j.status==='Completed'?'bg-emerald-400':j.status==='Cancelled'?'bg-red-400':'bg-blue-400'}"></div>
                         ${idx < timelineJobs.length - 1 ? '<div class="absolute left-[11px] top-4 bottom-0 w-px bg-app-border"></div>' : ''}
                         <div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-3 cursor-pointer active:scale-[0.99] transition-transform relative">
-                            ${j.clientSignature ? '<span class="signed-off-ribbon">Signed Off</span>' : ''}
+                            ${(j.clientSignature || j.externalSignOff) ? '<span class="signed-off-ribbon">Signed Off</span>' : ''}
                             <div class="flex items-center justify-between gap-2 mb-1"><p class="text-xs text-blue-300 font-semibold">${j.jobNumber || asType(j)}</p><p class="text-[10px] text-app-muted">${j.status || 'Scheduled'}</p></div>
                             <p class="text-sm font-semibold text-white truncate">${j.title}</p>
                             <p class="text-xs text-app-muted mt-1">${Utils.getFriendlyDate(j.date)}${dur > 1 ? ` → ${Utils.getFriendlyDate(endIso)} · ${dur} days` : ''}</p>
@@ -1706,7 +1712,7 @@
                                 const isJob = isJobType(j);
                                 const payment = paymentState(j);
                                 return `<div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 active:scale-[0.99] transition-transform cursor-pointer relative">
-                                    ${j.clientSignature ? '<span class="signed-off-ribbon">Signed Off</span>' : ''}
+                                    ${(j.clientSignature || j.externalSignOff) ? '<span class="signed-off-ribbon">Signed Off</span>' : ''}
                                     <div class="flex justify-between items-start gap-3 mb-2">
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -1908,7 +1914,8 @@
                 const isJob = !job.type || job.type === 'Job';
                 const isHoliday = job.type === 'Holiday';
                 const contactData = DB.contacts.find(c => c.id === job.contactId) || DB.contacts.find(c => c.name === job.contact);
-                const signedOff = !!job.clientSignature;
+                const signedOff = !!job.clientSignature || !!job.externalSignOff;
+                const hasSignature = !!job.clientSignature;
                 const signedOffDate = signedOff ? new Date(job.signedOffAt).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + ' ' + new Date(job.signedOffAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
                 const detailsTab = this.params.jobDetailsTab || 'overview';
 
@@ -1995,7 +2002,7 @@
 
                         <div class="bg-app-card border ${signedOff ? 'border-emerald-500/40' : 'border-app-border'} rounded-xl p-4 mb-6">
                             <h3 class="text-xs ${signedOff ? 'text-emerald-500' : 'text-app-muted'} uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-pen-nib mr-1"></i>Client Sign-Off</h3>
-                            ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-3"><div class="flex items-center gap-3 mb-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Job Complete — Client Signed Off</p><p class="text-xs text-app-muted">Signed by <strong class="text-white">${job.signedOffName}</strong> on ${signedOffDate}</p></div></div><div class="bg-white rounded-xl p-2"><img src="${job.clientSignature}" class="w-full object-contain" style="max-height:120px;"></div></div>` : `<p class="text-sm text-app-muted italic mb-3">No client sign-off recorded yet.</p><button onclick="openSignOffModal('${id}')" class="w-full bg-blue-600/10 border border-blue-600/30 text-blue-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-blue-600/20 transition-colors"><i class="fa-solid fa-signature"></i> Capture Client Signature</button>`}
+                            ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-3"><div class="flex items-center gap-3 mb-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Job Complete — Client Signed Off</p><p class="text-xs text-app-muted">Signed by <strong class="text-white">${job.signedOffName}</strong> on ${signedOffDate}</p></div></div>${hasSignature ? `<div class="bg-white rounded-xl p-2"><img src="${job.clientSignature}" class="w-full object-contain" style="max-height:120px;"></div>` : `<p class="text-xs text-app-muted">Marked as signed off externally (no signature file attached).</p>`}</div>` : `<p class="text-sm text-app-muted italic mb-3">No client sign-off recorded yet.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><button onclick="openSignOffModal('${id}')" class="w-full bg-blue-600/10 border border-blue-600/30 text-blue-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-blue-600/20 transition-colors"><i class="fa-solid fa-signature"></i> Capture Client Signature</button><button onclick="markExternalSignOff('${id}')" class="w-full bg-emerald-600/10 border border-emerald-600/30 text-emerald-300 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-emerald-600/20 transition-colors"><i class="fa-solid fa-circle-check"></i> Mark External Sign-Off</button></div>`}
                         </div>` : ''}
                         
                         ${isJob ? `<div class="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-indigo-400 uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-bed"></i> Accommodation</h3><label class="flex items-center justify-between mb-3"><span class="text-sm text-indigo-100">Accommodation Needed</span><input type="checkbox" onchange="DB.updateJobFields('${id}', { accommodationNeeded: this.checked }); router.renderJobDetails(document.getElementById('app-content'), '${id}')" ${job.accommodationNeeded ? 'checked' : ''} class="custom-checkbox"></label><form onsubmit="saveAccommodationInfo(event, '${id}')" class="space-y-2"><div class="grid grid-cols-2 gap-2"><input name="accomHotel" value="${job.accomHotel||''}" placeholder="Hotel name" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white"><input name="accomRef" value="${job.accomRef||''}" placeholder="Booking ref" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white"></div><input name="accomAddress" value="${job.accomAddress||''}" placeholder="Hotel address" class="w-full bg-app-card border border-app-border rounded-lg p-2 text-xs text-white"><div class="grid grid-cols-2 gap-2"><input type="datetime-local" name="accomCheckIn" value="${job.accomCheckIn||''}" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"><input type="datetime-local" name="accomCheckOut" value="${job.accomCheckOut||''}" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><textarea name="accomNotes" rows="2" placeholder="Check-in details / parking / access notes" class="w-full bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">${job.accomNotes||''}</textarea><button class="w-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 py-2 rounded-lg text-xs font-semibold">Save Accommodation Details</button></form><div class="mt-3"><div class="flex items-center justify-between mb-2"><p class="text-[11px] text-app-muted">Accommodation Screenshot</p><button onclick="document.getElementById('accom-upload').click()" class="text-xs text-blue-400 font-semibold">+ Add</button><input type="file" id="accom-upload" accept="image/*" class="hidden" onchange="handleAccommodationUpload(event, '${id}')"></div>${job.accomScreenshot ? `<div class="bg-app-card border border-app-border rounded-lg p-2"><img src="${job.accomScreenshot.data}" class="w-full max-h-48 object-contain rounded cursor-pointer" onclick="openGenericLightbox('${job.accomScreenshot.data}', 'Accommodation Screenshot')"><div class="flex justify-between mt-2"><span class="text-[11px] text-app-muted truncate">${job.accomScreenshot.name || 'screenshot'}</span><button onclick="deleteAccommodationScreenshot('${id}')" class="text-[11px] text-red-400">Remove</button></div></div>` : '<p class="text-xs text-app-muted italic">No screenshot added.</p>'}</div></div>` : ''}
@@ -2028,7 +2035,7 @@
                     }
                     return `
                     <div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 flex gap-4 mb-3 active:scale-95 transition-transform relative">
-                        ${j.clientSignature ? '<span class="signed-off-ribbon">Signed Off</span>' : ''}
+                        ${(j.clientSignature || j.externalSignOff) ? '<span class="signed-off-ribbon">Signed Off</span>' : ''}
                         <div class="flex flex-col items-center w-10">
                             <span class="text-xs text-app-muted font-bold">${j.time}</span>
                             <div class="w-0.5 h-full bg-app-border mt-1"></div>
@@ -3663,6 +3670,13 @@
             const signature = canvas.toDataURL('image/png');
             DB.saveSignOff(id, signature, name);
             closeSignOffModal();
+            router.renderJobDetails(document.getElementById('app-content'), id);
+        }
+
+        function markExternalSignOff(id) {
+            const name = (prompt('Client name for external sign-off:', 'Client') || '').trim();
+            if (!name) return;
+            DB.saveExternalSignOff(id, name);
             router.renderJobDetails(document.getElementById('app-content'), id);
         }
 
