@@ -286,6 +286,8 @@
         <span id="toast-msg" class="text-sm font-medium">Action successful</span>
     </div>
 
+    <div id="cloud-sync-indicator" class="fixed top-4 right-4 z-50 hidden"></div>
+
     <script>
         const DEFAULT_TEMPLATES = [
             {
@@ -1021,6 +1023,7 @@
                         this.user = u || null;
                         if (this.user) await this.pullRemoteData({ silent: false, forceReconcile: true });
                         if (router.currentRoute === 'more') router.renderMore(document.getElementById('app-content'));
+                        renderCloudSyncIndicator();
                     });
                     window.addEventListener('online', () => this.autoSync('online'));
                     document.addEventListener('visibilitychange', () => {
@@ -1044,11 +1047,13 @@
                 this.lastSyncStatus = 'Signed out';
                 this.lastSyncedAt = null;
                 this.pendingChanges = false;
+                renderCloudSyncIndicator();
             },
             queuePush() {
                 if (!this.user || !this.store || this.syncInProgress) return;
                 this.pendingChanges = true;
                 this.lastSyncStatus = 'Pending upload';
+                renderCloudSyncIndicator();
                 clearTimeout(this.pushTimer);
                 this.pushTimer = setTimeout(() => this.pushRemoteData(), 800);
             },
@@ -1086,6 +1091,7 @@
                 if (!this.user || !this.store) return;
                 this.syncInProgress = true;
                 this.lastSyncStatus = 'Syncing';
+                renderCloudSyncIndicator();
                 try {
                     await this.store.collection('trackerData').doc(this.user.uid).set(DB.getSerializableData(), { merge: true });
                     this.lastSyncedAt = new Date().toISOString();
@@ -1095,12 +1101,14 @@
                 } finally {
                     this.syncInProgress = false;
                     if (router.currentRoute === 'more') router.renderMore(document.getElementById('app-content'));
+                    renderCloudSyncIndicator();
                 }
             },
             async pullRemoteData(options = {}) {
                 if (!this.user || !this.store) return;
                 this.syncInProgress = true;
                 this.lastSyncStatus = 'Syncing';
+                renderCloudSyncIndicator();
                 const ref = this.store.collection('trackerData').doc(this.user.uid);
                 try {
                     const snap = await ref.get();
@@ -1127,6 +1135,7 @@
                 } finally {
                     this.syncInProgress = false;
                     if (router.currentRoute === 'more') router.renderMore(document.getElementById('app-content'));
+                    renderCloudSyncIndicator();
                 }
             }
         };
@@ -2057,7 +2066,11 @@
                         ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera-retro"></i> After Photos</h3>${canEditCore ? `<button onclick="document.getElementById('after-photo-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add</button><input type="file" id="after-photo-upload-files" accept="image/*" multiple class="hidden" onchange="handleAfterPhotoUpload(event, '${id}')">` : ''}</div><div class="flex gap-2 overflow-x-auto pb-2">${afterPhotos.length === 0 ? '<p class="text-sm text-app-muted italic">No after photos yet.</p>' : afterPhotos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border group cursor-pointer" onclick="openPhotoLightbox('${id}', ${i}, 'after')"><img src="${src}" class="w-full h-full object-cover pointer-events-none">${canEditCore ? `<button onclick="event.stopPropagation(); deleteAfterPhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-times"></i></button>` : ''}</div>`).join('')}</div></div>` : ''}
 
                         ${(job.accomScreenshot && job.accomScreenshot.data) ? `<div class="bg-app-card border border-app-border rounded-xl p-4"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold mb-2"><i class="fa-solid fa-bed"></i> Accommodation Screenshot</h3><img src="${job.accomScreenshot.data}" class="w-full max-h-64 object-contain rounded-lg cursor-pointer" onclick="openGenericLightbox('${job.accomScreenshot.data}', 'Accommodation Screenshot')"></div>` : ''}
+                        <div class="fixed bottom-[92px] left-1/2 -translate-x-1/2 w-full md:max-w-3xl px-5 z-20">
+                            <button onclick="saveProjectDetailChanges('${id}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-600/30">Save Changes</button>
+                        </div>
                     </div>`;
+                    bindProjectDetailSavePrompt(container);
                     return;
                 }
 
@@ -2129,7 +2142,11 @@
                             ${job.address && !isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 flex gap-4"><div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i class="fa-solid fa-location-dot"></i></div><div class="flex-1"><p class="text-sm font-semibold text-white break-words">${job.address}</p><a href="https://waze.com/ul?q=${encodeURIComponent(job.address)}&navigate=yes" target="_blank" class="text-xs text-blue-500 font-medium">Get Directions</a></div></div>` : ''}
                             <div class="bg-app-card border border-app-border rounded-xl p-4"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-2 font-semibold">Notes</h3><p class="text-sm text-app-muted">${job.notes || 'No notes'}</p></div>
                         </div>
+                        <div class="fixed bottom-[92px] left-1/2 -translate-x-1/2 w-full md:max-w-3xl px-5 z-20">
+                            <button onclick="saveProjectDetailChanges('${id}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-600/30">Save Changes</button>
+                        </div>
                     </div>`;
+                bindProjectDetailSavePrompt(container);
             },
 
             components: {
@@ -2919,6 +2936,7 @@
             hasConflict ? w.classList.remove('hidden') : w.classList.add('hidden');
         }
         function togglePaymentStatus(id, field, checked) {
+            router.hasUnsavedChanges = true;
             const updates = { [field]: !!checked };
             const today = Utils.formatDate(new Date());
             const j = DB.getJobById(id);
@@ -2933,8 +2951,24 @@
             DB.updateJobFields(id, updates);
             router.renderJobDetails(document.getElementById('app-content'), id);
         }
+        function bindProjectDetailSavePrompt(container) {
+            if (!container) return;
+            const markDirty = () => { router.hasUnsavedChanges = true; };
+            container.querySelectorAll('input, textarea, select').forEach(el => {
+                el.addEventListener('input', markDirty);
+                el.addEventListener('change', markDirty);
+            });
+        }
+        function saveProjectDetailChanges(id) {
+            DB.save();
+            router.hasUnsavedChanges = false;
+            showToast('Changes saved');
+            if (CloudSync.user) CloudSync.queuePush();
+            if (id) router.renderJobDetails(document.getElementById('app-content'), id);
+        }
         function saveAccommodationInfo(e, id) {
             e.preventDefault();
+            router.hasUnsavedChanges = true;
             const d = Object.fromEntries(new FormData(e.target));
             DB.updateJobFields(id, {
                 accomHotel: d.accomHotel || '',
@@ -2950,6 +2984,7 @@
         function handleAccommodationUpload(event, id) {
             const f = event.target.files?.[0];
             if (!f) return;
+            router.hasUnsavedChanges = true;
             const r = new FileReader();
             r.onload = (evt) => {
                 DB.updateJobFields(id, { accomScreenshot: { name: f.name, data: evt.target.result, type: f.type } });
@@ -2960,6 +2995,7 @@
             event.target.value = '';
         }
         function deleteAccommodationScreenshot(id) {
+            router.hasUnsavedChanges = true;
             DB.updateJobFields(id, { accomScreenshot: null });
             router.renderJobDetails(document.getElementById('app-content'), id);
             showToast('Accommodation screenshot removed');
@@ -3506,6 +3542,7 @@
         function handleBeforePhotoUpload(e, id) {
             const files = Array.from(e.target.files || []);
             if (!files.length) return;
+            router.hasUnsavedChanges = true;
             files.forEach(f => {
                 const r = new FileReader();
                 r.onload = (evt) => { DB.addBeforePhoto(id, evt.target.result); router.renderJobDetails(document.getElementById('app-content'), id); };
@@ -3516,6 +3553,7 @@
         function handleAfterPhotoUpload(e, id) {
             const files = Array.from(e.target.files || []);
             if (!files.length) return;
+            router.hasUnsavedChanges = true;
             files.forEach(f => {
                 const r = new FileReader();
                 r.onload = (evt) => { DB.addAfterPhoto(id, evt.target.result); router.renderJobDetails(document.getElementById('app-content'), id); };
@@ -3523,15 +3561,16 @@
             });
             e.target.value = '';
         }
-        function deleteBeforePhoto(id, idx) { DB.deleteBeforePhoto(id, idx); router.renderJobDetails(document.getElementById('app-content'), id); }
-        function deleteAfterPhoto(id, idx) { DB.deleteAfterPhoto(id, idx); router.renderJobDetails(document.getElementById('app-content'), id); }
+        function deleteBeforePhoto(id, idx) { router.hasUnsavedChanges = true; DB.deleteBeforePhoto(id, idx); router.renderJobDetails(document.getElementById('app-content'), id); }
+        function deleteAfterPhoto(id, idx) { router.hasUnsavedChanges = true; DB.deleteAfterPhoto(id, idx); router.renderJobDetails(document.getElementById('app-content'), id); }
         function handleDocUpload(e, id) {
             const f = e.target.files[0]; if(!f) return;
+            router.hasUnsavedChanges = true;
             const r = new FileReader();
             r.onload = (evt) => { DB.addJobDocument(id, { name: f.name, data: evt.target.result, type: f.type }); router.renderJobDetails(document.getElementById('app-content'), id); };
             r.readAsDataURL(f);
         }
-        function deleteDoc(id, idx) { DB.deleteJobDocument(id, idx); router.renderJobDetails(document.getElementById('app-content'), id); }
+        function deleteDoc(id, idx) { router.hasUnsavedChanges = true; DB.deleteJobDocument(id, idx); router.renderJobDetails(document.getElementById('app-content'), id); }
         function handleKeypad(key) {
             if(key === 'del') router.tempPasscode = router.tempPasscode.slice(0,-1);
             else if(router.tempPasscode.length < 6) router.tempPasscode += key;
@@ -3603,6 +3642,26 @@
             };
             r.readAsText(f);
         }
+        function renderCloudSyncIndicator() {
+            const el = document.getElementById('cloud-sync-indicator');
+            if (!el) return;
+            if (!CloudSync.user) {
+                el.classList.add('hidden');
+                return;
+            }
+            el.classList.remove('hidden');
+            const isSyncing = !!CloudSync.syncInProgress;
+            const isPending = !!CloudSync.pendingChanges;
+            const label = isSyncing
+                ? 'Uploading…'
+                : (isPending ? 'Pending upload' : `Cloud synced${CloudSync.lastSyncedAt ? ` · ${new Date(CloudSync.lastSyncedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ''}`);
+            const cls = isSyncing
+                ? 'text-cyan-300 border-cyan-500/40 bg-cyan-500/10'
+                : (isPending ? 'text-orange-300 border-orange-500/40 bg-orange-500/10' : 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10');
+            const icon = isSyncing ? 'fa-solid fa-arrows-rotate fa-spin' : (isPending ? 'fa-solid fa-cloud-arrow-up' : 'fa-solid fa-circle-check');
+            el.innerHTML = `<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs shadow-lg backdrop-blur ${cls}"><i class="${icon}"></i>${label}</div>`;
+        }
+
         function showToast(m) { const t=document.getElementById('toast'); document.getElementById('toast-msg').innerText=m; t.classList.remove('translate-y-[-150%]'); setTimeout(()=>t.classList.add('translate-y-[-150%]'), 3000); }
 
         function addVaultEntry(e) {
@@ -3908,6 +3967,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             DB.init();
             CloudSync.init();
+            renderCloudSyncIndicator();
             router.navigate('today');
         });
         window.addEventListener('beforeunload', (e) => {
