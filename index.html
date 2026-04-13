@@ -437,6 +437,10 @@
                     n.accomCheckOut = n.accomCheckOut || '';
                     n.accomNotes = n.accomNotes || '';
                     n.accomScreenshot = n.accomScreenshot || null;
+                    n.externalSignOff = !!n.externalSignOff;
+                    n.externalSignOffProof = n.externalSignOffProof || null;
+                    n.signOffAcknowledged = typeof n.signOffAcknowledged === 'boolean' ? n.signOffAcknowledged : !!(n.clientSignature || n.externalSignOff);
+                    n.signOffStatement = (n.signOffStatement || (n.signOffAcknowledged ? 'I confirm I am happy with the final install and approve completion of the work.' : '')).toString();
                     n.profit = n.profit !== undefined && n.profit !== null && n.profit !== '' ? parseFloat(n.profit) || 0 : '';
                     const key = n.id || `${(n.jobNumber || '').toLowerCase()}|${n.date || ''}|${(n.title || '').toLowerCase()}`;
                     if (!jobsByKey.has(key)) jobsByKey.set(key, n);
@@ -566,6 +570,9 @@
                     if (!Array.isArray(n.beforePhotos)) n.beforePhotos = Array.isArray(n.photos) ? [...n.photos] : [];
                     if (!Array.isArray(n.afterPhotos)) n.afterPhotos = [];
                     n.externalSignOff = !!n.externalSignOff;
+                    n.externalSignOffProof = n.externalSignOffProof || null;
+                    n.signOffAcknowledged = typeof n.signOffAcknowledged === 'boolean' ? n.signOffAcknowledged : !!(n.clientSignature || n.externalSignOff);
+                    n.signOffStatement = (n.signOffStatement || (n.signOffAcknowledged ? 'I confirm I am happy with the final install and approve completion of the work.' : '')).toString();
                     n.profit = n.profit !== undefined && n.profit !== null && n.profit !== '' ? parseFloat(n.profit) || 0 : '';
                     return n;
                 });
@@ -632,13 +639,21 @@
                     accomScreenshot: job.accomScreenshot || null,
                     clientSignature: null,
                     externalSignOff: false,
+                    externalSignOffProof: null,
                     signedOffAt: null,
-                    signedOffName: null
+                    signedOffName: null,
+                    signOffAcknowledged: false,
+                    signOffStatement: ''
                 });
                 this.save();
                 showToast('Event created successfully');
             },
             deleteJob(id) {
+                const j = this.jobs.find(x => x.id === id);
+                if (j && (j.clientSignature || j.externalSignOff)) {
+                    showToast('Signed-off jobs are locked and cannot be deleted');
+                    return;
+                }
                 this.jobs = this.jobs.filter(j => j.id !== id);
                 this.save();
                 showToast('Event deleted');
@@ -647,6 +662,10 @@
                 const index = this.jobs.findIndex(j => j.id === updatedFields.id);
                 if (index !== -1) {
                     const existing = this.jobs[index];
+                    if (existing.clientSignature || existing.externalSignOff) {
+                        showToast('Signed-off jobs are locked. Update payment/admin fields in project details.');
+                        return;
+                    }
                     const contact = this.contacts.find(c => c.id === (updatedFields.contactId || existing.contactId));
                     this.jobs[index] = {
                         ...existing,
@@ -664,7 +683,41 @@
             updateJobFields(id, fields = {}) {
                 const j = this.jobs.find(x => x.id === id);
                 if (!j) return;
-                Object.assign(j, fields || {});
+                const incoming = { ...(fields || {}) };
+                delete incoming.clientSignature;
+                delete incoming.externalSignOff;
+                delete incoming.externalSignOffProof;
+                delete incoming.signedOffAt;
+                delete incoming.signedOffName;
+                delete incoming.signOffAcknowledged;
+                delete incoming.signOffStatement;
+
+                if (j.clientSignature || j.externalSignOff) {
+                    const allowed = new Set([
+                        'depositPaid',
+                        'depositPaidDate',
+                        'depositPaidMethod',
+                        'fullPaymentPaid',
+                        'fullPaymentPaidDate',
+                        'fullPaymentPaidMethod',
+                        'paymentPlanEnabled',
+                        'paymentPlanDetails',
+                        'agreementSigned',
+                        'agreementNA',
+                        'materialsOrdered',
+                        'materialsDelivered',
+                        'notes',
+                        'status'
+                    ]);
+                    const filtered = Object.fromEntries(Object.entries(incoming).filter(([k]) => allowed.has(k)));
+                    if (Object.keys(filtered).length === 0) {
+                        showToast('Signed-off jobs are locked. Only payment/admin updates are allowed.');
+                        return;
+                    }
+                    Object.assign(j, filtered);
+                } else {
+                    Object.assign(j, incoming);
+                }
                 this.save();
             },
             addContact(c) {
@@ -708,53 +761,100 @@
             },
             updateJobStatus(id, s) {
                 const j = this.jobs.find(x => x.id === id);
-                if (j) { j.status = s; this.save(); showToast(`Status: ${s}`); }
+                if (!j) return;
+                if ((j.clientSignature || j.externalSignOff) && s !== 'Completed') {
+                    showToast('Signed-off jobs stay completed.');
+                    return;
+                }
+                j.status = s;
+                this.save();
+                showToast(`Status: ${s}`);
             },
             toggleJobField(id, field) {
                 const j = this.jobs.find(x => x.id === id);
-                if (j) { j[field] = !j[field]; this.save(); }
+                if (!j) return;
+                this.updateJobFields(id, { [field]: !j[field] });
             },
             addJobPhoto(id, dataUrl) {
                 const j = this.jobs.find(x => x.id === id);
+                if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; }
                 if (j) { if (!j.photos) j.photos = []; j.photos.push(dataUrl); this.save(); }
             },
             addBeforePhoto(id, dataUrl) {
                 const j = this.jobs.find(x => x.id === id);
+                if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; }
                 if (j) { if (!j.beforePhotos) j.beforePhotos = []; j.beforePhotos.push(dataUrl); this.save(); }
             },
             addAfterPhoto(id, dataUrl) {
                 const j = this.jobs.find(x => x.id === id);
+                if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; }
                 if (j) { if (!j.afterPhotos) j.afterPhotos = []; j.afterPhotos.push(dataUrl); this.save(); }
             },
             deleteJobPhoto(id, index) {
                 const j = this.jobs.find(x => x.id === id);
+                if (j && j.status === 'Completed') { showToast('Files/photos are locked for completed projects'); return; }
+                if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; }
                 if (j && j.photos) { j.photos.splice(index, 1); this.save(); }
             },
             deleteBeforePhoto(id, index) {
                 const j = this.jobs.find(x => x.id === id);
+                if (j && j.status === 'Completed') { showToast('Files/photos are locked for completed projects'); return; }
+                if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; }
                 if (j && j.beforePhotos) { j.beforePhotos.splice(index, 1); this.save(); }
             },
             deleteAfterPhoto(id, index) {
                 const j = this.jobs.find(x => x.id === id);
+                if (j && j.status === 'Completed') { showToast('Files/photos are locked for completed projects'); return; }
+                if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; }
                 if (j && j.afterPhotos) { j.afterPhotos.splice(index, 1); this.save(); }
             },
             addJobDocument(id, docObj) {
                 const j = this.jobs.find(x => x.id === id);
+                if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; }
                 if (j) { if (!j.documents) j.documents = []; j.documents.push(docObj); this.save(); }
             },
             deleteJobDocument(id, index) {
                 const j = this.jobs.find(x => x.id === id);
+                if (j && j.status === 'Completed') { showToast('Files/photos are locked for completed projects'); return; }
+                if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; }
                 if (j && j.documents) { j.documents.splice(index, 1); this.save(); }
             },
-            toggleChecklist(id, idx) { const j = this.jobs.find(x => x.id === id); if (j && j.checklist[idx]) { j.checklist[idx].done = !j.checklist[idx].done; this.save(); } },
-            addChecklist(id, txt) { const j = this.jobs.find(x => x.id === id); if (j) { if (!j.checklist) j.checklist = []; j.checklist.push({ text: txt, done: false }); this.save(); } },
+            toggleChecklist(id, idx) { const j = this.jobs.find(x => x.id === id); if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; } if (j && j.checklist[idx]) { j.checklist[idx].done = !j.checklist[idx].done; this.save(); } },
+            addChecklist(id, txt) { const j = this.jobs.find(x => x.id === id); if (j && (j.clientSignature || j.externalSignOff)) { showToast('Signed-off jobs are locked'); return; } if (j) { if (!j.checklist) j.checklist = []; j.checklist.push({ text: txt, done: false }); this.save(); } },
             saveSignOff(id, signature, clientName) {
                 const j = this.jobs.find(x => x.id === id);
-                if (j) { j.clientSignature = signature; j.externalSignOff = false; j.signedOffAt = new Date().toISOString(); j.signedOffName = clientName || 'Client'; j.status = 'Completed'; this.save(); showToast('Job signed off & complete!'); }
+                if (j) {
+                    j.clientSignature = signature;
+                    j.externalSignOff = false;
+                    j.externalSignOffProof = null;
+                    j.signedOffAt = new Date().toISOString();
+                    j.signedOffName = clientName || 'Client';
+                    j.signOffAcknowledged = true;
+                    j.signOffStatement = 'I confirm I am happy with the final install and approve completion of the work.';
+                    j.status = 'Completed';
+                    this.save();
+                    showToast('Job signed off & complete!');
+                }
             },
-            saveExternalSignOff(id, clientName) {
+            saveExternalSignOff(id, clientName, proofFile) {
                 const j = this.jobs.find(x => x.id === id);
-                if (j) { j.externalSignOff = true; j.clientSignature = null; j.signedOffAt = new Date().toISOString(); j.signedOffName = clientName || 'Client'; j.status = 'Completed'; this.save(); showToast('External sign-off recorded'); }
+                if (!proofFile?.data) { showToast('Signature proof file is required'); return; }
+                if (j) {
+                    j.externalSignOff = true;
+                    j.clientSignature = null;
+                    j.externalSignOffProof = {
+                        name: proofFile.name || 'external-signoff',
+                        type: proofFile.type || '',
+                        data: proofFile.data
+                    };
+                    j.signedOffAt = new Date().toISOString();
+                    j.signedOffName = clientName || 'Client';
+                    j.signOffAcknowledged = true;
+                    j.signOffStatement = 'I confirm I am happy with the final install and approve completion of the work.';
+                    j.status = 'Completed';
+                    this.save();
+                    showToast('External sign-off recorded');
+                }
             },
             
             getJobsForDate(d) { 
@@ -1521,6 +1621,11 @@
             renderEditEvent(c, id) {
                 const job = DB.getJobById(id);
                 if (!job) { this.navigate('today'); return; }
+                if (job.clientSignature || job.externalSignOff) {
+                    showToast('This project is signed off and locked. Update payment/admin fields in project details.');
+                    this.navigate('job-details', {id});
+                    return;
+                }
                 const jobNumSuffix = job.jobNumber ? job.jobNumber.replace(/^EW-/i, '') : '';
                 c.innerHTML = `
                 <div class="pt-12 px-5 pb-24 animate-fade-in">
@@ -1596,9 +1701,11 @@
                 const typeFilter = this.params.projectType || 'All';
                 const paymentFilter = this.params.projectPayFilter || 'All';
                 const materialFilter = this.params.projectMatFilter || 'All';
-                const groupMode = this.params.projectGroupMode || 'month';
+                const groupMode = this.params.projectGroupMode || 'list';
                 const showAdvanced = !!this.params.projectShowAdvanced;
                 const query = (this.params.projectSearch || '').trim().toLowerCase();
+                const fromDate = this.params.projectFromDate || '';
+                const toDate = this.params.projectToDate || '';
 
                 const asType = (j) => j.type || 'Job';
                 const monthKey = (j) => (j.date || '').slice(0, 7);
@@ -1628,6 +1735,8 @@
                 if (statusFilter !== 'All') jobs = jobs.filter(j => (j.status || 'Scheduled') === statusFilter);
                 if (typeFilter !== 'All') jobs = jobs.filter(j => asType(j) === typeFilter);
                 if (monthFilter !== 'all') jobs = jobs.filter(j => monthKey(j) === monthFilter);
+                if (fromDate) jobs = jobs.filter(j => (j.date || '') >= fromDate);
+                if (toDate) jobs = jobs.filter(j => (j.date || '') <= toDate);
                 if (paymentFilter === 'Paid') jobs = jobs.filter(j => isPaid(j));
                 if (paymentFilter === 'Outstanding') jobs = jobs.filter(j => isJobType(j) && !isPaid(j) && balanceOf(j) > 0);
                 if (paymentFilter === 'Payment Plan') jobs = jobs.filter(j => !!j.paymentPlanEnabled);
@@ -1702,7 +1811,7 @@
                 }).join('');
 
                 const cardsHtml = jobs.length === 0
-                    ? `<div class="border-2 border-dashed border-app-lighter rounded-xl p-8 flex flex-col items-center text-center"><p class="text-app-muted mb-3">No projects found with current filters</p><button onclick="router.params.projectSearch=''; router.params.projectFilter='All'; router.params.projectMonth='all'; router.params.projectType='All'; router.params.projectPayFilter='All'; router.params.projectMatFilter='All'; router.params.projectShowAdvanced=false; router.renderProjects(document.getElementById('app-content'))" class="text-blue-400 text-sm font-semibold">Clear filters</button></div>`
+                    ? `<div class="border-2 border-dashed border-app-lighter rounded-xl p-8 flex flex-col items-center text-center"><p class="text-app-muted mb-3">No projects found with current filters</p><button onclick="router.params.projectSearch=''; router.params.projectFilter='All'; router.params.projectMonth='all'; router.params.projectFromDate=''; router.params.projectToDate=''; router.params.projectType='All'; router.params.projectPayFilter='All'; router.params.projectMatFilter='All'; router.params.projectShowAdvanced=false; router.renderProjects(document.getElementById('app-content'))" class="text-blue-400 text-sm font-semibold">Clear filters</button></div>`
                     : groupMode === 'timeline' ? `<div class="bg-app-card/40 border border-app-border rounded-xl p-3">${timelineHtml}</div>`
                     : groupKeys.map(gk => `
                         ${groupMode === 'month' ? `<div class="sticky top-0 z-10 bg-app-bg/95 backdrop-blur py-2 mt-1 mb-2 border-b border-app-border"><p class="text-xs uppercase tracking-wider font-bold text-blue-400">${gk === 'no-date' ? 'No Date' : monthLabel(gk)} · ${grouped[gk].length}</p></div>` : ''}
@@ -1718,8 +1827,6 @@
                                             <div class="flex items-center gap-2 mb-1 flex-wrap">
                                                 ${j.jobNumber ? `<span class="text-[11px] font-mono font-bold text-blue-300 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded">${j.jobNumber}</span>` : ''}
                                                 <span class="text-[10px] text-app-muted uppercase tracking-wider">${asType(j)}</span>
-                                                ${j.paymentPlanEnabled ? `<span class="text-[10px] px-2 py-0.5 rounded border border-indigo-500/30 text-indigo-300 bg-indigo-500/10">Plan</span>` : ''}
-                                                ${isJob && j.durationDays > 1 ? `<span class="text-[10px] px-2 py-0.5 rounded border border-orange-500/30 text-orange-300 bg-orange-500/10">${j.durationDays}d</span>` : ''}
                                             </div>
                                             <h3 class="font-semibold text-white truncate">${j.title}</h3>
                                         </div>
@@ -1733,7 +1840,6 @@
                                         <p class="text-xs text-app-muted truncate mr-3">${j.contact ? `<i class="fa-regular fa-user mr-1"></i>${j.contact}` : (j.address ? `<i class="fa-solid fa-location-dot mr-1"></i>${j.address}` : 'No contact')}</p>
                                         ${isJob && priceOf(j) ? `<p class="text-sm font-bold text-white">£${priceOf(j).toFixed(2)}</p>` : ''}
                                     </div>
-                                    ${isJob ? `<div class="mt-2 text-[10px] text-app-muted">Materials: ${j.materialsOrdered ? 'Ordered' : 'Not ordered'} · ${j.materialsDelivered ? 'Delivered' : 'Not delivered'}</div>` : ''}
                                 </div>`;
                             }).join('')}
                         </div>
@@ -1743,15 +1849,15 @@
                 <div class="pt-12 px-5 pb-24 animate-fade-in">
                     <div class="flex items-center gap-4 mb-4">
                         <button onclick="router.navigate('today')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button>
-                        <div class="flex-1"><h1 class="text-2xl font-bold">Projects Hub</h1><p class="text-app-muted text-xs">${DB.jobs.length} total events</p></div>
+                        <div class="flex-1"><h1 class="text-2xl font-bold">Projects</h1><p class="text-app-muted text-xs">Newest projects first</p></div>
                         <button onclick="generateAllProjectsPDF()" class="w-9 h-9 rounded-full bg-purple-600/20 text-purple-400 flex items-center justify-center active:scale-95 transition-transform" title="Export all as PDF"><i class="fa-solid fa-file-pdf"></i></button>
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-[10px] uppercase text-app-muted">Filtered</p><p class="text-lg font-bold text-white">${jobs.length}</p></div>
-                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-[10px] uppercase text-app-muted">Value</p><p class="text-lg font-bold text-emerald-400">£${totalValue.toFixed(0)}</p></div>
-                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-[10px] uppercase text-app-muted">Outstanding</p><p class="text-lg font-bold text-amber-400">£${outstanding.toFixed(0)}</p></div>
-                        <div class="bg-app-card border border-app-border rounded-xl p-3"><p class="text-[10px] uppercase text-app-muted">Complete</p><p class="text-lg font-bold text-blue-400">${completionPct}%</p></div>
+                    <div class="flex flex-wrap gap-2 mb-4 text-xs">
+                        <span class="px-3 py-1.5 rounded-full border border-app-border bg-app-card text-white">${jobs.length} filtered</span>
+                        <span class="px-3 py-1.5 rounded-full border border-app-border bg-app-card text-emerald-300">£${totalValue.toFixed(0)} value</span>
+                        <span class="px-3 py-1.5 rounded-full border border-app-border bg-app-card text-amber-300">£${outstanding.toFixed(0)} outstanding</span>
+                        <span class="px-3 py-1.5 rounded-full border border-app-border bg-app-card text-blue-300">${completionPct}% complete</span>
                     </div>
 
                     <div class="relative mb-3"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3 text-app-muted text-xs"></i><input type="text" value="${this.params.projectSearch || ''}" oninput="router.params.projectSearch=this.value; router.renderProjects(document.getElementById('app-content'))" placeholder="Search job #, title, reference, client..." class="w-full bg-app-card border border-app-border rounded-xl py-2.5 pl-10 pr-3 text-sm text-white focus:outline-none focus:border-blue-500"></div>
@@ -1767,6 +1873,11 @@
                             <option value="all" ${monthFilter==='all'?'selected':''}>Month: All Months</option>
                             ${monthOptions.slice(0, 18).map(m=>`<option value="${m}" ${monthFilter===m?'selected':''}>Month: ${monthLabel(m)}</option>`).join('')}
                         </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <input type="date" value="${fromDate}" onchange="router.params.projectFromDate=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]" title="From date">
+                        <input type="date" value="${toDate}" onchange="router.params.projectToDate=this.value; router.renderProjects(document.getElementById('app-content'))" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]" title="To date">
                     </div>
 
                     <div class="grid grid-cols-2 gap-2 mb-3">
@@ -1916,6 +2027,7 @@
                 const contactData = DB.contacts.find(c => c.id === job.contactId) || DB.contacts.find(c => c.name === job.contact);
                 const signedOff = !!job.clientSignature || !!job.externalSignOff;
                 const hasSignature = !!job.clientSignature;
+                const canEditCore = !signedOff;
                 const signedOffDate = signedOff ? new Date(job.signedOffAt).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + ' ' + new Date(job.signedOffAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
                 const detailsTab = this.params.jobDetailsTab || 'overview';
 
@@ -1925,7 +2037,7 @@
                         ${signedOff ? `<div class="signed-off-ribbon">Signed Off</div>` : ''}
                         <div class="flex justify-between items-center mb-6">
                             <button onclick="router.navigate('today')" class="text-app-muted flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                            <button onclick="router.navigate('edit-event', {id: '${id}'})" class="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center active:scale-95 transition-transform"><i class="fa-solid fa-pen"></i></button>
+                            ${canEditCore ? `<button onclick="router.navigate('edit-event', {id: '${id}'})" class="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center active:scale-95 transition-transform"><i class="fa-solid fa-pen"></i></button>` : `<span class="w-9 h-9 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center" title="Signed-off project locked"><i class="fa-solid fa-lock"></i></span>`}
                         </div>
                         <div class="mb-4"><h1 class="text-2xl font-bold text-white truncate">${job.jobNumber || job.title}</h1><p class="text-xs text-app-muted">${job.title}</p></div>
                         <div class="bg-app-card border border-app-border rounded-xl p-3 mb-4 grid grid-cols-1 gap-2 text-xs">
@@ -1938,11 +2050,11 @@
                             <button onclick="router.navigate('job-details', {id:'${id}', jobDetailsTab:'files'})" class="py-2 rounded-lg text-xs font-semibold border bg-blue-600 border-blue-600 text-white">Files</button>
                         </div>
 
-                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-folder-open"></i> Documents</h3><button onclick="document.getElementById('doc-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add File</button><input type="file" id="doc-upload-files" class="hidden" onchange="handleDocUpload(event, '${id}')"></div><div class="space-y-2">${documents.length === 0 ? '<p class="text-sm text-app-muted italic">No documents attached.</p>' : documents.map((doc, i) => `<div class="flex items-center justify-between p-3 bg-app-lighter rounded-lg border border-app-border"><div class="flex items-center gap-3 overflow-hidden"><div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-lines"></i></div><a href="${doc.data}" download="${doc.name}" class="text-sm text-white truncate hover:text-blue-400 transition-colors">${doc.name}</a></div><button onclick="deleteDoc('${id}', ${i})" class="text-app-muted hover:text-red-400 px-2"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div></div>` : ''}
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-folder-open"></i> Documents</h3>${canEditCore ? `<button onclick="document.getElementById('doc-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add File</button><input type="file" id="doc-upload-files" class="hidden" onchange="handleDocUpload(event, '${id}')">` : '<span class="text-[11px] text-app-muted">Locked after sign-off</span>'}</div><div class="space-y-2">${documents.length === 0 ? '<p class="text-sm text-app-muted italic">No documents attached.</p>' : documents.map((doc, i) => `<div class="flex items-center justify-between p-3 bg-app-lighter rounded-lg border border-app-border"><div class="flex items-center gap-3 overflow-hidden min-w-0"><div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-lines"></i></div><p class="text-sm text-white truncate">${doc.name}</p></div><div class="flex items-center gap-2"><button onclick="openJobDocument('${id}', ${i})" class="text-[11px] px-2 py-1 rounded border border-blue-500/30 text-blue-300 bg-blue-500/10">View</button><a href="${doc.data}" download="${doc.name}" class="text-[11px] px-2 py-1 rounded border border-cyan-500/30 text-cyan-300 bg-cyan-500/10">Save</a>${canEditCore ? `<button onclick="deleteDoc('${id}', ${i})" class="text-app-muted hover:text-red-400 px-2"><i class="fa-solid fa-trash"></i></button>` : ''}</div></div>`).join('')}</div></div>` : ''}
 
-                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera"></i> Before Photos</h3><button onclick="document.getElementById('before-photo-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add</button><input type="file" id="before-photo-upload-files" accept="image/*" multiple class="hidden" onchange="handleBeforePhotoUpload(event, '${id}')"></div><div class="flex gap-2 overflow-x-auto pb-2">${beforePhotos.length === 0 ? '<p class="text-sm text-app-muted italic">No before photos yet.</p>' : beforePhotos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border group cursor-pointer" onclick="openPhotoLightbox('${id}', ${i}, 'before')"><img src="${src}" class="w-full h-full object-cover pointer-events-none"><button onclick="event.stopPropagation(); deleteBeforePhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-times"></i></button></div>`).join('')}</div></div>` : ''}
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera"></i> Before Photos</h3>${canEditCore ? `<button onclick="document.getElementById('before-photo-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add</button><input type="file" id="before-photo-upload-files" accept="image/*" multiple class="hidden" onchange="handleBeforePhotoUpload(event, '${id}')">` : ''}</div><div class="flex gap-2 overflow-x-auto pb-2">${beforePhotos.length === 0 ? '<p class="text-sm text-app-muted italic">No before photos yet.</p>' : beforePhotos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border group cursor-pointer" onclick="openPhotoLightbox('${id}', ${i}, 'before')"><img src="${src}" class="w-full h-full object-cover pointer-events-none">${canEditCore ? `<button onclick="event.stopPropagation(); deleteBeforePhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-times"></i></button>` : ''}</div>`).join('')}</div></div>` : ''}
 
-                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera-retro"></i> After Photos</h3><button onclick="document.getElementById('after-photo-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add</button><input type="file" id="after-photo-upload-files" accept="image/*" multiple class="hidden" onchange="handleAfterPhotoUpload(event, '${id}')"></div><div class="flex gap-2 overflow-x-auto pb-2">${afterPhotos.length === 0 ? '<p class="text-sm text-app-muted italic">No after photos yet.</p>' : afterPhotos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border group cursor-pointer" onclick="openPhotoLightbox('${id}', ${i}, 'after')"><img src="${src}" class="w-full h-full object-cover pointer-events-none"><button onclick="event.stopPropagation(); deleteAfterPhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-times"></i></button></div>`).join('')}</div></div>` : ''}
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-camera-retro"></i> After Photos</h3>${canEditCore ? `<button onclick="document.getElementById('after-photo-upload-files').click()" class="text-blue-500 text-xs font-bold">+ Add</button><input type="file" id="after-photo-upload-files" accept="image/*" multiple class="hidden" onchange="handleAfterPhotoUpload(event, '${id}')">` : ''}</div><div class="flex gap-2 overflow-x-auto pb-2">${afterPhotos.length === 0 ? '<p class="text-sm text-app-muted italic">No after photos yet.</p>' : afterPhotos.map((src, i) => `<div class="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-app-border group cursor-pointer" onclick="openPhotoLightbox('${id}', ${i}, 'after')"><img src="${src}" class="w-full h-full object-cover pointer-events-none">${canEditCore ? `<button onclick="event.stopPropagation(); deleteAfterPhoto('${id}', ${i})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-times"></i></button>` : ''}</div>`).join('')}</div></div>` : ''}
 
                         ${(job.accomScreenshot && job.accomScreenshot.data) ? `<div class="bg-app-card border border-app-border rounded-xl p-4"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold mb-2"><i class="fa-solid fa-bed"></i> Accommodation Screenshot</h3><img src="${job.accomScreenshot.data}" class="w-full max-h-64 object-contain rounded-lg cursor-pointer" onclick="openGenericLightbox('${job.accomScreenshot.data}', 'Accommodation Screenshot')"></div>` : ''}
                     </div>`;
@@ -1954,8 +2066,8 @@
                         <div class="flex justify-between items-center mb-6">
                             <button onclick="router.navigate('today')" class="text-app-muted flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Back</button>
                             <div class="flex gap-2">
-                                <button onclick="router.navigate('edit-event', {id: '${id}'})" class="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center active:scale-95 transition-transform"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="if(confirm('Are you sure you want to delete this event? This cannot be undone.')) { DB.deleteJob('${id}'); router.navigate('today'); }" class="w-9 h-9 rounded-full bg-red-600/20 text-red-400 flex items-center justify-center active:scale-95 transition-transform"><i class="fa-solid fa-trash"></i></button>
+                                ${canEditCore ? `<button onclick="router.navigate('edit-event', {id: '${id}'})" class="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center active:scale-95 transition-transform"><i class="fa-solid fa-pen"></i></button>` : `<span class="w-9 h-9 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center" title="Signed-off project locked"><i class="fa-solid fa-lock"></i></span>`}
+                                ${canEditCore ? `<button onclick="if(confirm('Are you sure you want to delete this event? This cannot be undone.')) { DB.deleteJob('${id}'); router.navigate('today'); }" class="w-9 h-9 rounded-full bg-red-600/20 text-red-400 flex items-center justify-center active:scale-95 transition-transform"><i class="fa-solid fa-trash"></i></button>` : ''}
                             </div>
                         </div>
                         <div class="flex justify-between items-start mb-2"><h1 class="text-2xl font-bold flex-1 mr-4">${job.title}</h1>
@@ -1972,7 +2084,7 @@
                             <p class="text-white truncate"><span class="text-app-muted">Address:</span> ${job.address || 'Not set'}</p>
                         </div>
 
-                        ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 mb-4 flex items-center gap-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Signed Off &amp; Complete</p><p class="text-xs text-app-muted">By ${job.signedOffName} · ${signedOffDate}</p></div></div>` : ''}
+                        ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 mb-4 flex items-center gap-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Signed Off &amp; Complete</p><p class="text-xs text-app-muted">By ${job.signedOffName} · ${signedOffDate}</p><p class="text-[11px] text-emerald-200 mt-1">This project is now locked for legal record keeping. Only payment/admin updates are allowed.</p></div></div>` : ''}
 
                         ${!isHoliday ? `<div class="mb-6"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${Utils.getEventTypeColor(job.type, job.status)}">${job.status}</span> <span class="ml-2 text-xs text-app-muted italic">${job.type||'Job'}</span></div>` : ''}
                         
@@ -1984,7 +2096,7 @@
 
                         ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6">
                             <div class="flex justify-between items-center mb-3"><h3 class="text-xs text-app-muted uppercase tracking-wider font-semibold"><i class="fa-solid fa-folder-open"></i> Documents</h3><button onclick="document.getElementById('doc-upload').click()" class="text-blue-500 text-xs font-bold">+ Add File</button><input type="file" id="doc-upload" class="hidden" onchange="handleDocUpload(event, '${id}')"></div>
-                            <div class="space-y-2">${documents.length === 0 ? '<p class="text-sm text-app-muted italic">No documents attached.</p>' : documents.map((doc, i) => `<div class="flex items-center justify-between p-3 bg-app-lighter rounded-lg border border-app-border"><div class="flex items-center gap-3 overflow-hidden"><div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-lines"></i></div><a href="${doc.data}" download="${doc.name}" class="text-sm text-white truncate hover:text-blue-400 transition-colors">${doc.name}</a></div><button onclick="deleteDoc('${id}', ${i})" class="text-app-muted hover:text-red-400 px-2"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div>
+                            <div class="space-y-2">${documents.length === 0 ? '<p class="text-sm text-app-muted italic">No documents attached.</p>' : documents.map((doc, i) => `<div class="flex items-center justify-between p-3 bg-app-lighter rounded-lg border border-app-border"><div class="flex items-center gap-3 overflow-hidden min-w-0"><div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-lines"></i></div><p class="text-sm text-white truncate">${doc.name}</p></div><div class="flex items-center gap-2"><button onclick="openJobDocument('${id}', ${i})" class="text-[11px] px-2 py-1 rounded border border-blue-500/30 text-blue-300 bg-blue-500/10">View</button><a href="${doc.data}" download="${doc.name}" class="text-[11px] px-2 py-1 rounded border border-cyan-500/30 text-cyan-300 bg-cyan-500/10">Save</a><button onclick="deleteDoc('${id}', ${i})" class="text-app-muted hover:text-red-400 px-2"><i class="fa-solid fa-trash"></i></button></div></div>`).join('')}</div>
                         </div>` : ''}
 
                         ${isJob ? `
@@ -2002,7 +2114,7 @@
 
                         <div class="bg-app-card border ${signedOff ? 'border-emerald-500/40' : 'border-app-border'} rounded-xl p-4 mb-6">
                             <h3 class="text-xs ${signedOff ? 'text-emerald-500' : 'text-app-muted'} uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-pen-nib mr-1"></i>Client Sign-Off</h3>
-                            ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-3"><div class="flex items-center gap-3 mb-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Job Complete — Client Signed Off</p><p class="text-xs text-app-muted">Signed by <strong class="text-white">${job.signedOffName}</strong> on ${signedOffDate}</p></div></div>${hasSignature ? `<div class="bg-white rounded-xl p-2"><img src="${job.clientSignature}" class="w-full object-contain" style="max-height:120px;"></div>` : `<p class="text-xs text-app-muted">Marked as signed off externally (no signature file attached).</p>`}</div>` : `<p class="text-sm text-app-muted italic mb-3">No client sign-off recorded yet.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><button onclick="openSignOffModal('${id}')" class="w-full bg-blue-600/10 border border-blue-600/30 text-blue-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-blue-600/20 transition-colors"><i class="fa-solid fa-signature"></i> Capture Client Signature</button><button onclick="markExternalSignOff('${id}')" class="w-full bg-emerald-600/10 border border-emerald-600/30 text-emerald-300 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-emerald-600/20 transition-colors"><i class="fa-solid fa-circle-check"></i> Mark External Sign-Off</button></div>`}
+                            ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-3"><div class="flex items-center gap-3 mb-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Job Complete — Client Signed Off</p><p class="text-xs text-app-muted">Signed by <strong class="text-white">${job.signedOffName}</strong> on ${signedOffDate}</p></div></div>${hasSignature ? `<div class="bg-white rounded-xl p-2 mb-2"><img src="${job.clientSignature}" class="w-full object-contain" style="max-height:120px;"></div>` : `<p class="text-xs text-app-muted mb-2">Signed off externally.</p>`}${job.externalSignOffProof?.data ? `<div class="bg-app-lighter border border-app-border rounded-xl p-2 mb-2"><p class="text-[11px] text-app-muted mb-1">External signature proof file</p>${(job.externalSignOffProof.type || '').startsWith('image/') ? `<img src="${job.externalSignOffProof.data}" class="w-full object-contain rounded" style="max-height:120px;">` : `<a href="${job.externalSignOffProof.data}" download="${job.externalSignOffProof.name || 'signature-proof'}" class="text-xs text-blue-300 font-semibold">Download proof file (${job.externalSignOffProof.name || 'file'})</a>`}</div>` : ''}<p class="text-[11px] text-emerald-200">${job.signOffStatement || 'I confirm I am happy with the final install and approve completion of the work.'}</p></div>` : `<p class="text-sm text-app-muted italic mb-3">No client sign-off recorded yet.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><button onclick="openSignOffModal('${id}')" class="w-full bg-blue-600/10 border border-blue-600/30 text-blue-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-blue-600/20 transition-colors"><i class="fa-solid fa-signature"></i> Capture Client Signature</button><button onclick="markExternalSignOff('${id}')" class="w-full bg-emerald-600/10 border border-emerald-600/30 text-emerald-300 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-emerald-600/20 transition-colors"><i class="fa-solid fa-circle-check"></i> Upload External Signature Proof</button></div>`}
                         </div>` : ''}
                         
                         ${isJob ? `<div class="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-indigo-400 uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-bed"></i> Accommodation</h3><label class="flex items-center justify-between mb-3"><span class="text-sm text-indigo-100">Accommodation Needed</span><input type="checkbox" onchange="DB.updateJobFields('${id}', { accommodationNeeded: this.checked }); router.renderJobDetails(document.getElementById('app-content'), '${id}')" ${job.accommodationNeeded ? 'checked' : ''} class="custom-checkbox"></label><form onsubmit="saveAccommodationInfo(event, '${id}')" class="space-y-2"><div class="grid grid-cols-2 gap-2"><input name="accomHotel" value="${job.accomHotel||''}" placeholder="Hotel name" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white"><input name="accomRef" value="${job.accomRef||''}" placeholder="Booking ref" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white"></div><input name="accomAddress" value="${job.accomAddress||''}" placeholder="Hotel address" class="w-full bg-app-card border border-app-border rounded-lg p-2 text-xs text-white"><div class="grid grid-cols-2 gap-2"><input type="datetime-local" name="accomCheckIn" value="${job.accomCheckIn||''}" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"><input type="datetime-local" name="accomCheckOut" value="${job.accomCheckOut||''}" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><textarea name="accomNotes" rows="2" placeholder="Check-in details / parking / access notes" class="w-full bg-app-card border border-app-border rounded-lg p-2 text-xs text-white">${job.accomNotes||''}</textarea><button class="w-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 py-2 rounded-lg text-xs font-semibold">Save Accommodation Details</button></form><div class="mt-3"><div class="flex items-center justify-between mb-2"><p class="text-[11px] text-app-muted">Accommodation Screenshot</p><button onclick="document.getElementById('accom-upload').click()" class="text-xs text-blue-400 font-semibold">+ Add</button><input type="file" id="accom-upload" accept="image/*" class="hidden" onchange="handleAccommodationUpload(event, '${id}')"></div>${job.accomScreenshot ? `<div class="bg-app-card border border-app-border rounded-lg p-2"><img src="${job.accomScreenshot.data}" class="w-full max-h-48 object-contain rounded cursor-pointer" onclick="openGenericLightbox('${job.accomScreenshot.data}', 'Accommodation Screenshot')"><div class="flex justify-between mt-2"><span class="text-[11px] text-app-muted truncate">${job.accomScreenshot.name || 'screenshot'}</span><button onclick="deleteAccommodationScreenshot('${id}')" class="text-[11px] text-red-400">Remove</button></div></div>` : '<p class="text-xs text-app-muted italic">No screenshot added.</p>'}</div></div>` : ''}
@@ -2674,6 +2786,12 @@
         }
         function handleEditJob(e, id) {
             e.preventDefault();
+            const existing = DB.getJobById(id);
+            if (existing && (existing.clientSignature || existing.externalSignOff)) {
+                showToast('Signed-off projects cannot be edited.');
+                router.navigate('job-details', {id});
+                return;
+            }
             const d = Object.fromEntries(new FormData(e.target));
             if (d.type === 'Holiday') d.durationDays = d.holidayDurationDays || d.durationDays || 1;
             delete d.holidayDurationDays;
@@ -2861,6 +2979,46 @@
             `;
             lb.addEventListener('click', (e) => { if (e.target === lb) lb.remove(); });
             document.body.appendChild(lb);
+        }
+
+        function openJobDocument(id, idx) {
+            const job = DB.getJobById(id);
+            const doc = job?.documents?.[idx];
+            if (!doc?.data) return;
+            openDocumentViewer(doc);
+        }
+
+        function openDocumentViewer(doc) {
+            const data = doc?.data || '';
+            const name = doc?.name || 'Attachment';
+            const type = (doc?.type || '').toLowerCase();
+            if (!data) return;
+
+            const existing = document.getElementById('doc-viewer-modal');
+            if (existing) existing.remove();
+
+            const isImage = type.startsWith('image/') || data.startsWith('data:image/');
+            const isPdf = type === 'application/pdf' || data.startsWith('data:application/pdf');
+
+            const modal = document.createElement('div');
+            modal.id = 'doc-viewer-modal';
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-sheet" style="max-width:980px;height:min(90vh,900px);display:flex;flex-direction:column;">
+                    <div class="flex justify-between items-center mb-3 gap-3">
+                        <h2 class="text-sm font-semibold text-white truncate">${Utils.escapeHtml(name)}</h2>
+                        <div class="flex items-center gap-2">
+                            <a href="${data}" download="${Utils.escapeHtml(name)}" class="text-[11px] px-2 py-1 rounded border border-cyan-500/40 text-cyan-300 bg-cyan-500/10">Download</a>
+                            <button onclick="document.getElementById('doc-viewer-modal')?.remove()" class="w-8 h-8 rounded-full bg-app-lighter text-app-muted flex items-center justify-center hover:text-white"><i class="fa-solid fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-app-lighter border border-app-border rounded-xl overflow-hidden">
+                        ${isImage ? `<img src="${data}" class="w-full h-full object-contain">` : isPdf ? `<iframe src="${data}" class="w-full h-full" title="${Utils.escapeHtml(name)}"></iframe>` : `<iframe src="${data}" class="w-full h-full" title="${Utils.escapeHtml(name)}"></iframe>`}
+                    </div>
+                    ${isImage || isPdf ? '' : '<p class="text-[11px] text-app-muted mt-2">Preview may vary by file type. Use Download if preview is limited.</p>'}
+                </div>`;
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+            document.body.appendChild(modal);
         }
         function calcBalance() {
             const p = parseFloat(document.getElementById('inp-price').value) || 0;
@@ -3673,10 +3831,45 @@
             router.renderJobDetails(document.getElementById('app-content'), id);
         }
 
-        function markExternalSignOff(id) {
+        function pickSignatureProofFile() {
+            return new Promise((resolve) => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*,.pdf';
+                input.style.display = 'none';
+                document.body.appendChild(input);
+                input.onchange = () => {
+                    const file = input.files?.[0] || null;
+                    input.remove();
+                    resolve(file);
+                };
+                input.click();
+            });
+        }
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (evt) => resolve(evt.target?.result || '');
+                reader.onerror = () => reject(new Error('Could not read file'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function markExternalSignOff(id) {
             const name = (prompt('Client name for external sign-off:', 'Client') || '').trim();
             if (!name) return;
-            DB.saveExternalSignOff(id, name);
+            const accepted = confirm('External sign-off still requires proof that the client is happy with the final finish. Upload signature proof now?');
+            if (!accepted) return;
+            const file = await pickSignatureProofFile();
+            if (!file) { alert('A signature proof file is required.'); return; }
+            try {
+                const data = await readFileAsDataUrl(file);
+                DB.saveExternalSignOff(id, name, { name: file.name, type: file.type, data });
+            } catch (_) {
+                alert('Could not import signature proof file. Please try again.');
+                return;
+            }
             router.renderJobDetails(document.getElementById('app-content'), id);
         }
 
