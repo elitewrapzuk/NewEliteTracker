@@ -49,12 +49,61 @@
         }
     </script>
     <style>
-        body { background-color: #050505; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --app-bg: #050505;
+            --app-card: #111111;
+            --app-lighter: #1b1b1b;
+            --app-border: #2a2a2a;
+            --app-text: #f8fafc;
+            --app-muted: #94a3b8;
+            --app-primary: #3b82f6;
+        }
+        body[data-theme="light"] {
+            --app-bg: #eef2f7;
+            --app-card: #ffffff;
+            --app-lighter: #f4f7fb;
+            --app-border: #d7dfec;
+            --app-text: #0f172a;
+            --app-muted: #4b5563;
+            --app-primary: #2563eb;
+        }
+
+        body { background-color: var(--app-bg); color: var(--app-text); -webkit-tap-highlight-color: transparent; }
+        .bg-app-bg { background-color: var(--app-bg) !important; }
+        .bg-app-bg\/95 { background-color: color-mix(in srgb, var(--app-bg) 95%, transparent) !important; }
+        .bg-app-card { background-color: var(--app-card) !important; }
+        .bg-app-lighter { background-color: var(--app-lighter) !important; }
+        .border-app-border { border-color: var(--app-border) !important; }
+        .text-app-muted { color: var(--app-muted) !important; }
+        #bottom-nav { background-color: color-mix(in srgb, var(--app-card) 95%, transparent) !important; border-color: var(--app-border) !important; }
+
+        body[data-theme="light"] .text-white,
+        body[data-theme="light"] .text-white\/95,
+        body[data-theme="light"] .text-white\/90,
+        body[data-theme="light"] .text-white\/80,
+        body[data-theme="light"] .text-white\/70,
+        body[data-theme="light"] .text-white\/60 { color: #0f172a !important; }
+        body[data-theme="light"] .bg-blue-600.text-white,
+        body[data-theme="light"] .bg-emerald-600.text-white,
+        body[data-theme="light"] .bg-red-600.text-white,
+        body[data-theme="light"] .bg-orange-600.text-white,
+        body[data-theme="light"] .bg-purple-600.text-white,
+        body[data-theme="light"] .bg-indigo-600.text-white,
+        body[data-theme="light"] .bg-cyan-600.text-white,
+        body[data-theme="light"] .bg-amber-600.text-white,
+        body[data-theme="light"] .bg-slate-600.text-white,
+        body[data-theme="light"] .bg-pink-600.text-white,
+        body[data-theme="light"] .bg-teal-600.text-white,
+        body[data-theme="light"] .bg-blue-500.text-white,
+        body[data-theme="light"] .bg-gradient-to-br.text-white {
+            color: #ffffff !important;
+        }
+
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #050505; }
-        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: var(--app-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--app-border); border-radius: 3px; }
         .fab-shadow { box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.5); }
-        .nav-item.active { color: #3b82f6; }
+        .nav-item.active { color: var(--app-primary); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         #app-content > div { max-width: 1120px; margin-left: auto; margin-right: auto; }
@@ -112,16 +161,16 @@
         }
 
         /* Nav active top-glow indicator */
-        .nav-item.active { color: #3b82f6; position: relative; }
+        .nav-item.active { color: var(--app-primary); position: relative; }
         .nav-item.active::before {
             content: '';
             position: absolute;
             top: -4px; left: 50%;
             transform: translateX(-50%);
             width: 32px; height: 3px;
-            background: #3b82f6;
+            background: var(--app-primary);
             border-radius: 0 0 6px 6px;
-            box-shadow: 0 0 10px 2px rgba(59, 130, 246, 0.7);
+            box-shadow: 0 0 10px 2px color-mix(in srgb, var(--app-primary) 70%, transparent);
         }
 
         /* Stat card gradients */
@@ -129,6 +178,28 @@
         .stat-card-outstanding{ background: linear-gradient(135deg,rgba(245,158,11,.12) 0%,rgba(12,12,12,.95) 100%); border-color:rgba(245,158,11,.25)!important; }
         .stat-card-jobs       { background: linear-gradient(135deg,rgba(59,130,246,.12) 0%,rgba(12,12,12,.95) 100%); border-color:rgba(59,130,246,.25)!important; }
         .stat-card-completion { background: linear-gradient(135deg,rgba(168,85,247,.12) 0%,rgba(12,12,12,.95) 100%); border-color:rgba(168,85,247,.25)!important; }
+        .goal-hero-card       { background: linear-gradient(135deg,rgba(59,130,246,.15) 0%,rgba(99,102,241,.10) 35%,rgba(12,12,12,.92) 100%); border-color: rgba(59,130,246,.28)!important; }
+
+        body[data-theme="light"] .goal-hero-card {
+            background: linear-gradient(135deg, rgba(37,99,235,.14) 0%, rgba(99,102,241,.10) 42%, rgba(255,255,255,.96) 100%) !important;
+            border-color: rgba(37,99,235,.26) !important;
+        }
+        body[data-theme="light"] .stat-card-revenue {
+            background: linear-gradient(135deg, rgba(16,185,129,.16) 0%, rgba(255,255,255,.98) 100%) !important;
+            border-color: rgba(16,185,129,.34) !important;
+        }
+        body[data-theme="light"] .stat-card-outstanding {
+            background: linear-gradient(135deg, rgba(245,158,11,.16) 0%, rgba(255,255,255,.98) 100%) !important;
+            border-color: rgba(245,158,11,.34) !important;
+        }
+        body[data-theme="light"] .stat-card-jobs {
+            background: linear-gradient(135deg, rgba(59,130,246,.16) 0%, rgba(255,255,255,.98) 100%) !important;
+            border-color: rgba(59,130,246,.34) !important;
+        }
+        body[data-theme="light"] .stat-card-completion {
+            background: linear-gradient(135deg, rgba(168,85,247,.16) 0%, rgba(255,255,255,.98) 100%) !important;
+            border-color: rgba(168,85,247,.34) !important;
+        }
 
         /* Revenue goal progress */
         .goal-bar { transition: width .7s cubic-bezier(.4,0,.2,1); }
@@ -197,6 +268,211 @@
             box-shadow: 0 0 0 1px rgba(16,185,129,.2) inset;
             pointer-events: none;
         }
+
+        /* App shell polish */
+        #fab-root button {
+            background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
+            border: 1px solid rgba(255,255,255,.25);
+            box-shadow: 0 14px 34px rgba(37,99,235,.35), 0 2px 8px rgba(0,0,0,.18);
+        }
+        #fab-menu > div {
+            border-radius: 20px;
+            border-color: color-mix(in srgb, var(--app-border) 80%, #3b82f6 20%) !important;
+            box-shadow: 0 24px 60px rgba(0,0,0,.35);
+            background: color-mix(in srgb, var(--app-card) 92%, transparent) !important;
+        }
+        #bottom-nav {
+            box-shadow: 0 -8px 28px rgba(0,0,0,.2);
+        }
+        .workflow-rail {
+            background: color-mix(in srgb, var(--app-card) 86%, transparent);
+            border: 1px solid var(--app-border);
+            border-radius: 14px;
+            padding: 8px;
+        }
+        .workflow-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--app-border);
+            background: var(--app-lighter);
+            color: var(--app-muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .01em;
+            white-space: nowrap;
+        }
+        .workflow-chip.is-active {
+            border-color: color-mix(in srgb, var(--app-primary) 45%, var(--app-border));
+            color: color-mix(in srgb, var(--app-primary) 82%, #ffffff 18%);
+            background: color-mix(in srgb, var(--app-primary) 14%, var(--app-card));
+        }
+        #app-content .bg-app-card.border,
+        #app-content .border.border-app-border.rounded-xl,
+        #app-content .border.border-app-border.rounded-2xl {
+            box-shadow: 0 10px 26px rgba(2,8,23,.08);
+        }
+        #app-content input,
+        #app-content select,
+        #app-content textarea {
+            transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+        }
+        #app-content input:focus,
+        #app-content select:focus,
+        #app-content textarea:focus {
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary) 16%, transparent);
+        }
+        #app-content button {
+            transition: transform .14s ease, box-shadow .18s ease, background-color .18s ease;
+        }
+        #app-content button:active {
+            transform: translateY(1px);
+        }
+        body[data-theme="light"] #fab-menu > div,
+        body[data-theme="light"] .workflow-rail {
+            background: color-mix(in srgb, var(--app-card) 97%, transparent) !important;
+        }
+
+        /* ===== FULL UI OVERHAUL SKIN ===== */
+        body {
+            background:
+                radial-gradient(1200px 700px at -10% -10%, rgba(37,99,235,.18), transparent 55%),
+                radial-gradient(900px 520px at 110% -20%, rgba(99,102,241,.16), transparent 58%),
+                var(--app-bg);
+        }
+        #app-content {
+            background:
+                linear-gradient(180deg, color-mix(in srgb, var(--app-bg) 88%, transparent), transparent 200px),
+                transparent;
+        }
+        #app-content > div {
+            max-width: 1220px;
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+
+        /* Card system */
+        #app-content .bg-app-card {
+            background:
+                linear-gradient(155deg, color-mix(in srgb, var(--app-card) 92%, #0b1220 8%) 0%, color-mix(in srgb, var(--app-card) 98%, transparent 2%) 100%) !important;
+            border-color: color-mix(in srgb, var(--app-border) 80%, #60a5fa 20%) !important;
+            box-shadow:
+                0 18px 45px rgba(2, 8, 23, .18),
+                inset 0 1px 0 rgba(255,255,255,.04);
+        }
+        body[data-theme="light"] #app-content .bg-app-card {
+            background:
+                linear-gradient(155deg, #ffffff 0%, #f8fbff 100%) !important;
+            border-color: #d6e0ee !important;
+            box-shadow:
+                0 14px 34px rgba(15, 23, 42, .08),
+                inset 0 1px 0 rgba(255,255,255,.7);
+        }
+
+        #app-content .rounded-xl { border-radius: 16px !important; }
+        #app-content .rounded-2xl { border-radius: 22px !important; }
+
+        /* Typography hierarchy */
+        #app-content h1 {
+            letter-spacing: -.02em;
+            font-weight: 800;
+        }
+        #app-content h2, #app-content h3 {
+            letter-spacing: -.01em;
+        }
+
+        /* Inputs/selects/textarea */
+        #app-content input,
+        #app-content select,
+        #app-content textarea {
+            background: color-mix(in srgb, var(--app-lighter) 86%, transparent) !important;
+            border-color: color-mix(in srgb, var(--app-border) 76%, #475569 24%) !important;
+            border-radius: 12px !important;
+        }
+        body[data-theme="light"] #app-content input,
+        body[data-theme="light"] #app-content select,
+        body[data-theme="light"] #app-content textarea {
+            background: #f8fbff !important;
+            border-color: #d6e0ee !important;
+        }
+        #app-content input:focus,
+        #app-content select:focus,
+        #app-content textarea:focus {
+            border-color: color-mix(in srgb, var(--app-primary) 55%, var(--app-border)) !important;
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--app-primary) 14%, transparent) !important;
+        }
+
+        /* Buttons */
+        #app-content button {
+            border-radius: 12px;
+            font-weight: 700;
+        }
+        #app-content .bg-blue-600,
+        #app-content .bg-emerald-600,
+        #app-content .bg-purple-600,
+        #app-content .bg-cyan-600 {
+            box-shadow: 0 10px 24px rgba(2,8,23,.22);
+        }
+
+        /* Section strips / sticky headers */
+        #app-content .sticky.top-0 {
+            border-radius: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        /* Modal modernization */
+        .modal-overlay {
+            background: rgba(4,10,20,.72);
+            backdrop-filter: blur(10px);
+        }
+        .modal-sheet {
+            background: color-mix(in srgb, var(--app-card) 96%, transparent) !important;
+            border-color: color-mix(in srgb, var(--app-border) 80%, #60a5fa 20%) !important;
+            border-radius: 20px 20px 0 0;
+        }
+        .modal-panel {
+            background: color-mix(in srgb, var(--app-card) 97%, transparent) !important;
+            border-color: color-mix(in srgb, var(--app-border) 80%, #60a5fa 20%) !important;
+            border-radius: 18px;
+        }
+
+        /* Navigation shell */
+        #bottom-nav {
+            bottom: 10px;
+            width: calc(100% - 18px);
+            border: 1px solid color-mix(in srgb, var(--app-border) 78%, #3b82f6 22%) !important;
+            border-radius: 18px !important;
+            height: 74px;
+            padding: 10px 18px 14px;
+            background: color-mix(in srgb, var(--app-card) 92%, transparent) !important;
+            backdrop-filter: blur(14px);
+        }
+        .nav-item {
+            font-size: 11px !important;
+            font-weight: 600;
+            letter-spacing: .01em;
+        }
+        .nav-item i { font-size: 18px !important; }
+        .nav-item.active::before {
+            top: -10px;
+            width: 42px;
+            height: 4px;
+            border-radius: 999px;
+        }
+
+        /* FAB placement to match floating nav */
+        #fab-root { bottom: 18px !important; }
+        #fab-menu { bottom: 88px !important; }
+
+        /* Light mode polish */
+        body[data-theme="light"] #bottom-nav {
+            background: color-mix(in srgb, #ffffff 94%, transparent) !important;
+            border-color: #cfd9e8 !important;
+            box-shadow: 0 16px 30px rgba(15,23,42,.08);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-app-text bg-app-bg">
@@ -204,14 +480,28 @@
     <main id="app-content" class="flex-1 overflow-y-auto pb-28 relative w-full"></main>
 
     <div id="fab-root" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 md:bottom-8">
-        <button onclick="toggleFabMenu()" class="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl fab-shadow transition-transform active:scale-95">
-            <i class="fa-solid fa-bars transition-transform duration-300" id="fab-icon"></i>
+        <button onclick="toggleFabMenu()" class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl transition-transform active:scale-95">
+            <i class="fa-solid fa-plus transition-transform duration-300" id="fab-icon"></i>
         </button>
     </div>
 
-    <div id="fab-menu" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-40 hidden flex-col items-center md:bottom-28 w-[92vw] max-w-md">
-        <div class="w-full bg-app-card/95 backdrop-blur border border-app-border rounded-2xl p-2 shadow-2xl">
-            <p class="text-[11px] uppercase tracking-wider text-app-muted px-3 pt-2 pb-1 font-semibold">Quick Menu</p>
+    <div id="fab-menu" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-40 hidden flex-col items-center md:bottom-28 w-[94vw] max-w-md">
+        <div class="w-full backdrop-blur rounded-2xl p-2.5">
+            <p class="text-[11px] uppercase tracking-wider text-app-muted px-3 pt-2 pb-1 font-semibold">Workflow</p>
+
+            <div class="grid grid-cols-3 gap-2 mb-2 px-1">
+                <button onclick="router.navigate('leads'); toggleFabMenu()" class="bg-app-card border border-app-border rounded-xl p-2 text-center">
+                    <i class="fa-solid fa-funnel-dollar text-violet-400"></i><p class="text-[10px] mt-1 font-semibold">Lead</p>
+                </button>
+                <button onclick="router.navigate('contacts'); toggleFabMenu()" class="bg-app-card border border-app-border rounded-xl p-2 text-center">
+                    <i class="fa-regular fa-user text-cyan-400"></i><p class="text-[10px] mt-1 font-semibold">Contact</p>
+                </button>
+                <button onclick="router.navigate('new-event'); toggleFabMenu()" class="bg-app-card border border-app-border rounded-xl p-2 text-center">
+                    <i class="fa-regular fa-calendar-plus text-blue-400"></i><p class="text-[10px] mt-1 font-semibold">Job</p>
+                </button>
+            </div>
+
+            <p class="text-[11px] uppercase tracking-wider text-app-muted px-3 pt-1 pb-1 font-semibold">Tools</p>
 
             <button onclick="router.navigate('new-event'); toggleFabMenu()" class="w-full text-left bg-app-card border border-app-border text-white px-3 py-2.5 rounded-xl flex items-center gap-3 hover:bg-app-lighter transition-all mb-2">
                 <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center"><i class="fa-regular fa-calendar-plus"></i></div>
@@ -255,9 +545,14 @@
                 <i class="fa-solid fa-chevron-right text-app-muted text-xs"></i>
             </button>
 
-            <button onclick="router.navigate('optimiser'); toggleFabMenu()" class="w-full text-left bg-app-card border border-app-border text-white px-3 py-2.5 rounded-xl flex items-center gap-3 hover:bg-app-lighter transition-all">
+                        <button onclick="router.navigate('optimiser'); toggleFabMenu()" class="w-full text-left bg-app-card border border-app-border text-white px-3 py-2.5 rounded-xl flex items-center gap-3 hover:bg-app-lighter transition-all">
                 <div class="w-8 h-8 rounded-lg bg-pink-500/20 text-pink-400 flex items-center justify-center"><i class="fa-solid fa-ruler-combined"></i></div>
                 <div class="flex-1"><span class="block text-sm font-semibold">Optimiser</span><span class="text-[10px] text-app-muted">Material Planning</span></div>
+                <i class="fa-solid fa-chevron-right text-app-muted text-xs"></i>
+            </button>
+            <button onclick="router.navigate('leads'); toggleFabMenu()" class="w-full text-left bg-app-card border border-app-border text-white px-3 py-2.5 rounded-xl flex items-center gap-3 hover:bg-app-lighter transition-all mt-2">
+                <div class="w-8 h-8 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center"><i class="fa-solid fa-funnel-dollar"></i></div>
+                <div class="flex-1"><span class="block text-sm font-semibold">Leads &amp; Enquiries</span><span class="text-[10px] text-app-muted">Track &amp; Convert</span></div>
                 <i class="fa-solid fa-chevron-right text-app-muted text-xs"></i>
             </button>
         </div>
@@ -265,7 +560,7 @@
     
     <div id="fab-overlay" onclick="toggleFabMenu()" class="fixed inset-0 bg-black/80 z-30 hidden backdrop-blur-sm transition-opacity"></div>
 
-    <nav id="bottom-nav" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full md:max-w-3xl bg-app-card/95 backdrop-blur border-t border-app-border h-[80px] pb-4 px-6 flex justify-between items-center z-20 md:rounded-t-2xl">
+    <nav id="bottom-nav" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full md:max-w-3xl bg-app-card/95 backdrop-blur border-t border-app-border h-[82px] pb-4 px-6 flex justify-between items-center z-20 md:rounded-t-2xl">
         <button onclick="router.navigate('today')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs active" data-target="today">
             <i class="fa-solid fa-table-cells-large text-xl mb-0.5"></i> Dashboard
         </button>
@@ -276,8 +571,8 @@
         <button onclick="router.navigate('projects')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs" data-target="projects">
             <i class="fa-solid fa-folder-open text-xl mb-0.5"></i> Projects
         </button>
-        <button onclick="router.navigate('contacts')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs" data-target="contacts">
-            <i class="fa-regular fa-user text-xl mb-0.5"></i> Contacts
+        <button onclick="router.navigate('leads')" class="nav-item flex flex-col items-center gap-1 text-app-muted text-xs" data-target="leads">
+            <i class="fa-solid fa-funnel-dollar text-xl mb-0.5"></i> Leads
         </button>
     </nav>
 
@@ -383,8 +678,8 @@
 
         // --- DATA MANAGEMENT ---
         const DB = {
-            jobs: [], contacts: [], user: { name: "Richard", email: "richarddyatess@gmail.com" },
-            settings: { monthlyGoal: 5000, templates: [...DEFAULT_TEMPLATES], contactTags: [...DEFAULT_CONTACT_TAGS], branding: { companyName: 'ELITE WRAPZ', logoUrl: '', accentColor: '#3b82f6' } },
+            jobs: [], contacts: [], leads: [], user: { name: "Richard", email: "richarddyatess@gmail.com" },
+            settings: { monthlyGoal: 5000, templates: [...DEFAULT_TEMPLATES], contactTags: [...DEFAULT_CONTACT_TAGS], branding: { companyName: 'ELITE WRAPZ', logoUrl: '', accentColor: '#3b82f6' }, ui: { theme: 'dark', monthlyGoalEnabled: true, dashboardWidgets: ['hero','stats','nextup','quickactions','materials','actionqueue','upcoming'], quickActions: ['new-event','calendar','projects','contacts','leads','insights'] } },
             updatedAt: null,
             secureNotes: "Gateway ID: 54 02 69 02 45 51\nEORI: GB045268219000",
             vaultEntries: [
@@ -444,6 +739,7 @@
                     n.signOffAcknowledged = typeof n.signOffAcknowledged === 'boolean' ? n.signOffAcknowledged : !!(n.clientSignature || n.externalSignOff);
                     n.signOffStatement = (n.signOffStatement || (n.signOffAcknowledged ? 'I confirm I am happy with the final install and approve completion of the work.' : '')).toString();
                     n.profit = n.profit !== undefined && n.profit !== null && n.profit !== '' ? parseFloat(n.profit) || 0 : '';
+                    n.purchaseOrders = Array.isArray(n.purchaseOrders) ? n.purchaseOrders : [];
                     const key = n.id || `${(n.jobNumber || '').toLowerCase()}|${n.date || ''}|${(n.title || '').toLowerCase()}`;
                     if (!jobsByKey.has(key)) jobsByKey.set(key, n);
                 });
@@ -486,6 +782,13 @@
                         logoUrl: '',
                         accentColor: '#3b82f6',
                         ...((this.settings && this.settings.branding) || {})
+                    },
+                    ui: {
+                        theme: 'dark',
+                        monthlyGoalEnabled: true,
+                        dashboardWidgets: ['hero','stats','nextup','quickactions','materials','actionqueue','upcoming'],
+                        quickActions: ['new-event','calendar','projects','contacts','leads','insights'],
+                        ...((this.settings && this.settings.ui) || {})
                     }
                 };
                 this.updatedAt = sU || new Date().toISOString();
@@ -499,6 +802,8 @@
                         return { id: this.makeId('vault'), label, value, kind: 'Code' };
                     }).filter(x => x.value);
                 }
+                const sL = localStorage.getItem('app_leads');
+                if (sL) { try { this.leads = JSON.parse(sL); } catch (_) {} }
                 this.migrateData();
             },
             save(options = {}) {
@@ -510,6 +815,7 @@
                 localStorage.setItem('app_vault_entries', JSON.stringify(this.vaultEntries));
                 localStorage.setItem('app_settings', JSON.stringify(this.settings));
                 localStorage.setItem('app_updated_at', this.updatedAt || new Date().toISOString());
+                localStorage.setItem('app_leads', JSON.stringify(this.leads || []));
                 if (!options.skipCloud) CloudSync.queuePush();
             },
             getSerializableData() {
@@ -517,6 +823,7 @@
                 return {
                     jobs: this.jobs,
                     contacts: this.contacts,
+                    leads: this.leads || [],
                     secureNotes: this.secureNotes,
                     vaultEntries: this.vaultEntries,
                     settings: this.settings,
@@ -544,6 +851,13 @@
                         logoUrl: '',
                         accentColor: '#3b82f6',
                         ...((((payload.settings || this.settings || {}).branding) || {}))
+                    },
+                    ui: {
+                        theme: 'dark',
+                        monthlyGoalEnabled: true,
+                        dashboardWidgets: ['hero','stats','nextup','quickactions','materials','actionqueue','upcoming'],
+                        quickActions: ['new-event','calendar','projects','contacts','leads','insights'],
+                        ...((((payload.settings || this.settings || {}).ui) || {}))
                     }
                 };
                 this.migrateData();
@@ -586,6 +900,13 @@
                 }));
                 this.settings.templates = mergeWithDefaultTemplates((this.settings || {}).templates);
                 this.settings.contactTags = normalizeContactTags((this.settings || {}).contactTags);
+                this.settings.ui = {
+                    theme: 'dark',
+                    monthlyGoalEnabled: true,
+                    dashboardWidgets: ['hero','stats','nextup','quickactions','materials','actionqueue','upcoming'],
+                    quickActions: ['new-event','calendar','projects','contacts','leads','insights'],
+                    ...((this.settings || {}).ui || {})
+                };
                 this.normalizeAndDeduplicateData();
             },
             addVaultEntry(entry) {
@@ -645,10 +966,13 @@
                     signedOffAt: null,
                     signedOffName: null,
                     signOffAcknowledged: false,
-                    signOffStatement: ''
+                    signOffStatement: '',
+                    purchaseOrders: []
                 });
+                const createdJob = this.jobs[this.jobs.length - 1];
                 this.save();
                 showToast('Event created successfully');
+                return createdJob;
             },
             deleteJob(id) {
                 const j = this.jobs.find(x => x.id === id);
@@ -873,6 +1197,81 @@
                     this.save();
                     showToast('External sign-off recorded');
                 }
+            },
+            saveVerbalSignOff(id) {
+                const j = this.jobs.find(x => x.id === id);
+                if (j) {
+                    j.externalSignOff = true;
+                    j.clientSignature = null;
+                    j.externalSignOffProof = null;
+                    j.signedOffAt = new Date().toISOString();
+                    j.signedOffName = 'Customer (Verbally Happy)';
+                    j.signOffAcknowledged = true;
+                    j.signOffStatement = 'Customer verbally confirmed satisfaction with the completed installation. No formal signature required.';
+                    j.status = 'Completed';
+                    this.save();
+                    showToast('Sign-off recorded — customer verbally happy');
+                }
+            },
+            addLead(lead) {
+                const newLead = {
+                    id: this.makeId('lead'),
+                    name: (lead.name || '').trim(),
+                    phone: (lead.phone || '').trim(),
+                    email: (lead.email || '').trim(),
+                    address: (lead.address || '').trim(),
+                    description: (lead.description || '').trim(),
+                    source: (lead.source || '').trim(),
+                    status: lead.status || 'New',
+                    notes: (lead.notes || '').trim(),
+                    createdAt: new Date().toISOString(),
+                    convertedJobId: null
+                };
+                if (!Array.isArray(this.leads)) this.leads = [];
+                this.leads.push(newLead);
+                this.save();
+                showToast('Lead added');
+                return newLead;
+            },
+            updateLead(id, fields) {
+                const lead = (this.leads || []).find(l => l.id === id);
+                if (lead) { Object.assign(lead, fields); this.save(); }
+            },
+            deleteLead(id) {
+                this.leads = (this.leads || []).filter(l => l.id !== id);
+                this.save();
+                showToast('Lead deleted');
+            },
+            addPurchaseOrder(jobId, po) {
+                const job = this.jobs.find(j => j.id === jobId);
+                if (!job) return;
+                if (!Array.isArray(job.purchaseOrders)) job.purchaseOrders = [];
+                job.purchaseOrders.push({
+                    id: this.makeId('po'),
+                    item: (po.item || '').trim(),
+                    supplier: (po.supplier || '').trim(),
+                    qty: po.qty || '',
+                    unit: (po.unit || '').trim(),
+                    cost: po.cost || '',
+                    ordered: false,
+                    received: false,
+                    notes: (po.notes || '').trim()
+                });
+                this.save();
+                showToast('Purchase order item added');
+            },
+            updatePurchaseOrder(jobId, poId, fields) {
+                const job = this.jobs.find(j => j.id === jobId);
+                if (!job) return;
+                const po = (job.purchaseOrders || []).find(p => p.id === poId);
+                if (po) { Object.assign(po, fields); this.save(); }
+            },
+            deletePurchaseOrder(jobId, poId) {
+                const job = this.jobs.find(j => j.id === jobId);
+                if (!job) return;
+                job.purchaseOrders = (job.purchaseOrders || []).filter(p => p.id !== poId);
+                this.save();
+                showToast('Purchase order item removed');
             },
             
             getJobsForDate(d) { 
@@ -1186,6 +1585,9 @@
                     if (params.calendarYear !== undefined) this.params.calendarYear = params.calendarYear;
                     if (params.calendarViewMode !== undefined) this.params.calendarViewMode = params.calendarViewMode;
                 } else {
+                    if (route === 'new-event' && !params.date && this.currentRoute === 'calendar' && this.params.date) {
+                        params.date = this.params.date;
+                    }
                     this.params = params;
                 }
 
@@ -1215,7 +1617,10 @@
                     'edit-event': () => this.renderEditEvent(c, this.params.id),
                     'job-details': () => this.renderJobDetails(c, this.params.id),
                     'contact-details': () => this.renderContactDetails(c, this.params.id),
-                    'projects': () => this.renderProjects(c)
+                    'projects': () => this.renderProjects(c),
+                    'leads': () => this.renderLeads(c),
+                    'new-lead': () => this.renderNewLead(c),
+                    'lead-details': () => this.renderLeadDetails(c, this.params.id)
                 };
                 if(route === 'new-job') views['new-event']();
                 else if(views[route]) views[route]();
@@ -1226,6 +1631,8 @@
                 const upcomingJobs = DB.getUpcomingJobs();
                 const materialReminders = DB.getMaterialReminders(5);
                 const actionQueue = DB.getActionQueue(6);
+                const stats = DB.getDashboardStats();
+                const ui = getUiSettings();
                 const nextJob = upcomingJobs.find(j => j.type !== 'Holiday') || null;
                 const syncLabel = !CloudSync.user ? 'Local only' : (CloudSync.syncInProgress ? 'Syncing…' : (CloudSync.pendingChanges ? 'Pending upload' : 'Cloud synced'));
                 const syncClass = !CloudSync.user ? 'text-amber-300 border-amber-500/30 bg-amber-500/10' : (CloudSync.syncInProgress ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' : (CloudSync.pendingChanges ? 'text-orange-300 border-orange-500/30 bg-orange-500/10' : 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10'));
@@ -1248,11 +1655,45 @@
                     jobListHtml += '</div>';
                 }
 
+                const widgetOrder = (Array.isArray(ui.dashboardWidgets) && ui.dashboardWidgets.length)
+                    ? ui.dashboardWidgets
+                    : ['hero','stats','nextup','quickactions','materials','actionqueue','upcoming'];
+
+                const quickCatalog = [
+                    { id: 'new-event', label: 'New Event', sub: 'Book job/consult', icon: 'fa-calendar-plus', color: 'bg-blue-500/20 text-blue-300', action: `router.navigate('new-event')` },
+                    { id: 'calendar', label: 'Calendar', sub: 'Date planner', icon: 'fa-calendar-days', color: 'bg-indigo-500/20 text-indigo-300', action: `router.navigate('calendar')` },
+                    { id: 'projects', label: 'Projects', sub: 'Active work', icon: 'fa-briefcase', color: 'bg-emerald-500/20 text-emerald-300', action: `router.navigate('projects')` },
+                    { id: 'contacts', label: 'Contacts', sub: 'Client directory', icon: 'fa-address-book', color: 'bg-cyan-500/20 text-cyan-300', action: `router.navigate('contacts')` },
+                    { id: 'leads', label: 'Leads', sub: 'Enquiries', icon: 'fa-funnel-dollar', color: 'bg-violet-500/20 text-violet-300', action: `router.navigate('leads')` },
+                    { id: 'insights', label: 'Insights', sub: 'Performance', icon: 'fa-chart-line', color: 'bg-amber-500/20 text-amber-300', action: `router.navigate('insights')` }
+                ];
+                const quickById = new Map(quickCatalog.map(q => [q.id, q]));
+                const activeQuickActions = (Array.isArray(ui.quickActions) && ui.quickActions.length ? ui.quickActions : ['new-event','calendar','projects','contacts','leads','insights'])
+                    .map(id => quickById.get(id))
+                    .filter(Boolean);
+                const quickActionsHtml = activeQuickActions.length ? `<div class="grid grid-cols-2 md:grid-cols-3 gap-3">${activeQuickActions.map(q => `<button onclick="${q.action}" class="text-left bg-app-card border border-app-border rounded-2xl p-3 hover:bg-app-lighter transition-all"><div class="w-9 h-9 rounded-xl ${q.color} flex items-center justify-center mb-2"><i class="fa-solid ${q.icon}"></i></div><p class="text-sm font-semibold text-white">${q.label}</p><p class="text-[11px] text-app-muted">${q.sub}</p></button>`).join('')}</div>` : `<p class="text-xs text-app-muted">No quick actions selected.</p>`;
+                const goal = Math.max(1, parseFloat((DB.settings || {}).monthlyGoal) || 5000);
+                const goalPct = Math.min(100, Math.round(((stats.monthRevenue || 0) / goal) * 100));
+
+                const widgets = {
+                    hero: () => ui.monthlyGoalEnabled === false ? '' : `<div class="goal-hero-card border rounded-2xl p-5 mb-4"><div class="flex items-center justify-between mb-3"><div><p class="text-xs uppercase tracking-wider text-blue-300 font-semibold">Revenue Goal</p><h2 class="text-xl font-bold text-white">£${(stats.monthRevenue||0).toLocaleString()} <span class="text-sm text-app-muted font-medium">/ £${goal.toLocaleString()}</span></h2></div><div class="flex items-center gap-2"><button onclick="editMonthlyGoal()" class="w-8 h-8 rounded-lg bg-app-card border border-app-border text-app-muted hover:text-white" title="Edit Goal"><i class="fa-solid fa-pen"></i></button><button onclick="toggleMonthlyGoalVisibility()" class="w-8 h-8 rounded-lg bg-app-card border border-app-border text-app-muted hover:text-white" title="Hide Goal"><i class="fa-solid fa-eye-slash"></i></button><span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-blue-500/35 text-blue-300 bg-blue-500/10">${goalPct}%</span></div></div><div class="h-2 rounded-full bg-app-lighter border border-app-border overflow-hidden mb-2"><div class="h-full bg-gradient-to-r from-blue-500 to-cyan-400 goal-bar" style="width:${goalPct}%"></div></div><p class="text-xs text-app-muted">${stats.monthCount||0} job${(stats.monthCount||0)===1?'':'s'} this month · ${(stats.completedCount||0)} completed</p></div>`,
+                    stats: () => `<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"><div class="stat-card-revenue bg-app-card border border-app-border rounded-xl p-3"><p class="text-[11px] text-app-muted mb-1">Total Revenue</p><p class="text-lg font-bold text-emerald-300">£${(stats.totalRevenueAll||0).toLocaleString()}</p></div><div class="stat-card-outstanding bg-app-card border border-app-border rounded-xl p-3"><p class="text-[11px] text-app-muted mb-1">Outstanding</p><p class="text-lg font-bold text-amber-300">£${Math.max(0,stats.outstanding||0).toLocaleString()}</p></div><div class="stat-card-jobs bg-app-card border border-app-border rounded-xl p-3"><p class="text-[11px] text-app-muted mb-1">Total Jobs</p><p class="text-lg font-bold text-blue-300">${(stats.totalJobsAll||0).toLocaleString()}</p></div><div class="stat-card-completion bg-app-card border border-app-border rounded-xl p-3"><p class="text-[11px] text-app-muted mb-1">Total Profit</p><p class="text-lg font-bold text-purple-300">£${(stats.totalProfitAll||0).toLocaleString()}</p></div></div>`,
+                    nextup: () => `<div class="bg-app-card rounded-2xl p-5 mb-5 border border-app-border"><div class="flex items-center justify-between mb-3"><h3 class="text-xs font-bold text-app-muted uppercase tracking-wider">Next Up</h3><button onclick="router.navigate('insights')" class="text-[11px] text-cyan-300 font-semibold">View Insights</button></div>${nextJob ? `${nextJob.type === 'Holiday' ? `<h2 class="text-2xl font-bold text-white mb-1">${nextJob.title}</h2><p class="text-orange-400 font-bold mb-4">${nextJob.durationDays} Days</p><p class="text-app-muted text-sm mb-4"><i class="fa-regular fa-calendar mr-1"></i> ${Utils.getFriendlyDate(nextJob.date)}</p>` : `<div class="flex items-center gap-2 mb-1"><span class="text-lg text-blue-400">${Utils.getEventTypeIcon(nextJob.type || 'Job')}</span><h2 class="text-2xl font-bold text-white line-clamp-1 font-mono">${nextJob.jobNumber || nextJob.title}</h2></div><p class="text-app-muted text-xs mb-2">${nextJob.jobNumber ? `${nextJob.contact || 'Client TBD'} · ${nextJob.title}` : (nextJob.contact || nextJob.service || (nextJob.type || 'Event'))}</p><p class="text-app-muted text-sm mb-4"><i class="fa-regular fa-clock mr-1"></i> ${nextJob.date === Utils.formatDate(new Date()) ? 'Today' : Utils.getFriendlyDate(nextJob.date)} at ${nextJob.time}</p><div class="flex gap-3"><button onclick="router.navigate('job-details', {id: '${nextJob.id}'})" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-blue-600/30">View Details</button>${nextJob.address ? `<a href="https://waze.com/ul?q=${encodeURIComponent(nextJob.address)}&navigate=yes" target="_blank" class="bg-app-lighter hover:bg-app-card text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors border border-app-border">Navigate</a>` : ''}</div>`}` : `<p class="text-white text-lg font-medium">You're all caught up!</p><p class="text-app-muted text-sm mb-4">No upcoming events scheduled.</p><button onclick="router.navigate('new-event')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold">Schedule Event</button>`}</div>`,
+                    quickactions: () => `<div class="mb-5"><div class="flex items-center justify-between mb-2"><h2 class="font-semibold text-lg text-white"><i class="fa-solid fa-bolt mr-2 text-blue-400"></i>Quick Actions</h2></div>${quickActionsHtml}</div>`,
+                    materials: () => materialReminders.length ? `<div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-5"><div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i><h3 class="text-sm font-semibold text-amber-300">Material Reminders (next 5 days)</h3></div><div class="space-y-2">${materialReminders.map(j => `<button onclick="router.navigate('job-details', {id:'${j.id}'})" class="w-full text-left bg-app-card border border-app-border rounded-lg p-3 hover:bg-app-lighter transition-colors"><p class="text-sm font-semibold text-white truncate">${j.title}</p><p class="text-xs text-app-muted">${Utils.getFriendlyDate(j.date)}${j.jobNumber ? ` · ${j.jobNumber}` : ''}</p><p class="text-xs mt-1 ${!j.materialsOrdered ? 'text-amber-300' : 'text-app-muted'}">${!j.materialsOrdered ? '• Materials not ordered' : '• Ordered'}</p></button>`).join('')}</div></div>` : '',
+                    actionqueue: () => actionQueue.length ? `<div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-5"><div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-bolt text-red-400"></i><h3 class="text-sm font-semibold text-red-300">Action Queue</h3></div><div class="space-y-2">${actionQueue.map(a => `<button onclick="router.navigate('job-details', {id:'${a.id}'})" class="w-full text-left bg-app-card border border-app-border rounded-lg p-3 hover:bg-app-lighter transition-colors"><p class="text-xs ${a.level==='high'?'text-red-300':'text-amber-300'} font-semibold">${a.level==='high'?'High Priority':'Action Needed'}</p><p class="text-sm text-white">${a.text}</p></button>`).join('')}</div></div>` : '',
+                    upcoming: () => `<div><div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-calendar-days text-blue-500"></i><h2 class="font-semibold text-lg">Upcoming Schedule</h2></div><div class="relative mb-3"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted text-sm"></i><input type="text" id="upcoming-search" oninput="filterUpcoming(this.value)" placeholder="Search by job number (EW-...) or title..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-blue-500"></div><div id="upcoming-list">${jobListHtml}</div></div>`
+                };
+
+                const renderedWidgets = widgetOrder.map(w => (widgets[w] ? widgets[w]() : '')).join('');
+
                 container.innerHTML = `
                     <div class="px-4 md:px-6 pt-10 md:pt-12 pb-6">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-2xl font-bold text-white">${Utils.getGreeting()}, ${DB.user.name}</h1>
                             <div class="flex items-center gap-2">
+                                <button onclick="toggleTheme()" class="w-10 h-10 rounded-full bg-app-card border border-app-border text-app-muted hover:text-white hover:border-indigo-500/50 transition-colors flex items-center justify-center" title="Toggle Theme"><i class="fa-solid ${ui.theme === 'light' ? 'fa-moon' : 'fa-sun'}"></i></button>
+                                <button onclick="openDashboardCustomizer()" class="w-10 h-10 rounded-full bg-app-card border border-app-border text-app-muted hover:text-white hover:border-violet-500/50 transition-colors flex items-center justify-center" title="Customize Dashboard"><i class="fa-solid fa-sliders"></i></button>
                                 <button onclick="router.navigate('insights')" class="w-10 h-10 rounded-full bg-app-card border border-app-border text-app-muted hover:text-white hover:border-cyan-500/50 transition-colors flex items-center justify-center" title="Insights">
                                     <i class="fa-solid fa-chart-line"></i>
                                 </button>
@@ -1263,53 +1704,8 @@
                             </div>
                         </div>
                         <div class="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs ${syncClass}"><i class="fa-solid fa-cloud"></i>${syncLabel}</div>
-                        <div class="bg-app-card rounded-2xl p-5 mb-6 border border-app-border">
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-xs font-bold text-app-muted uppercase tracking-wider">Next Up</h3>
-                                <button onclick="router.navigate('insights')" class="text-[11px] text-cyan-300 font-semibold">View Insights</button>
-                            </div>
-                            ${nextJob ? `
-                                ${nextJob.type === 'Holiday' ? `
-                                    <h2 class="text-2xl font-bold text-white mb-1">${nextJob.title}</h2>
-                                    <p class="text-orange-400 font-bold mb-4">${nextJob.durationDays} Days</p>
-                                    <p class="text-app-muted text-sm mb-4"><i class="fa-regular fa-calendar mr-1"></i> ${Utils.getFriendlyDate(nextJob.date)}</p>
-                                ` : `
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="text-lg text-blue-400">${Utils.getEventTypeIcon(nextJob.type || 'Job')}</span>
-                                        <h2 class="text-2xl font-bold text-white line-clamp-1 font-mono">${nextJob.jobNumber || nextJob.title}</h2>
-                                    </div>
-                                    <p class="text-app-muted text-xs mb-2">${nextJob.jobNumber ? `${nextJob.contact || 'Client TBD'} · ${nextJob.title}` : (nextJob.contact || nextJob.service || (nextJob.type || 'Event'))}</p>
-                                    <p class="text-app-muted text-sm mb-4"><i class="fa-regular fa-clock mr-1"></i> ${nextJob.date === Utils.formatDate(new Date()) ? 'Today' : Utils.getFriendlyDate(nextJob.date)} at ${nextJob.time}</p>
-                                    <div class="flex gap-3">
-                                        <button onclick="router.navigate('job-details', {id: '${nextJob.id}'})" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-lg shadow-blue-600/30">View Details</button>
-                                        ${nextJob.address ? `<a href="https://waze.com/ul?q=${encodeURIComponent(nextJob.address)}&navigate=yes" target="_blank" class="bg-app-lighter hover:bg-app-card text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors border border-app-border">Navigate</a>` : ''}
-                                    </div>
-                                `}
-                            ` : `
-                                <p class="text-white text-lg font-medium">You're all caught up!</p>
-                                <p class="text-app-muted text-sm mb-4">No upcoming events scheduled.</p>
-                                <button onclick="router.navigate('new-event')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold">Schedule Event</button>
-                            `}
-                        </div>
-
-                        ${materialReminders.length ? `<div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
-                            <div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i><h3 class="text-sm font-semibold text-amber-300">Material Reminders (next 5 days)</h3></div>
-                            <div class="space-y-2">
-                                ${materialReminders.map(j => `<button onclick="router.navigate('job-details', {id:'${j.id}'})" class="w-full text-left bg-app-card border border-app-border rounded-lg p-3 hover:bg-app-lighter transition-colors">
-                                    <p class="text-sm font-semibold text-white truncate">${j.title}</p>
-                                    <p class="text-xs text-app-muted">${Utils.getFriendlyDate(j.date)}${j.jobNumber ? ` · ${j.jobNumber}` : ''}</p>
-                                    <p class="text-xs mt-1 ${!j.materialsOrdered ? 'text-amber-300' : 'text-app-muted'}">
-                                        ${!j.materialsOrdered ? '• Materials not ordered' : '• Ordered'}
-                                    </p>
-                                </button>`).join('')}
-                            </div>
-                        </div>` : ''}
-
-                        ${actionQueue.length ? `<div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6"><div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-bolt text-red-400"></i><h3 class="text-sm font-semibold text-red-300">Action Queue</h3></div><div class="space-y-2">${actionQueue.map(a => `<button onclick="router.navigate('job-details', {id:'${a.id}'})" class="w-full text-left bg-app-card border border-app-border rounded-lg p-3 hover:bg-app-lighter transition-colors"><p class="text-xs ${a.level==='high'?'text-red-300':'text-amber-300'} font-semibold">${a.level==='high'?'High Priority':'Action Needed'}</p><p class="text-sm text-white">${a.text}</p></button>`).join('')}</div></div>` : ''}
-
-                        <div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-calendar-days text-blue-500"></i><h2 class="font-semibold text-lg">Upcoming Schedule</h2></div>
-                        <div class="relative mb-3"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted text-sm"></i><input type="text" id="upcoming-search" oninput="filterUpcoming(this.value)" placeholder="Search by job number (EW-...) or title..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-blue-500"></div>
-                        <div id="upcoming-list">${jobListHtml}</div>
+                        ${renderWorkflowRail('dashboard')}
+                        ${renderedWidgets}
                     </div>`;
             },
 
@@ -1363,12 +1759,20 @@
                         const dayEvents = DB.getJobsForDate(iso);
                         const hasJobs = dayEvents.length > 0;
                         let highlight = '';
+                        let dotsHtml = '';
                         if (hasJobs) {
-                            if (dayEvents.some(e => e.type === 'Consultation')) highlight = 'ring-1 ring-purple-500/45 bg-purple-500/10';
-                            else if (dayEvents.some(e => e.type === 'Holiday')) highlight = 'ring-1 ring-orange-500/45 bg-orange-500/10';
-                            else highlight = 'ring-1 ring-blue-500/45 bg-blue-500/10';
+                            const evtTypes = [...new Set(dayEvents.map(e => e.type || 'Job'))];
+                            const dotColorMap = { 'Job': 'bg-blue-400', 'Consultation': 'bg-purple-400', 'Holiday': 'bg-orange-400', 'Personal': 'bg-slate-400' };
+                            if (evtTypes.length === 1) {
+                                if (evtTypes[0] === 'Consultation') highlight = 'ring-1 ring-purple-500/45 bg-purple-500/10';
+                                else if (evtTypes[0] === 'Holiday') highlight = 'ring-1 ring-orange-500/45 bg-orange-500/10';
+                                else highlight = 'ring-1 ring-blue-500/45 bg-blue-500/10';
+                            } else {
+                                highlight = 'ring-1 ring-app-border bg-app-lighter/50';
+                            }
+                            dotsHtml = `<div class="flex gap-0.5 mt-1">${evtTypes.slice(0,4).map(t=>`<div class="w-1.5 h-1.5 rounded-full ${dotColorMap[t]||'bg-blue-400'}"></div>`).join('')}</div>`;
                         }
-                        daysHtml += `<div onclick="router.navigate('calendar', {date: '${iso}', calendarMonth: ${m}, calendarYear: ${y}, calendarViewMode: 'strip'})" id="day-${iso}" class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-20 rounded-2xl border ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-105' : isToday ? 'bg-blue-500/10 border-blue-500/40 text-blue-300' : 'bg-app-card border-app-border text-app-muted'} ${highlight} transition-all cursor-pointer snap-center relative"><span class="text-xs font-medium mb-1 opacity-80">${d.toLocaleDateString('en-GB', {weekday:'short'})}</span><span class="text-xl font-bold">${i}</span></div>`;
+                        daysHtml += `<div onclick="router.navigate('calendar', {date: '${iso}', calendarMonth: ${m}, calendarYear: ${y}, calendarViewMode: 'strip'})" id="day-${iso}" class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-20 rounded-2xl border ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-105' : isToday ? 'bg-blue-500/10 border-blue-500/40 text-blue-300' : 'bg-app-card border-app-border text-app-muted'} ${highlight} transition-all cursor-pointer snap-center relative"><span class="text-xs font-medium mb-1 opacity-80">${d.toLocaleDateString('en-GB', {weekday:'short'})}</span><span class="text-xl font-bold">${i}</span>${dotsHtml}</div>`;
                     }
                     calendarViewHtml = `<div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-5 px-5 snap-x scroll-smooth">${daysHtml}</div>`;
                 } else {
@@ -1385,12 +1789,20 @@
                         const dayEvents = DB.getJobsForDate(iso);
                         const hasJobs = dayEvents.length > 0;
                         let highlight = '';
-                        if (hasJobs) {
-                            if (dayEvents.some(e => e.type === 'Consultation')) highlight = isSelected ? '' : 'bg-purple-500/20 border border-purple-500/35 text-purple-200';
-                            else if (dayEvents.some(e => e.type === 'Holiday')) highlight = isSelected ? '' : 'bg-orange-500/20 border border-orange-500/35 text-orange-200';
-                            else highlight = isSelected ? '' : 'bg-blue-500/20 border border-blue-500/35 text-blue-200';
+                        let gridDots = '';
+                        if (hasJobs && !isSelected) {
+                            const gTypes = [...new Set(dayEvents.map(e => e.type || 'Job'))];
+                            const gColors = { 'Job': 'bg-blue-400', 'Consultation': 'bg-purple-400', 'Holiday': 'bg-orange-400', 'Personal': 'bg-slate-400' };
+                            if (gTypes.length === 1) {
+                                if (gTypes[0] === 'Consultation') highlight = 'bg-purple-500/20 border border-purple-500/35 text-purple-200';
+                                else if (gTypes[0] === 'Holiday') highlight = 'bg-orange-500/20 border border-orange-500/35 text-orange-200';
+                                else highlight = 'bg-blue-500/20 border border-blue-500/35 text-blue-200';
+                            } else {
+                                highlight = 'bg-app-lighter border border-app-border';
+                                gridDots = `<div class="flex gap-0.5 mt-0.5">${gTypes.slice(0,3).map(t=>`<div class="w-1 h-1 rounded-full ${gColors[t]||'bg-blue-400'}"></div>`).join('')}</div>`;
+                            }
                         }
-                        gridCells += `<div onclick="router.navigate('calendar', {date: '${iso}', calendarMonth: ${m}, calendarYear: ${y}, calendarViewMode: 'grid'})" class="aspect-square flex flex-col items-center justify-center rounded-xl cursor-pointer transition-all active:scale-90 ${isSelected ? 'bg-blue-600 text-white shadow-lg' : isToday ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : 'text-app-muted hover:bg-app-lighter'} ${highlight}"><span class="text-sm font-semibold leading-none">${day}</span></div>`;
+                        gridCells += `<div onclick="router.navigate('calendar', {date: '${iso}', calendarMonth: ${m}, calendarYear: ${y}, calendarViewMode: 'grid'})" class="aspect-square flex flex-col items-center justify-center rounded-xl cursor-pointer transition-all active:scale-90 ${isSelected ? 'bg-blue-600 text-white shadow-lg' : isToday ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : 'text-app-muted hover:bg-app-lighter'} ${highlight}"><span class="text-sm font-semibold leading-none">${day}</span>${gridDots}</div>`;
                     }
                     calendarViewHtml = `<div class="grid grid-cols-7 gap-1 mb-2">${gridCells}</div>`;
                 }
@@ -1398,6 +1810,7 @@
                 const jobs = DB.getJobsForDate(selectedIso);
                 container.innerHTML = `
                     <div class="pt-12 px-5 pb-6">
+                        ${renderWorkflowRail('calendar')}
                         <div class="relative mb-4"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted"></i><input type="text" onkeyup="filterJobs(this.value)" placeholder="Search events..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-blue-500"></div>
                         <div id="calendar-view">
                             <div class="flex justify-between items-center mb-3 bg-app-card p-2 rounded-xl border border-app-border">
@@ -1428,6 +1841,7 @@
                 container.innerHTML = `
                     <div class="pt-12 px-5 pb-20">
                         <div class="flex justify-between items-center mb-4"><h1 class="text-2xl font-bold">Contacts</h1><button onclick="router.navigate('new-contact')" class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg"><i class="fa-solid fa-user-plus"></i></button></div>
+                        ${renderWorkflowRail('contacts')}
                         <div class="relative mb-3"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-app-muted"></i><input id="contacts-search" type="text" value="${Utils.escapeHtml(searchTerm)}" oninput="router.params.contactSearch=this.value; filterContacts(this.value)" placeholder="Search..." class="w-full bg-app-card border border-app-border rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-blue-500"></div>
                         <div class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
                             <button onclick="router.params.contactTagFilter='all'; router.renderContacts(document.getElementById('app-content'))" class="px-3 py-1.5 rounded-full text-[11px] font-semibold border ${activeTag==='all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">All</button>
@@ -1574,7 +1988,7 @@
                         </div>
                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Vinyl Codes & Locations</label><textarea name="vinylCodes" rows="2" placeholder="Codes and where applied..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Estimated Duration (Days)</label><input type="number" name="durationDays" id="j-duration-days-job" value="1" min="1" oninput="checkConflict()" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
-                        <div class="grid grid-cols-3 gap-3 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" id="inp-price" name="price" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" id="inp-deposit" name="deposit" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Profit (£)</label><input type="number" name="profit" placeholder="Optional" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
+                        <div class="grid grid-cols-3 gap-3 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" step="0.01" id="inp-price" name="price" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" step="0.01" id="inp-deposit" name="deposit" oninput="calcBalance()" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Profit (£)</label><input type="number" step="0.01" name="profit" placeholder="Optional" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
                         <div id="balance-display" class="hidden text-right text-xs font-bold text-red-400 mb-5">Balance: £0.00</div>
                         <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Service</label><select name="service" onchange="toggleKitchenWrapFields(this.value)" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option>Kitchen Wrap</option><option>Window Film</option><option>Other</option></select></div>
                         <div id="kitchen-wrap-fields" class="bg-app-lighter/40 border border-app-border rounded-xl p-3 mb-5">
@@ -1589,8 +2003,8 @@
                     </div>
 
                     <div id="contact-fields">
-                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Contact</label><select name="contactId" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option value="">Select...</option>${DB.contacts.map(c=>`<option value="${c.id}" ${this.params.contactId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></div>
-                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" placeholder="Location..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Contact</label><select name="contactId" onchange="prefillContactAddress(this)" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option value="">Select...</option>${[...DB.contacts].sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(c=>`<option value="${c.id}" ${this.params.contactId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></div>
+                        <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" id="new-event-address" placeholder="Location..." value="${this.params.prefillAddress||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
@@ -1692,7 +2106,7 @@
                             </div>
                             <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Vinyl Codes & Locations</label><textarea name="vinylCodes" rows="2" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">${job.vinylCodes||''}</textarea></div>
                             <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Estimated Duration (Days)</label><input type="number" name="durationDays" value="${job.durationDays||1}" min="1" oninput="checkConflict()" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
-                            <div class="grid grid-cols-3 gap-3 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" id="inp-price" name="price" oninput="calcBalance()" value="${job.price||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" id="inp-deposit" name="deposit" oninput="calcBalance()" value="${job.deposit||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Profit (£)</label><input type="number" name="profit" value="${job.profit ?? ''}" placeholder="Optional" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
+                            <div class="grid grid-cols-3 gap-3 mb-5"><div><label class="text-xs text-app-muted block mb-1">Price (£)</label><input type="number" step="0.01" id="inp-price" name="price" oninput="calcBalance()" value="${job.price||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Deposit (£)</label><input type="number" step="0.01" id="inp-deposit" name="deposit" oninput="calcBalance()" value="${job.deposit||''}" placeholder="0.00" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div><div><label class="text-xs text-app-muted block mb-1">Profit (£)</label><input type="number" step="0.01" name="profit" value="${job.profit ?? ''}" placeholder="Optional" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div></div>
                             <div id="balance-display" class="${job.price>0?'text-right text-xs font-bold text-red-400 mb-5':'hidden'}">Balance: £${((parseFloat(job.price)||0)-(parseFloat(job.deposit)||0)).toFixed(2)}</div>
                             <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Service</label><select name="service" onchange="toggleKitchenWrapFields(this.value)" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option ${job.service==='Kitchen Wrap'?'selected':''}>Kitchen Wrap</option><option ${job.service==='Window Film'?'selected':''}>Window Film</option><option ${job.service==='Other'?'selected':''}>Other</option></select></div>
                             <div id="kitchen-wrap-fields" class="bg-app-lighter/40 border border-app-border rounded-xl p-3 mb-5 ${job.service==='Window Film'||job.service==='Other'?'hidden':''}">
@@ -1706,8 +2120,8 @@
                             </div>
                         </div>
                         <div id="contact-fields" class="${job.type==='Holiday'||job.type==='Personal'?'hidden':''}">
-                            <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Contact</label><select name="contactId" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option value="">Select...</option>${DB.contacts.map(ct=>`<option value="${ct.id}" ${(job.contactId===ct.id || (!job.contactId && job.contact===ct.name))?'selected':''}>${ct.name}</option>`).join('')}</select></div>
-                            <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" value="${job.address||''}" placeholder="Location..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                            <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Contact</label><select name="contactId" onchange="prefillContactAddress(this)" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option value="">Select...</option>${[...DB.contacts].sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(ct=>`<option value="${ct.id}" ${(job.contactId===ct.id || (!job.contactId && job.contact===ct.name))?'selected':''}>${ct.name}</option>`).join('')}</select></div>
+                            <div class="mb-5"><label class="text-xs text-app-muted block mb-1">Address</label><input name="address" id="new-event-address" value="${job.address||''}" placeholder="Location..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div class="min-w-0"><label class="text-xs text-app-muted block mb-1">Date</label><input type="date" name="date" value="${job.date||''}" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white text-[16px] appearance-none leading-tight [color-scheme:dark]"></div>
@@ -1845,8 +2259,7 @@
                                 const sc = statusColors[j.status] || 'bg-app-lighter text-app-muted border-app-border';
                                 const isJob = isJobType(j);
                                 const payment = paymentState(j);
-                                return `<div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 active:scale-[0.99] transition-transform cursor-pointer relative">
-                                    ${(j.clientSignature || j.externalSignOff) ? '<span class="signed-off-ribbon">Signed Off</span>' : ''}
+                                return `<div onclick="router.navigate('job-details', {id:'${j.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 active:scale-[0.99] transition-transform cursor-pointer">
                                     <div class="flex justify-between items-start gap-3 mb-2">
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -1855,7 +2268,10 @@
                                             </div>
                                             <h3 class="font-semibold text-white truncate">${j.title}</h3>
                                         </div>
-                                        <span class="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${sc}">${j.status || 'Scheduled'}</span>
+                                        <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${sc}">${j.status || 'Scheduled'}</span>
+                                            ${(j.clientSignature || j.externalSignOff) ? '<span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">✓ Signed Off</span>' : ''}
+                                        </div>
                                     </div>
                                     <div class="grid grid-cols-2 gap-2 text-xs mb-2">
                                         <p class="text-app-muted truncate"><i class="fa-regular fa-calendar mr-1"></i>${Utils.getFriendlyDate(j.date)}</p>
@@ -1877,6 +2293,7 @@
                         <div class="flex-1"><h1 class="text-2xl font-bold">Projects</h1><p class="text-app-muted text-xs">Newest projects first</p></div>
                         <button onclick="generateAllProjectsPDF()" class="w-9 h-9 rounded-full bg-purple-600/20 text-purple-400 flex items-center justify-center active:scale-95 transition-transform" title="Export all as PDF"><i class="fa-solid fa-file-pdf"></i></button>
                     </div>
+                    ${renderWorkflowRail('projects')}
 
                     <div class="flex flex-wrap gap-2 mb-4 text-xs">
                         <span class="px-3 py-1.5 rounded-full border border-app-border bg-app-card text-white">${jobs.length} filtered</span>
@@ -1927,8 +2344,65 @@
                     <div class="space-y-1">${cardsHtml}</div>
                 </div>`;
             },
+            renderLeads(container) {
+                const leads = [...(DB.leads || [])].sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+                const statusColors = { 'New':'bg-blue-500/20 text-blue-300 border-blue-500/30','Warm':'bg-amber-500/20 text-amber-300 border-amber-500/30','Cold':'bg-slate-500/20 text-slate-300 border-slate-500/30','Successful':'bg-emerald-500/20 text-emerald-300 border-emerald-500/30','Lost':'bg-red-500/20 text-red-300 border-red-500/30' };
+                const counts = { New:0, Warm:0, Cold:0, Successful:0, Lost:0 };
+                leads.forEach(l => { if(counts[l.status]!==undefined) counts[l.status]++; });
+                container.innerHTML = `<div class="pt-12 px-5 pb-24 animate-fade-in">
+                    <div class="flex items-center gap-4 mb-4">
+                        <button onclick="router.navigate('today')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button>
+                        <div class="flex-1"><h1 class="text-2xl font-bold">Leads &amp; Enquiries</h1><p class="text-app-muted text-xs">${leads.length} total enquiries tracked</p></div>
+                        <button onclick="router.navigate('new-lead')" class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg active:scale-95"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    ${renderWorkflowRail('leads')}
+                    <div class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar text-xs">
+                        ${['New','Warm','Cold','Successful','Lost'].map(s=>`<span class="flex-shrink-0 px-2.5 py-1 rounded-full border ${statusColors[s]}">${s}: ${counts[s]}</span>`).join('')}
+                    </div>
+                    ${leads.length === 0 ? `<div class="border-2 border-dashed border-app-lighter rounded-xl p-10 flex flex-col items-center text-center"><i class="fa-solid fa-bullseye text-4xl text-app-muted mb-3"></i><p class="text-app-muted font-semibold mb-1">No leads yet</p><p class="text-app-muted text-xs mb-4">Track enquiries and convert successful ones into jobs</p><button onclick="router.navigate('new-lead')" class="px-6 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl">Add First Lead</button></div>` : `<div class="space-y-3">${leads.map(l=>`<div onclick="router.navigate('lead-details',{id:'${l.id}'})" class="bg-app-card border border-app-border rounded-xl p-4 cursor-pointer active:scale-[0.99] transition-transform"><div class="flex justify-between items-start mb-2"><div class="flex-1 min-w-0"><h3 class="font-semibold text-white truncate">${l.name||'Unknown'}</h3>${l.description?`<p class="text-xs text-app-muted truncate mt-0.5">${l.description}</p>`:''}</div><span class="ml-2 flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusColors[l.status]||statusColors['New']}">${l.status||'New'}</span></div><div class="flex items-center justify-between text-xs text-app-muted"><span>${l.phone||l.email||'No contact info'}</span><span>${new Date(l.createdAt||Date.now()).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span></div></div>`).join('')}</div>`}
+                </div>`;
+            },
+            renderNewLead(container) {
+                container.innerHTML = `<div class="pt-12 px-5 pb-24">
+                    <div class="flex items-center gap-4 mb-6"><button onclick="router.navigate('leads')" class="text-app-muted"><i class="fa-solid fa-arrow-left text-xl"></i></button><h1 class="text-xl font-bold">New Lead / Enquiry</h1></div>
+                    <form onsubmit="handleNewLead(event)" class="space-y-4">
+                        <div><label class="text-xs text-app-muted block mb-1">Name *</label><input name="name" required placeholder="Client name" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                        <div class="grid grid-cols-2 gap-3"><div><label class="text-xs text-app-muted block mb-1">Phone</label><input name="phone" type="tel" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none"></div><div><label class="text-xs text-app-muted block mb-1">Email</label><input name="email" type="email" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none"></div></div>
+                        <div><label class="text-xs text-app-muted block mb-1">Address / Location</label><input name="address" placeholder="Where is the potential job?" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></div>
+                        <div><label class="text-xs text-app-muted block mb-1">Enquiry Details</label><textarea name="description" rows="3" placeholder="What are they enquiring about? (e.g. kitchen wrap, vinyl colour, etc.)" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
+                        <div class="grid grid-cols-2 gap-3"><div><label class="text-xs text-app-muted block mb-1">Source</label><select name="source" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option value="">Select source...</option><option>Google</option><option>Facebook</option><option>Instagram</option><option>Referral</option><option>TikTok</option><option>Trustpilot</option><option>Website</option><option>Other</option></select></div><div><label class="text-xs text-app-muted block mb-1">Status</label><select name="status" class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white"><option value="New">New</option><option value="Warm">Warm</option><option value="Cold">Cold</option></select></div></div>
+                        <div><label class="text-xs text-app-muted block mb-1">Notes</label><textarea name="notes" rows="2" placeholder="Additional notes..." class="w-full bg-app-card border border-app-border rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"></textarea></div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg mt-4">Save Lead</button>
+                    </form></div>`;
+            },
+            renderLeadDetails(container, id) {
+                const lead = (DB.leads || []).find(l => l.id === id);
+                if (!lead) { this.navigate('leads'); return; }
+                const statusColors = { 'New':'bg-blue-500/20 text-blue-300 border-blue-500/30','Warm':'bg-amber-500/20 text-amber-300 border-amber-500/30','Cold':'bg-slate-500/20 text-slate-300 border-slate-500/30','Successful':'bg-emerald-500/20 text-emerald-300 border-emerald-500/30','Lost':'bg-red-500/20 text-red-300 border-red-500/30' };
+                const statuses = ['New','Warm','Cold','Successful','Lost'];
+                container.innerHTML = `<div class="pt-8 px-5 pb-32 animate-fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="router.navigate('leads')" class="text-app-muted flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <button onclick="if(confirm('Delete this lead?')){DB.deleteLead('${lead.id}');router.navigate('leads');}" class="w-8 h-8 rounded-full bg-red-600/20 text-red-400 flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <div class="flex items-center gap-4 mb-6"><div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">${Utils.getInitials(lead.name)}</div><div class="flex-1"><h1 class="text-xl font-bold">${lead.name}</h1><span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusColors[lead.status]||statusColors['New']}">${lead.status||'New'}</span></div></div>
+                    <div class="bg-app-card border border-app-border rounded-xl p-4 mb-4"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3">Update Status</h3><div class="flex flex-wrap gap-2">${statuses.map(s=>`<button onclick="DB.updateLead('${lead.id}',{status:'${s}'});router.renderLeadDetails(document.getElementById('app-content'),'${lead.id}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${lead.status===s?'bg-blue-600 border-blue-600 text-white':'bg-app-lighter border-app-border text-app-muted'}">${s}</button>`).join('')}</div></div>
+                    ${lead.status==='Successful'?`<div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 mb-4"><p class="text-emerald-300 font-semibold text-sm mb-2"><i class="fa-solid fa-trophy mr-1"></i> Successful Lead!</p><p class="text-xs text-app-muted mb-3">Convert to a job — contact details will be pre-filled.</p><button onclick="convertLeadToJob('${lead.id}')" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm">Convert to Job <i class="fa-solid fa-arrow-right ml-1"></i></button></div>`:''}
+                    <div class="bg-app-card border border-app-border rounded-xl p-4 mb-4 space-y-3">
+                        ${lead.phone?`<div class="flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-phone"></i></div><span class="text-sm text-white">${lead.phone}</span></div><a href="tel:${lead.phone}" class="w-8 h-8 flex items-center justify-center text-blue-400"><i class="fa-solid fa-phone-arrow-up-right"></i></a></div>`:''}
+                        ${lead.email?`<div class="flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center"><i class="fa-solid fa-envelope"></i></div><span class="text-sm text-white truncate">${lead.email}</span></div><a href="mailto:${lead.email}" class="w-8 h-8 flex items-center justify-center text-purple-400"><i class="fa-solid fa-arrow-up-right-from-square"></i></a></div>`:''}
+                        ${lead.address?`<div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-location-dot"></i></div><span class="text-sm text-white">${lead.address}</span></div>`:''}
+                        ${lead.source?`<div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-share-nodes"></i></div><span class="text-sm text-white">Source: ${lead.source}</span></div>`:''}
+                    </div>
+                    ${lead.description?`<div class="bg-app-card border border-app-border rounded-xl p-4 mb-4"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-2">Enquiry Details</h3><p class="text-sm text-white whitespace-pre-wrap">${lead.description}</p></div>`:''}
+                    ${lead.notes?`<div class="bg-app-card border border-app-border rounded-xl p-4 mb-4"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-2">Notes</h3><p class="text-sm text-white whitespace-pre-wrap">${lead.notes}</p></div>`:''}
+                    <p class="text-xs text-app-muted text-center mt-4">Added ${new Date(lead.createdAt||Date.now()).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</p>
+                </div>`;
+            },
+
             renderMore(container) { container.innerHTML = `
                 <div class="pt-12 px-5 pb-20 animate-fade-in"><div class="mb-6"><h1 class="text-2xl font-bold">More</h1><p class="text-app-muted text-sm">${DB.user.email}</p></div>
+                ${renderWorkflowRail('more')}
                 <div class="bg-app-card border border-app-border rounded-xl overflow-hidden mb-6"><button onclick="router.navigate('secure-login')" class="w-full p-4 flex items-center justify-between text-white hover:bg-app-lighter"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-lg"><i class="fa-solid fa-lock"></i></div><div><h4 class="font-medium">Secure Vault</h4><p class="text-xs text-app-muted">Important IDs & Codes</p></div></div><i class="fa-solid fa-chevron-right text-app-muted"></i></button></div>
                 <div class="bg-app-card border border-app-border rounded-xl overflow-hidden mb-6"><button onclick="router.navigate('templates')" class="w-full p-4 flex items-center justify-between text-white hover:bg-app-lighter"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg"><i class="fa-regular fa-message"></i></div><div><h4 class="font-medium">Message Templates</h4><p class="text-xs text-app-muted">Email / WhatsApp copy presets</p></div></div><i class="fa-solid fa-chevron-right text-app-muted"></i></button></div>
                 <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><div class="flex items-center justify-between mb-2"><h4 class="font-medium text-white">Cloud Sync</h4><span class="text-[10px] px-2 py-1 rounded-full ${CloudSync.user ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${CloudSync.user ? 'Connected' : 'Offline'}</span></div><p class="text-xs text-app-muted mb-3">${CloudSync.user ? `Auto-sync on open/focus is enabled · ${CloudSync.lastSyncStatus}${CloudSync.lastSyncedAt ? ` · ${new Date(CloudSync.lastSyncedAt).toLocaleString('en-GB')}` : ''}` : 'Optional: sync data across devices with Firebase.'}</p>${CloudSync.user ? `<p class="text-xs text-app-muted mb-3">Signed in as <span class="text-white">${CloudSync.user.email}</span></p><div class="grid grid-cols-3 gap-2"><button onclick="cloudSyncNow()" class="bg-cyan-600/20 border border-cyan-600/30 text-cyan-300 py-2.5 rounded-lg text-xs font-semibold">Pull Cloud</button><button onclick="cloudUploadNow()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Upload Local</button><button onclick="cloudSignOut()" class="bg-red-600/20 border border-red-600/30 text-red-300 py-2.5 rounded-lg text-xs font-semibold">Sign Out</button></div>` : `<div class="grid grid-cols-2 gap-2"><button onclick="cloudLoginPrompt()" class="bg-blue-600/20 border border-blue-600/30 text-blue-300 py-2.5 rounded-lg text-xs font-semibold">Log In</button><button onclick="cloudSignupPrompt()" class="bg-emerald-600/20 border border-emerald-600/30 text-emerald-300 py-2.5 rounded-lg text-xs font-semibold">Create Account</button></div>`}</div>
@@ -2049,6 +2523,9 @@
                 const balance = (parseFloat(job.price)||0) - (parseFloat(job.deposit)||0);
                 const isJob = !job.type || job.type === 'Job';
                 const isHoliday = job.type === 'Holiday';
+                const isConsultation = job.type === 'Consultation';
+                const hasConsultationPassed = isConsultation && !!job.date && job.date < Utils.formatDate(new Date());
+                const canArchiveConsultation = hasConsultationPassed && job.status !== 'Completed' && job.status !== 'Cancelled';
                 const contactData = DB.contacts.find(c => c.id === job.contactId) || DB.contacts.find(c => c.name === job.contact);
                 const signedOff = !!job.clientSignature || !!job.externalSignOff;
                 const hasSignature = !!job.clientSignature;
@@ -2119,7 +2596,7 @@
                         
                         ${isJob ? `<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"><button onclick="generateInvoice('${id}')" class="bg-emerald-600/10 border border-emerald-600/30 text-emerald-500 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-invoice"></i> Copy Invoice</button><button onclick="generateJobPDF('${id}')" class="bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button><button onclick="router.navigate('templates', { jobId: '${id}', contactId: '${job.contactId || ''}' })" class="bg-cyan-600/10 border border-cyan-600/30 text-cyan-300 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-regular fa-message"></i> Template</button><button onclick="openOptimiserForJob('${id}')" class="bg-pink-600/10 border border-pink-600/30 text-pink-300 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-ruler-combined"></i> Optimiser</button></div>` : isHoliday ? '' : `<div class="mb-6"><button onclick="generateJobPDF('${id}')" class="w-full bg-purple-600/10 border border-purple-600/30 text-purple-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Export PDF</button></div>`}
                         
-                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold">Update Status</h3>${signedOff ? `<div class="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2 inline-flex items-center gap-2"><i class="fa-solid fa-lock"></i> Completed (locked after sign-off)</div>` : `<div class="flex gap-2 justify-between">${['Scheduled','Completed','Cancelled'].map(s => `<button onclick="DB.updateJobStatus('${id}', '${s}'); router.renderJobDetails(document.getElementById('app-content'), '${id}')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium border ${job.status===s ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-lighter border-app-border text-app-muted'}">${s}</button>`).join('')}</div>`}</div>` : ''}
+                        ${!isHoliday ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold">Update Status</h3>${signedOff ? `<div class="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2 inline-flex items-center gap-2"><i class="fa-solid fa-lock"></i> Completed (locked after sign-off)</div>` : `<div class="flex gap-2 justify-between">${['Scheduled','Completed','Cancelled'].map(s => `<button onclick="DB.updateJobStatus('${id}', '${s}'); router.renderJobDetails(document.getElementById('app-content'), '${id}')" class="flex-1 px-2 py-2 rounded-lg text-xs font-medium border ${job.status===s ? 'bg-blue-600 border-blue-600 text-white' : 'bg-app-lighter border-app-border text-app-muted'}">${s}</button>`).join('')}</div>`}${canArchiveConsultation ? `<div class="mt-3 bg-purple-500/10 border border-purple-500/30 rounded-lg p-3"><p class="text-xs text-purple-200 mb-2">This consultation has passed. You can archive it and mark complete.</p><button onclick="archiveConsultation('${id}')" class="w-full bg-purple-600/20 border border-purple-500/40 text-purple-300 py-2.5 rounded-lg text-xs font-bold"><i class="fa-solid fa-box-archive mr-1"></i> Archive Consultation</button></div>` : ''}</div>` : ''}
 
                         ${!isHoliday && job.contact ? `<div class="bg-app-card border border-app-border rounded-xl p-4 mb-6 flex items-center gap-3 ${contactData ? 'cursor-pointer active:scale-95 transition-transform' : ''}" ${contactData ? `onclick="router.navigate('contact-details', {id: '${contactData.id}'})"` : ''}><div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${Utils.getInitials(job.contact)}</div><div class="flex-1 min-w-0"><p class="text-sm font-semibold text-white truncate">${job.contact}</p><p class="text-xs text-app-muted">${contactData ? (contactData.company || 'Private Client') : 'Private Client'}</p></div>${contactData ? '<i class="fa-solid fa-chevron-right text-app-muted"></i>' : ''}</div>` : ''}
 
@@ -2139,11 +2616,11 @@
                             ${!job.jobDescription && !job.vinylCodes && !job.vinylBrand && !job.vinylFinish && !job.vinylColour && !job.vinylEdgeDetail && !job.worktopLengthMetres && !job.cupboardDoorCount && !job.drawerCount && !job.irregularFronts ? '<p class="text-sm text-app-muted italic">No details added.</p>' : ''}
                         </div>
                         <div class="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-emerald-500 uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-boxes-stacked"></i> Materials</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Ordered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsOrdered')" ${job.materialsOrdered ? 'checked' : ''} class="custom-checkbox-green"></div><div class="flex items-center justify-between"><span class="text-sm text-emerald-100">Delivered</span><input type="checkbox" onchange="DB.toggleJobField('${id}', 'materialsDelivered')" ${job.materialsDelivered ? 'checked' : ''} class="custom-checkbox-green"></div></div></div>
-                        <div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-file-contract"></i> Payments &amp; Admin</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-white">Deposit Paid (£${parseFloat(job.deposit).toFixed(2)})</span><input type="checkbox" onchange="togglePaymentStatus('${id}','depositPaid',this.checked)" ${job.depositPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-app-muted block mb-1">Deposit Paid Date</label><input type="date" value="${job.depositPaidDate||''}" onchange="DB.updateJobFields('${id}', { depositPaidDate: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><div><label class="text-[11px] text-app-muted block mb-1">Deposit Method</label><select onchange="DB.updateJobFields('${id}', { depositPaidMethod: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white"><option value="" ${!job.depositPaidMethod?'selected':''}>Select</option><option ${job.depositPaidMethod==='Paylink'?'selected':''}>Paylink</option><option ${job.depositPaidMethod==='Bank Transfer'?'selected':''}>Bank Transfer</option><option ${job.depositPaidMethod==='Cash'?'selected':''}>Cash</option><option ${job.depositPaidMethod==='Card'?'selected':''}>Card</option><option ${job.depositPaidMethod==='Finance'?'selected':''}>Finance</option><option ${job.depositPaidMethod==='Other'?'selected':''}>Other</option></select></div></div><div class="flex items-center justify-between"><span class="text-sm text-white">Paid in Full</span><input type="checkbox" onchange="togglePaymentStatus('${id}','fullPaymentPaid',this.checked)" ${job.fullPaymentPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-app-muted block mb-1">Paid in Full Date</label><input type="date" value="${job.fullPaymentPaidDate||''}" onchange="DB.updateJobFields('${id}', { fullPaymentPaidDate: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><div><label class="text-[11px] text-app-muted block mb-1">Paid in Full Method</label><select onchange="DB.updateJobFields('${id}', { fullPaymentPaidMethod: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white"><option value="" ${!job.fullPaymentPaidMethod?'selected':''}>Select</option><option ${job.fullPaymentPaidMethod==='Paylink'?'selected':''}>Paylink</option><option ${job.fullPaymentPaidMethod==='Bank Transfer'?'selected':''}>Bank Transfer</option><option ${job.fullPaymentPaidMethod==='Cash'?'selected':''}>Cash</option><option ${job.fullPaymentPaidMethod==='Card'?'selected':''}>Card</option><option ${job.fullPaymentPaidMethod==='Finance'?'selected':''}>Finance</option><option ${job.fullPaymentPaidMethod==='Other'?'selected':''}>Other</option></select></div></div><div class="pt-2 border-t border-app-border/60"><label class="flex items-center justify-between mb-2"><span class="text-sm text-white">Payment Plan</span><input type="checkbox" onchange="DB.updateJobFields('${id}', { paymentPlanEnabled: this.checked })" ${job.paymentPlanEnabled ? 'checked' : ''} class="custom-checkbox"></label><textarea rows="2" placeholder="Plan details: instalments, due dates, terms..." onchange="DB.updateJobFields('${id}', { paymentPlanDetails: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white">${job.paymentPlanDetails||''}</textarea></div><div class="flex items-center justify-between"><span class="text-sm text-white">Agreement Signed</span><div class="flex gap-4 items-center"><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementSigned')" ${job.agreementSigned ? 'checked' : ''} class="custom-checkbox"> Signed</label><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementNA')" ${job.agreementNA ? 'checked' : ''} class="custom-checkbox"> N/A</label></div></div></div></div>
+                        <div class="bg-amber-900/10 border border-amber-500/20 rounded-xl p-4 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="text-xs text-amber-400 uppercase tracking-wider font-semibold"><i class="fa-solid fa-cart-shopping mr-1"></i> Purchase Orders &middot; ${job.jobNumber || 'EW-'}</h3>${canEditCore ? `<button onclick="openAddPurchaseOrder('${id}')" class="text-xs text-amber-400 font-bold">+ Add Item</button>` : ''}</div>${(job.purchaseOrders || []).length === 0 ? '<p class="text-xs text-app-muted italic">No purchase orders yet. Add vinyl, materials or tools needed for this job.</p>' : `<div class="space-y-2">${(job.purchaseOrders || []).map(po => `<div class="bg-app-card border border-app-border rounded-lg p-3"><div class="flex items-center justify-between mb-1"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full ${po.ordered && po.received ? 'bg-emerald-400' : po.ordered ? 'bg-amber-400' : 'bg-slate-500'}"></span><p class="text-sm font-semibold text-white">${po.item || 'Item'}</p></div>${canEditCore ? `<button onclick="deletePO('${id}','${po.id}')" class="text-red-400 text-xs px-1"><i class="fa-solid fa-trash"></i></button>` : ''}</div><div class="flex flex-wrap gap-3 text-[11px] text-app-muted mb-2">${po.qty ? `<span>Qty: ${po.qty}${po.unit ? ' '+po.unit : ''}</span>` : ''} ${po.supplier ? `<span>From: ${po.supplier}</span>` : ''} ${po.cost ? `<span class="text-amber-300">&#xa3;${po.cost}</span>` : ''}</div><div class="flex items-center gap-4"><label class="flex items-center gap-1.5 text-xs text-white cursor-pointer"><input type="checkbox" onchange="DB.updatePurchaseOrder('${id}','${po.id}',{ordered:this.checked})" ${po.ordered?'checked':''} class="custom-checkbox"> Ordered</label><label class="flex items-center gap-1.5 text-xs text-white cursor-pointer"><input type="checkbox" onchange="DB.updatePurchaseOrder('${id}','${po.id}',{received:this.checked})" ${po.received?'checked':''} class="custom-checkbox"> Received</label></div>${po.notes ? `<p class="text-xs text-app-muted mt-1">${po.notes}</p>` : ''}</div>`).join('')}</div>`}</div><div class="bg-app-card border border-app-border rounded-xl p-4 mb-6"><h3 class="text-xs text-app-muted uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-file-contract"></i> Payments &amp; Admin</h3><div class="space-y-3"><div class="flex items-center justify-between"><span class="text-sm text-white">Deposit Paid (£${parseFloat(job.deposit).toFixed(2)})</span><input type="checkbox" onchange="togglePaymentStatus('${id}','depositPaid',this.checked)" ${job.depositPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-app-muted block mb-1">Deposit Paid Date</label><input type="date" value="${job.depositPaidDate||''}" onchange="DB.updateJobFields('${id}', { depositPaidDate: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><div><label class="text-[11px] text-app-muted block mb-1">Deposit Method</label><select onchange="DB.updateJobFields('${id}', { depositPaidMethod: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white"><option value="" ${!job.depositPaidMethod?'selected':''}>Select</option><option ${job.depositPaidMethod==='Paylink'?'selected':''}>Paylink</option><option ${job.depositPaidMethod==='Bank Transfer'?'selected':''}>Bank Transfer</option><option ${job.depositPaidMethod==='Cash'?'selected':''}>Cash</option><option ${job.depositPaidMethod==='Card'?'selected':''}>Card</option><option ${job.depositPaidMethod==='Finance'?'selected':''}>Finance</option><option ${job.depositPaidMethod==='Other'?'selected':''}>Other</option></select></div></div><div class="flex items-center justify-between"><span class="text-sm text-white">Paid in Full</span><input type="checkbox" onchange="togglePaymentStatus('${id}','fullPaymentPaid',this.checked)" ${job.fullPaymentPaid ? 'checked' : ''} class="custom-checkbox"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[11px] text-app-muted block mb-1">Paid in Full Date</label><input type="date" value="${job.fullPaymentPaidDate||''}" onchange="DB.updateJobFields('${id}', { fullPaymentPaidDate: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]"></div><div><label class="text-[11px] text-app-muted block mb-1">Paid in Full Method</label><select onchange="DB.updateJobFields('${id}', { fullPaymentPaidMethod: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white"><option value="" ${!job.fullPaymentPaidMethod?'selected':''}>Select</option><option ${job.fullPaymentPaidMethod==='Paylink'?'selected':''}>Paylink</option><option ${job.fullPaymentPaidMethod==='Bank Transfer'?'selected':''}>Bank Transfer</option><option ${job.fullPaymentPaidMethod==='Cash'?'selected':''}>Cash</option><option ${job.fullPaymentPaidMethod==='Card'?'selected':''}>Card</option><option ${job.fullPaymentPaidMethod==='Finance'?'selected':''}>Finance</option><option ${job.fullPaymentPaidMethod==='Other'?'selected':''}>Other</option></select></div></div><div class="pt-2 border-t border-app-border/60"><label class="flex items-center justify-between mb-2"><span class="text-sm text-white">Payment Plan</span><input type="checkbox" onchange="DB.updateJobFields('${id}', { paymentPlanEnabled: this.checked })" ${job.paymentPlanEnabled ? 'checked' : ''} class="custom-checkbox"></label><textarea rows="2" placeholder="Plan details: instalments, due dates, terms..." onchange="DB.updateJobFields('${id}', { paymentPlanDetails: this.value })" class="w-full bg-app-lighter border border-app-border rounded-lg p-2 text-xs text-white">${job.paymentPlanDetails||''}</textarea></div><div class="flex items-center justify-between"><span class="text-sm text-white">Agreement Signed</span><div class="flex gap-4 items-center"><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementSigned')" ${job.agreementSigned ? 'checked' : ''} class="custom-checkbox"> Signed</label><label class="flex items-center gap-2 text-xs text-app-muted"><input type="checkbox" onchange="DB.toggleJobField('${id}', 'agreementNA')" ${job.agreementNA ? 'checked' : ''} class="custom-checkbox"> N/A</label></div></div></div></div>
 
                         <div class="bg-app-card border ${signedOff ? 'border-emerald-500/40' : 'border-app-border'} rounded-xl p-4 mb-6">
                             <h3 class="text-xs ${signedOff ? 'text-emerald-500' : 'text-app-muted'} uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-pen-nib mr-1"></i>Client Sign-Off</h3>
-                            ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-3"><div class="flex items-center gap-3 mb-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Job Complete — Client Signed Off</p><p class="text-xs text-app-muted">Signed by <strong class="text-white">${job.signedOffName}</strong> on ${signedOffDate}</p></div></div>${hasSignature ? `<div class="bg-white rounded-xl p-2 mb-2"><img src="${job.clientSignature}" class="w-full object-contain" style="max-height:120px;"></div>` : `<p class="text-xs text-app-muted mb-2">Signed off externally.</p>`}${job.externalSignOffProof?.data ? `<div class="bg-app-lighter border border-app-border rounded-xl p-2 mb-2"><p class="text-[11px] text-app-muted mb-1">External signature proof file</p>${(job.externalSignOffProof.type || '').startsWith('image/') ? `<img src="${job.externalSignOffProof.data}" class="w-full object-contain rounded" style="max-height:120px;">` : `<a href="${job.externalSignOffProof.data}" download="${job.externalSignOffProof.name || 'signature-proof'}" class="text-xs text-blue-300 font-semibold">Download proof file (${job.externalSignOffProof.name || 'file'})</a>`}</div>` : ''}<p class="text-[11px] text-emerald-200">${job.signOffStatement || 'I confirm I am happy with the final install and approve completion of the work.'}</p></div>` : `<p class="text-sm text-app-muted italic mb-3">No client sign-off recorded yet.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><button onclick="openSignOffModal('${id}')" class="w-full bg-blue-600/10 border border-blue-600/30 text-blue-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-blue-600/20 transition-colors"><i class="fa-solid fa-signature"></i> Capture Client Signature</button><button onclick="markExternalSignOff('${id}')" class="w-full bg-emerald-600/10 border border-emerald-600/30 text-emerald-300 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-emerald-600/20 transition-colors"><i class="fa-solid fa-circle-check"></i> Upload External Signature Proof</button></div>`}
+                            ${signedOff ? `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-3"><div class="flex items-center gap-3 mb-3"><i class="fa-solid fa-circle-check text-emerald-500 text-xl flex-shrink-0"></i><div><p class="text-sm font-bold text-emerald-400">Job Complete — Client Signed Off</p><p class="text-xs text-app-muted">Signed by <strong class="text-white">${job.signedOffName}</strong> on ${signedOffDate}</p></div></div>${hasSignature ? `<div class="bg-white rounded-xl p-2 mb-2"><img src="${job.clientSignature}" class="w-full object-contain" style="max-height:120px;"></div>` : `<p class="text-xs text-app-muted mb-2">Signed off externally.</p>`}${job.externalSignOffProof?.data ? `<div class="bg-app-lighter border border-app-border rounded-xl p-2 mb-2"><p class="text-[11px] text-app-muted mb-1">External signature proof file</p>${(job.externalSignOffProof.type || '').startsWith('image/') ? `<img src="${job.externalSignOffProof.data}" class="w-full object-contain rounded" style="max-height:120px;">` : `<a href="${job.externalSignOffProof.data}" download="${job.externalSignOffProof.name || 'signature-proof'}" class="text-xs text-blue-300 font-semibold">Download proof file (${job.externalSignOffProof.name || 'file'})</a>`}</div>` : ''}<p class="text-[11px] text-emerald-200">${job.signOffStatement || 'I confirm I am happy with the final install and approve completion of the work.'}</p></div>` : `<p class="text-sm text-app-muted italic mb-3">No client sign-off recorded yet.</p><div class="space-y-2"><button onclick="openSignOffModal('${id}')" class="w-full bg-blue-600/10 border border-blue-600/30 text-blue-400 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-blue-600/20 transition-colors"><i class="fa-solid fa-signature"></i> Capture Client Signature</button><button onclick="markVerballyHappy('${id}')" class="w-full bg-emerald-600/10 border border-emerald-600/30 text-emerald-300 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:bg-emerald-600/20 transition-colors"><i class="fa-solid fa-comment-dots"></i> Customer Verbally Happy — No Sign-off Needed</button></div>`}
                         </div>` : ''}
                         
                         ${isJob ? `<div class="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4 mb-6"><h3 class="text-xs text-indigo-400 uppercase tracking-wider mb-3 font-semibold"><i class="fa-solid fa-bed"></i> Accommodation</h3><label class="flex items-center justify-between mb-3"><span class="text-sm text-indigo-100">Accommodation Needed</span><input type="checkbox" onchange="DB.updateJobFields('${id}', { accommodationNeeded: this.checked }); router.renderJobDetails(document.getElementById('app-content'), '${id}')" ${job.accommodationNeeded ? 'checked' : ''} class="custom-checkbox" ${canEditCore ? '' : 'disabled'}></label><form onsubmit="saveAccommodationInfo(event, '${id}')" class="space-y-2"><div class="grid grid-cols-2 gap-2"><input name="accomHotel" value="${job.accomHotel||''}" placeholder="Hotel name" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white" ${canEditCore ? '' : 'readonly'}><input name="accomRef" value="${job.accomRef||''}" placeholder="Booking ref" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white" ${canEditCore ? '' : 'readonly'}></div><input name="accomAddress" value="${job.accomAddress||''}" placeholder="Hotel address" class="w-full bg-app-card border border-app-border rounded-lg p-2 text-xs text-white" ${canEditCore ? '' : 'readonly'}><div class="grid grid-cols-2 gap-2"><input type="datetime-local" name="accomCheckIn" value="${job.accomCheckIn||''}" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]" ${canEditCore ? '' : 'disabled'}><input type="datetime-local" name="accomCheckOut" value="${job.accomCheckOut||''}" class="bg-app-card border border-app-border rounded-lg p-2 text-xs text-white [color-scheme:dark]" ${canEditCore ? '' : 'disabled'}></div><textarea name="accomNotes" rows="2" placeholder="Check-in details / parking / access notes" class="w-full bg-app-card border border-app-border rounded-lg p-2 text-xs text-white" ${canEditCore ? '' : 'readonly'}>${job.accomNotes||''}</textarea>${canEditCore ? '<button class="w-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 py-2 rounded-lg text-xs font-semibold">Save Accommodation Details</button>' : ''}</form><div class="mt-3"><div class="flex items-center justify-between mb-2"><p class="text-[11px] text-app-muted">Accommodation Screenshot</p>${canEditCore ? `<button onclick="document.getElementById('accom-upload').click()" class="text-xs text-blue-400 font-semibold">+ Add</button><input type="file" id="accom-upload" accept="image/*" class="hidden" onchange="handleAccommodationUpload(event, '${id}')">` : '<span class="text-[11px] text-app-muted">Locked after sign-off</span>'}</div>${job.accomScreenshot ? `<div class="bg-app-card border border-app-border rounded-lg p-2"><img src="${job.accomScreenshot.data}" class="w-full max-h-48 object-contain rounded cursor-pointer" onclick="openGenericLightbox('${job.accomScreenshot.data}', 'Accommodation Screenshot')"><div class="flex justify-between mt-2"><span class="text-[11px] text-app-muted truncate">${job.accomScreenshot.name || 'screenshot'}</span>${canEditCore ? `<button onclick="deleteAccommodationScreenshot('${id}')" class="text-[11px] text-red-400">Remove</button>` : ''}</div></div>` : '<p class="text-xs text-app-muted italic">No screenshot added.</p>'}</div></div>` : ''}
@@ -2777,10 +3254,19 @@
             d.tagIds = Array.from(new Set(fd.getAll('tagIds').map(x => String(x))));
             return d;
         }
+        function renderWorkflowRail(active = 'dashboard') {
+            const items = [
+                { id: 'leads', label: 'Leads', icon: 'fa-funnel-dollar', route: 'leads' },
+                { id: 'contacts', label: 'Contacts', icon: 'fa-user', route: 'contacts' },
+                { id: 'new-event', label: 'Book Job', icon: 'fa-calendar-plus', route: 'new-event' },
+                { id: 'projects', label: 'Projects', icon: 'fa-folder-open', route: 'projects' }
+            ];
+            return `<div class="workflow-rail mb-4 overflow-x-auto no-scrollbar"><div class="flex gap-2">${items.map(i => `<button onclick="router.navigate('${i.route}')" class="workflow-chip ${active===i.id?'is-active':''}"><i class="fa-solid ${i.icon}"></i>${i.label}</button>`).join('')}</div></div>`;
+        }
         function toggleFabMenu() {
             const m=document.getElementById('fab-menu'), o=document.getElementById('fab-overlay'), i=document.getElementById('fab-icon');
             m.classList.toggle('hidden'); m.classList.toggle('flex'); o.classList.toggle('hidden');
-            i.classList.toggle('fa-bars'); i.classList.toggle('fa-xmark'); i.classList.toggle('rotate-90');
+            i.classList.toggle('fa-plus'); i.classList.toggle('fa-xmark'); i.classList.toggle('rotate-45');
         }
         function toggleFormFields(type) {
             const jobF = document.getElementById('job-fields');
@@ -2815,7 +3301,7 @@
             delete d.holidayDurationDays;
             d.accommodationNeeded = e.target.accommodationNeeded ? e.target.accommodationNeeded.checked : false;
             applyJobNumber(d);
-            DB.addJob(d); router.navigate('today');
+            const _newJob = DB.addJob(d); showEventCreatedConfirmation(_newJob || d);
         }
         function handleEditJob(e, id) {
             e.preventDefault();
@@ -3714,6 +4200,252 @@
 
         function showToast(m) { const t=document.getElementById('toast'); document.getElementById('toast-msg').innerText=m; t.classList.remove('translate-y-[-150%]'); setTimeout(()=>t.classList.add('translate-y-[-150%]'), 3000); }
 
+        function archiveConsultation(id) {
+            const j = DB.getJobById(id);
+            if (!j) return;
+            if ((j.type || 'Job') !== 'Consultation') {
+                showToast('Archive is only available for consultations');
+                return;
+            }
+            const today = Utils.formatDate(new Date());
+            if (!j.date || j.date >= today) {
+                showToast('Consultation can be archived after it has passed');
+                return;
+            }
+            const ok = confirm('Archive this consultation and mark it complete?');
+            if (!ok) return;
+            DB.updateJobFields(id, {
+                status: 'Completed',
+                consultationArchived: true,
+                consultationArchivedAt: new Date().toISOString()
+            });
+            showToast('Consultation archived');
+            router.renderJobDetails(document.getElementById('app-content'), id);
+        }
+
+        function getDefaultUiSettings() {
+            return {
+                theme: 'dark',
+                monthlyGoalEnabled: true,
+                dashboardWidgets: ['hero','stats','nextup','quickactions','materials','actionqueue','upcoming'],
+                quickActions: ['new-event','calendar','projects','contacts','leads','insights']
+            };
+        }
+
+        function getUiSettings() {
+            const defaults = getDefaultUiSettings();
+            const raw = ((DB.settings || {}).ui || {});
+            const out = {
+                ...defaults,
+                ...raw,
+                monthlyGoalEnabled: raw.monthlyGoalEnabled !== false,
+                dashboardWidgets: Array.isArray(raw.dashboardWidgets) && raw.dashboardWidgets.length ? raw.dashboardWidgets : defaults.dashboardWidgets,
+                quickActions: Array.isArray(raw.quickActions) && raw.quickActions.length ? raw.quickActions : defaults.quickActions
+            };
+            return out;
+        }
+
+        function saveUiSettings(patch = {}, rerender = true) {
+            const next = { ...getUiSettings(), ...patch };
+            DB.settings = { ...(DB.settings || {}), ui: next };
+            DB.save();
+            if (rerender && router.currentRoute === 'today') router.renderToday(document.getElementById('app-content'));
+            return next;
+        }
+
+        function applyTheme(theme) {
+            const t = theme === 'light' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', t);
+        }
+
+        function toggleTheme() {
+            const current = getUiSettings().theme === 'light' ? 'light' : 'dark';
+            const next = current === 'light' ? 'dark' : 'light';
+            saveUiSettings({ theme: next }, false);
+            applyTheme(next);
+            if (router.currentRoute === 'today') router.renderToday(document.getElementById('app-content'));
+            if (router.currentRoute === 'more') router.renderMore(document.getElementById('app-content'));
+            showToast(next === 'light' ? 'Light theme enabled' : 'Dark theme enabled');
+        }
+
+        function openDashboardCustomizer() {
+            window.dashboardUiDraft = {
+                ...JSON.parse(JSON.stringify(getUiSettings())),
+                monthlyGoal: Math.max(1, parseFloat((DB.settings || {}).monthlyGoal) || 5000)
+            };
+            renderDashboardCustomizerModal();
+        }
+
+        function closeDashboardCustomizer() {
+            const m = document.getElementById('dashboard-customizer-modal');
+            if (m) m.remove();
+        }
+
+        function renderDashboardCustomizerModal() {
+            const draft = window.dashboardUiDraft || getUiSettings();
+            const widgetCatalog = [
+                { id: 'hero', label: 'Goal Progress' },
+                { id: 'stats', label: 'Stats Grid' },
+                { id: 'nextup', label: 'Next Up Card' },
+                { id: 'quickactions', label: 'Quick Actions' },
+                { id: 'materials', label: 'Material Reminders' },
+                { id: 'actionqueue', label: 'Action Queue' },
+                { id: 'upcoming', label: 'Upcoming Schedule' }
+            ];
+            const actionCatalog = [
+                { id: 'new-event', label: 'New Event' },
+                { id: 'calendar', label: 'Calendar' },
+                { id: 'projects', label: 'Projects' },
+                { id: 'contacts', label: 'Contacts' },
+                { id: 'leads', label: 'Leads' },
+                { id: 'insights', label: 'Insights' }
+            ];
+
+            let modal = document.getElementById('dashboard-customizer-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'dashboard-customizer-modal';
+                modal.className = 'modal-overlay-center';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML = `<div class="modal-panel">
+                <div class="p-4 border-b border-app-border flex items-center justify-between">
+                    <h3 class="text-base font-bold text-white">Customize Dashboard</h3>
+                    <button onclick="closeDashboardCustomizer()" class="w-8 h-8 rounded-full bg-app-lighter text-app-muted"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div class="bg-app-card border border-app-border rounded-xl p-3">
+                        <p class="text-xs text-app-muted uppercase tracking-wider mb-3">Monthly Goal</p>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 bg-app-lighter border border-app-border rounded-lg p-2.5 cursor-pointer">
+                                <input type="checkbox" class="custom-checkbox" ${(draft.monthlyGoalEnabled !== false) ? 'checked' : ''} onchange="setDraftMonthlyGoalEnabled(this.checked)">
+                                <span class="text-sm text-white">Show monthly goal widget</span>
+                            </label>
+                            <div class="flex items-center gap-2 bg-app-lighter border border-app-border rounded-lg p-2.5">
+                                <span class="text-xs text-app-muted">Goal £</span>
+                                <input type="number" min="1" step="1" value="${Math.max(1, parseFloat(draft.monthlyGoal || 5000) || 5000)}" onchange="setDraftMonthlyGoalValue(this.value)" class="flex-1 bg-app-card border border-app-border rounded-lg p-2 text-sm text-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-app-card border border-app-border rounded-xl p-3">
+                        <p class="text-xs text-app-muted uppercase tracking-wider mb-3">Widget Order & Visibility</p>
+                        <div class="space-y-2">
+                            ${widgetCatalog.map((w) => {
+                                const idx = (draft.dashboardWidgets || []).indexOf(w.id);
+                                const enabled = idx !== -1;
+                                return `<div class="flex items-center gap-2 bg-app-lighter border border-app-border rounded-lg p-2.5">
+                                    <input type="checkbox" class="custom-checkbox" ${enabled ? 'checked' : ''} onchange="toggleWidgetInDraft('${w.id}')">
+                                    <div class="flex-1"><p class="text-sm text-white">${w.label}</p></div>
+                                    <button onclick="moveWidgetDraft('${w.id}', -1)" class="w-8 h-8 rounded-lg bg-app-card border border-app-border text-app-muted ${!enabled || idx <= 0 ? 'opacity-30 pointer-events-none' : ''}"><i class="fa-solid fa-chevron-up"></i></button>
+                                    <button onclick="moveWidgetDraft('${w.id}', 1)" class="w-8 h-8 rounded-lg bg-app-card border border-app-border text-app-muted ${!enabled || idx === -1 || idx >= (draft.dashboardWidgets.length - 1) ? 'opacity-30 pointer-events-none' : ''}"><i class="fa-solid fa-chevron-down"></i></button>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <div class="bg-app-card border border-app-border rounded-xl p-3">
+                        <p class="text-xs text-app-muted uppercase tracking-wider mb-3">Quick Action Buttons</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${actionCatalog.map(a => {
+                                const on = (draft.quickActions || []).includes(a.id);
+                                return `<label class="flex items-center gap-2 bg-app-lighter border border-app-border rounded-lg p-2.5 cursor-pointer"><input type="checkbox" class="custom-checkbox" ${on ? 'checked' : ''} onchange="toggleQuickActionInDraft('${a.id}')"><span class="text-sm text-white">${a.label}</span></label>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-app-border grid grid-cols-2 gap-3">
+                    <button onclick="closeDashboardCustomizer()" class="py-2.5 rounded-xl border border-app-border text-app-muted font-semibold">Cancel</button>
+                    <button onclick="saveDashboardCustomizer()" class="py-2.5 rounded-xl bg-blue-600 text-white font-bold">Save Layout</button>
+                </div>
+            </div>`;
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeDashboardCustomizer(); }, { once: true });
+        }
+
+        function toggleWidgetInDraft(widgetId) {
+            if (!window.dashboardUiDraft) window.dashboardUiDraft = JSON.parse(JSON.stringify(getUiSettings()));
+            const list = Array.isArray(window.dashboardUiDraft.dashboardWidgets) ? window.dashboardUiDraft.dashboardWidgets : [];
+            const idx = list.indexOf(widgetId);
+            if (idx === -1) list.push(widgetId);
+            else list.splice(idx, 1);
+            window.dashboardUiDraft.dashboardWidgets = list;
+            renderDashboardCustomizerModal();
+        }
+
+        function moveWidgetDraft(widgetId, direction) {
+            if (!window.dashboardUiDraft) window.dashboardUiDraft = JSON.parse(JSON.stringify(getUiSettings()));
+            const list = Array.isArray(window.dashboardUiDraft.dashboardWidgets) ? window.dashboardUiDraft.dashboardWidgets : [];
+            const idx = list.indexOf(widgetId);
+            if (idx === -1) return;
+            const next = idx + direction;
+            if (next < 0 || next >= list.length) return;
+            [list[idx], list[next]] = [list[next], list[idx]];
+            window.dashboardUiDraft.dashboardWidgets = list;
+            renderDashboardCustomizerModal();
+        }
+
+        function toggleQuickActionInDraft(actionId) {
+            if (!window.dashboardUiDraft) window.dashboardUiDraft = JSON.parse(JSON.stringify(getUiSettings()));
+            const list = Array.isArray(window.dashboardUiDraft.quickActions) ? window.dashboardUiDraft.quickActions : [];
+            const idx = list.indexOf(actionId);
+            if (idx === -1) list.push(actionId);
+            else list.splice(idx, 1);
+            window.dashboardUiDraft.quickActions = list;
+            renderDashboardCustomizerModal();
+        }
+
+        function setDraftMonthlyGoalEnabled(enabled) {
+            if (!window.dashboardUiDraft) window.dashboardUiDraft = JSON.parse(JSON.stringify(getUiSettings()));
+            window.dashboardUiDraft.monthlyGoalEnabled = !!enabled;
+            renderDashboardCustomizerModal();
+        }
+
+        function setDraftMonthlyGoalValue(v) {
+            if (!window.dashboardUiDraft) window.dashboardUiDraft = JSON.parse(JSON.stringify(getUiSettings()));
+            const n = Math.max(1, parseFloat(v) || 5000);
+            window.dashboardUiDraft.monthlyGoal = n;
+        }
+
+        function editMonthlyGoal() {
+            const current = Math.max(1, parseFloat((DB.settings || {}).monthlyGoal) || 5000);
+            const input = prompt('Set monthly revenue goal (£):', String(current));
+            if (input === null) return;
+            const n = Math.max(1, parseFloat(input) || 0);
+            if (!n) { showToast('Invalid goal value'); return; }
+            DB.settings = { ...(DB.settings || {}), monthlyGoal: n };
+            DB.save();
+            if (router.currentRoute === 'today') router.renderToday(document.getElementById('app-content'));
+            showToast('Monthly goal updated');
+        }
+
+        function toggleMonthlyGoalVisibility() {
+            const ui = getUiSettings();
+            saveUiSettings({ monthlyGoalEnabled: !ui.monthlyGoalEnabled });
+            showToast(!ui.monthlyGoalEnabled ? 'Monthly goal shown' : 'Monthly goal hidden');
+        }
+
+        function saveDashboardCustomizer() {
+            const draft = window.dashboardUiDraft || getUiSettings();
+            const defaults = getDefaultUiSettings();
+            const widgets = (draft.dashboardWidgets && draft.dashboardWidgets.length) ? draft.dashboardWidgets : defaults.dashboardWidgets;
+            const actions = (draft.quickActions && draft.quickActions.length) ? draft.quickActions : defaults.quickActions;
+            const monthlyGoal = Math.max(1, parseFloat(draft.monthlyGoal) || parseFloat((DB.settings || {}).monthlyGoal) || 5000);
+            DB.settings = {
+                ...(DB.settings || {}),
+                monthlyGoal,
+                ui: {
+                    ...getUiSettings(),
+                    monthlyGoalEnabled: draft.monthlyGoalEnabled !== false,
+                    dashboardWidgets: widgets,
+                    quickActions: actions
+                }
+            };
+            DB.save();
+            if (router.currentRoute === 'today') router.renderToday(document.getElementById('app-content'));
+            closeDashboardCustomizer();
+            showToast('Dashboard settings updated');
+        }
+
         function addVaultEntry(e) {
             e.preventDefault();
             const d = Object.fromEntries(new FormData(e.target));
@@ -4014,8 +4746,122 @@
             render();
         }
 
+            // --- Helper: Show confirmation after event creation ---
+            function showEventCreatedConfirmation(job) {
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[400] flex items-center justify-center p-6';
+                const typeLabel = job.type === 'Consultation' ? 'Consultation Scheduled!' : job.type === 'Holiday' ? 'Holiday Added!' : job.type === 'Personal' ? 'Event Added!' : 'Job Created!';
+                overlay.innerHTML = `<div class="bg-app-card border border-emerald-500/40 rounded-2xl p-8 max-w-sm w-full text-center animate-slide-up">
+                    <div class="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-4xl"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-white mb-2">${typeLabel}</h2>
+                    <p class="text-white font-medium mb-1">${job.title || ''}</p>
+                    ${job.date ? `<p class="text-blue-300 text-sm mb-6">${Utils.getFriendlyDate(job.date)}${job.time ? ' &middot; ' + job.time : ''}</p>` : '<div class="mb-6"></div>'}
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="this.closest('.fixed').remove(); router.navigate('job-details',{id:'${job.id||''}'})" class="bg-blue-600/20 border border-blue-500/40 text-blue-300 font-semibold py-2.5 rounded-xl text-sm">View Job</button>
+                        <button onclick="this.closest('.fixed').remove(); router.navigate('today')" class="bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-sm">Done</button>
+                    </div>
+                </div>`;
+                document.body.appendChild(overlay);
+                setTimeout(() => { if (overlay.isConnected) { overlay.remove(); router.navigate('today'); } }, 5000);
+            }
+
+            // --- Helper: Pre-fill address when contact selected in new/edit event ---
+            function prefillContactAddress(select) {
+                const contactId = select.value;
+                const addrInput = document.getElementById('new-event-address');
+                if (!addrInput) return;
+                if (!contactId) return;
+                const contact = DB.getContactById(contactId);
+                if (contact && contact.address && !addrInput.value) {
+                    addrInput.value = contact.address;
+                }
+            }
+
+            // --- Helper: Mark verbally happy sign-off ---
+            function markVerballyHappy(id) {
+                const job = DB.getJobById(id);
+                if (!job) return;
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.innerHTML = `<div class="modal-sheet max-w-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400"><i class="fa-solid fa-comment-dots text-xl"></i></div>
+                        <div><h3 class="font-bold text-white">Customer Verbally Happy</h3><p class="text-xs text-app-muted">No formal signature required</p></div>
+                    </div>
+                    <p class="text-sm text-app-muted mb-4">This will mark the job as <strong class="text-white">Completed &amp; Signed Off</strong> with a note that the customer verbally confirmed satisfaction. The project will be locked for legal record keeping.</p>
+                    <p class="text-xs bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 text-emerald-200 mb-4"><i class="fa-solid fa-shield-check mr-1"></i> Statement recorded: "Customer verbally confirmed satisfaction with the completed installation."</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="this.closest('.modal-overlay').remove()" class="bg-app-lighter border border-app-border text-app-muted py-3 rounded-xl font-semibold">Cancel</button>
+                        <button onclick="this.closest('.modal-overlay').remove(); DB.saveVerbalSignOff('${id}'); router.renderJobDetails(document.getElementById('app-content'),'${id}')" class="bg-emerald-600 text-white font-bold py-3 rounded-xl">Confirm Sign-Off</button>
+                    </div>
+                </div>`;
+                document.body.appendChild(overlay);
+            }
+
+            // --- Leads handlers ---
+            function handleNewLead(e) {
+                e.preventDefault();
+                const d = Object.fromEntries(new FormData(e.target));
+                DB.addLead(d);
+                router.navigate('leads');
+            }
+            function convertLeadToJob(leadId) {
+                const lead = (DB.leads || []).find(l => l.id === leadId);
+                if (!lead) return;
+                // Mark as successful if not already
+                DB.updateLead(leadId, { status: 'Successful' });
+                // Pre-fill contact search or address
+                router.navigate('new-event', {
+                    prefillAddress: lead.address,
+                    prefillName: lead.name,
+                    date: Utils.formatDate(new Date())
+                });
+                showToast('Lead details pre-filled — add job date and details');
+            }
+
+            // --- Purchase order handlers ---
+            function openAddPurchaseOrder(jobId) {
+                const job = DB.getJobById(jobId);
+                if (!job) return;
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.innerHTML = `<div class="modal-sheet max-w-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <div><h3 class="font-bold text-white">Add Purchase Order</h3><p class="text-xs text-app-muted">Ref: ${job.jobNumber || 'EW-?'}</p></div>
+                        <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full bg-app-lighter text-app-muted flex items-center justify-center"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                    <form onsubmit="submitPurchaseOrder(event,'${jobId}')" class="space-y-3">
+                        <input name="item" required placeholder="Item / Material (e.g. Super White Vinyl)" class="w-full bg-app-lighter border border-app-border rounded-xl p-3 text-sm text-white focus:outline-none focus:border-amber-500">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input name="qty" placeholder="Qty / Amount" class="bg-app-lighter border border-app-border rounded-xl p-3 text-sm text-white focus:outline-none">
+                            <input name="unit" placeholder="Unit (m, rolls, etc.)" class="bg-app-lighter border border-app-border rounded-xl p-3 text-sm text-white focus:outline-none">
+                        </div>
+                        <input name="supplier" placeholder="Supplier (optional)" class="w-full bg-app-lighter border border-app-border rounded-xl p-3 text-sm text-white focus:outline-none">
+                        <input name="cost" type="number" step="0.01" placeholder="Cost £ (optional)" class="w-full bg-app-lighter border border-app-border rounded-xl p-3 text-sm text-white focus:outline-none">
+                        <textarea name="notes" rows="2" placeholder="Notes (optional)" class="w-full bg-app-lighter border border-app-border rounded-xl p-3 text-sm text-white focus:outline-none"></textarea>
+                        <button type="submit" class="w-full bg-amber-600 text-white font-bold py-3 rounded-xl">Add to Purchase Orders</button>
+                    </form>
+                </div>`;
+                document.body.appendChild(overlay);
+            }
+            function submitPurchaseOrder(e, jobId) {
+                e.preventDefault();
+                const d = Object.fromEntries(new FormData(e.target));
+                DB.addPurchaseOrder(jobId, d);
+                e.target.closest('.modal-overlay').remove();
+                router.renderJobDetails(document.getElementById('app-content'), jobId);
+            }
+            function deletePO(jobId, poId) {
+                if (!confirm('Remove this purchase order item?')) return;
+                DB.deletePurchaseOrder(jobId, poId);
+                router.renderJobDetails(document.getElementById('app-content'), jobId);
+            }
+
         window.addEventListener('DOMContentLoaded', () => {
             DB.init();
+            applyTheme(getUiSettings().theme);
             CloudSync.init();
             renderCloudSyncIndicator();
             router.navigate('today');
