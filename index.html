@@ -2689,9 +2689,8 @@
             lastResult: null,
             prefillJobId: null,
             keyHandler: null,
-            unitFactors: { mm: 1, cm: 10, m: 1000 },
-            toMm(v) { return (parseFloat(v) || 0) * (this.unitFactors[this.unit] || 1); },
-            fromMm(v) { return Math.round((parseFloat(v) || 0) / (this.unitFactors[this.unit] || 1)); }
+            toMm(v) { return parseFloat(v) || 0; },
+            fromMm(v) { return Math.round(parseFloat(v) || 0); }
         };
 
         function renderOptimiserScreen(container) {
@@ -2705,8 +2704,8 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-2 mb-4">
-                    ${['mm','cm','m'].map(u => `<button onclick="optimiserSetUnit('${u}')" id="opt-unit-${u}" class="py-2 rounded-lg text-xs font-semibold border ${Optimiser.unit===u ? 'bg-cyan-600 border-cyan-600 text-white' : 'bg-app-card border-app-border text-app-muted'}">${u.toUpperCase()}</button>`).join('')}
+                <div class="mb-4">
+                    <span class="inline-block py-2 px-4 rounded-lg text-xs font-semibold border bg-cyan-600 border-cyan-600 text-white">All measurements in MM</span>
                 </div>
 
                 <div class="bg-app-card border border-app-border rounded-xl p-4 mb-4">
@@ -2741,11 +2740,11 @@
                 <div class="bg-app-card border border-app-border rounded-xl p-4 mb-4">
                     <p class="text-xs text-app-muted uppercase tracking-wider mb-3">Roll Settings</p>
                     <div class="grid grid-cols-2 gap-2 mb-2">
-                        <input id="opt-roll-width" type="number" min="1" value="1220" class="bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white" placeholder="Roll width">
-                        <input id="opt-roll-length" type="number" min="0" value="0" class="bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white" placeholder="Roll length (0 auto)">
+                        <div><label class="text-[10px] text-app-muted">Roll Width (mm) – fixed</label><input id="opt-roll-width" type="number" value="1220" readonly class="bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white/60 w-full cursor-not-allowed"></div>
+                        <div><label class="text-[10px] text-app-muted">Roll Length (0 = auto)</label><input id="opt-roll-length" type="number" min="0" value="0" class="bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white w-full" placeholder="0 = auto"></div>
                     </div>
                     <div class="grid grid-cols-2 gap-2 mb-2">
-                        <input id="opt-overhang" type="number" min="0" value="50" class="bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white" placeholder="Overhang per side">
+                        <div><label class="text-[10px] text-app-muted">Overhang per side (mm)</label><input id="opt-overhang" type="number" min="0" value="50" class="bg-app-lighter border border-app-border rounded-lg p-2.5 text-sm text-white w-full"></div>
                         <label class="flex items-center gap-2 text-sm text-app-muted"><input id="opt-allow-rotation" type="checkbox" checked class="custom-checkbox">Allow rotation</label>
                     </div>
                     <label class="flex items-center gap-2 text-sm text-app-muted"><input id="opt-supernest" type="checkbox" checked class="custom-checkbox">Supernesting mode</label>
@@ -2767,7 +2766,7 @@
 
                 <div class="bg-app-card border border-app-border rounded-xl p-3 overflow-x-auto">
                     <table class="w-full text-xs">
-                        <thead><tr class="text-app-muted border-b border-app-border"><th class="text-left py-2">Cut #</th><th class="text-left py-2">Code</th><th class="text-left py-2">Part</th><th class="text-left py-2">Original</th><th class="text-left py-2">With Overhang</th><th class="text-left py-2">Orientation</th></tr></thead>
+                        <thead><tr class="text-app-muted border-b border-app-border"><th class="text-left py-2">Cut #</th><th class="text-left py-2">Code</th><th class="text-left py-2">Part</th><th class="text-left py-2">Original (mm)</th><th class="text-left py-2">With Overhang (mm)</th><th class="text-left py-2">Orientation</th></tr></thead>
                         <tbody id="opt-summary-tbody"></tbody>
                     </table>
                 </div>
@@ -2854,13 +2853,7 @@
         }
 
         function optimiserSetUnit(unit) {
-            Optimiser.unit = unit;
-            ['mm','cm','m'].forEach(u => {
-                const el = document.getElementById(`opt-unit-${u}`);
-                if (!el) return;
-                el.className = `py-2 rounded-lg text-xs font-semibold border ${u===unit ? 'bg-cyan-600 border-cyan-600 text-white' : 'bg-app-card border-app-border text-app-muted'}`;
-            });
-            optimiserRefreshPieces();
+            // Units are now locked to mm – this function is retained for compatibility
         }
 
         function optimiserAddPiece() {
@@ -2871,7 +2864,7 @@
             const partType = (document.getElementById('opt-quick-part')?.value || 'Face').trim();
             const grainLock = !!document.getElementById('opt-quick-grain')?.checked;
             if (!width || !height || width <= 0 || height <= 0) { showToast('Enter valid width and height'); return; }
-            const w = Optimiser.toMm(width), h = Optimiser.toMm(height);
+            const w = width, h = height;
             for (let i = 0; i < qty; i++) Optimiser.pieces.push({ w, h, code, partType, grainLock });
             document.getElementById('opt-quick-width').value = '';
             document.getElementById('opt-quick-height').value = '';
@@ -2888,8 +2881,8 @@
             lines.forEach(line => {
                 const csvCols = line.split(/\t|,/).map(x => x.trim()).filter(Boolean);
                 if (csvCols.length >= 2 && !Number.isNaN(parseFloat(csvCols[0])) && !Number.isNaN(parseFloat(csvCols[1]))) {
-                    const w = Optimiser.toMm(parseFloat(csvCols[0] || '0'));
-                    const h = Optimiser.toMm(parseFloat(csvCols[1] || '0'));
+                    const w = parseFloat(csvCols[0] || '0');
+                    const h = parseFloat(csvCols[1] || '0');
                     const qty = Math.max(1, parseInt(csvCols[2] || '1') || 1);
                     const code = (csvCols[3] || csvCols[2] || '').replace(/^\d+$/, '').trim();
                     if (w >= 20 && h >= 20) {
@@ -2905,8 +2898,8 @@
                 for (const p of patterns) {
                     const m = line.match(p);
                     if (!m) continue;
-                    const w = Optimiser.toMm(parseFloat(m[1] || '0'));
-                    const h = Optimiser.toMm(parseFloat(m[2] || '0'));
+                    const w = parseFloat(m[1] || '0');
+                    const h = parseFloat(m[2] || '0');
                     const code = (m[3] || '').trim();
                     const qty = Math.max(1, parseInt(m[4] || '1') || 1);
                     if (w < 20 || h < 20) break;
@@ -2934,36 +2927,43 @@
                 list.innerHTML = '<p class="text-xs text-app-muted text-center py-3">No pieces yet</p>';
                 return;
             }
-            list.innerHTML = Optimiser.pieces.map((p, i) => `<div class="bg-app-lighter border border-app-border rounded-lg p-2 flex items-center justify-between gap-2"><p class="text-xs text-white truncate"><span class="text-cyan-300 font-semibold">${Utils.escapeHtml(p.code || ('#'+(i+1)))}</span> · ${Optimiser.fromMm(p.w)}×${Optimiser.fromMm(p.h)} ${Optimiser.unit} · <span class="text-app-muted">${Utils.escapeHtml(p.partType || 'Face')}${p.grainLock ? ' · Grain Lock' : ''}</span></p><button onclick="optimiserRemovePiece(${i})" class="text-red-400 text-xs px-2">✕</button></div>`).join('');
+            list.innerHTML = Optimiser.pieces.map((p, i) => `<div class="bg-app-lighter border border-app-border rounded-lg p-2 flex items-center justify-between gap-2"><p class="text-xs text-white truncate"><span class="text-cyan-300 font-semibold">${Utils.escapeHtml(p.code || ('#'+(i+1)))}</span> · ${Optimiser.fromMm(p.w)}×${Optimiser.fromMm(p.h)} mm · <span class="text-app-muted">${Utils.escapeHtml(p.partType || 'Face')}${p.grainLock ? ' · Grain Lock' : ''}</span></p><button onclick="optimiserRemovePiece(${i})" class="text-red-400 text-xs px-2">✕</button></div>`).join('');
         }
 
         function optimiserOptimize() {
             if (!Optimiser.pieces.length) { showToast('Add at least one piece'); return; }
-            const rollW = Optimiser.toMm(parseFloat(document.getElementById('opt-roll-width')?.value || '0'));
-            const rollLengthInput = Optimiser.toMm(parseFloat(document.getElementById('opt-roll-length')?.value || '0'));
-            const overhang = Optimiser.toMm(parseFloat(document.getElementById('opt-overhang')?.value || '0'));
+            const rollW = 1220;
+            const rollLengthInput = parseFloat(document.getElementById('opt-roll-length')?.value || '0') || 0;
+            const overhang = parseFloat(document.getElementById('opt-overhang')?.value || '50') || 50;
             const allowRotation = !!document.getElementById('opt-allow-rotation')?.checked;
             const superNest = !!document.getElementById('opt-supernest')?.checked;
-            if (!rollW || rollW <= 0) { showToast('Enter valid roll width'); return; }
 
-            const sortedArea = [...Optimiser.pieces].sort((a, b) => (b.w * b.h) - (a.w * a.h));
+            const sortedArea = [...Optimiser.pieces].sort((a, b) => {
+                const aH = a.h + (2 * overhang);
+                const bH = b.h + (2 * overhang);
+                return bH - aH;
+            });
             const autoLen = rollLengthInput > 0 ? rollLengthInput : optimiserAutoLength(sortedArea, rollW, overhang, allowRotation);
             const result = optimiserRunBest(superNest ? Optimiser.pieces : sortedArea, rollW, autoLen, overhang, allowRotation, superNest);
             result.placed = optimiserAssignCutOrder(result.placed);
 
             optimiserDraw(result.placed, rollW, autoLen, overhang, result.freeRects);
             optimiserRenderSummary(result.placed, overhang);
+
+            const maxY = result.placed.reduce((m, p) => Math.max(m, p.y + p.h), 0);
+            const totalLinearMm = maxY;
+            const totalLinearMeters = totalLinearMm / 1000;
+            const orderAmount = Math.ceil(totalLinearMeters);
+            const totalAreaM2 = totalLinearMeters * 1.22;
+
             const usedArea = result.placed.reduce((a, p) => a + (p.w * p.h), 0);
-            const rollArea = rollW * autoLen;
+            const rollArea = rollW * totalLinearMm;
             const wasteArea = Math.max(0, rollArea - usedArea);
-            const lmExact = autoLen / 1000;
-            const lmWithWastage = lmExact * 1.2;
-            const lmRounded = Math.ceil(lmWithWastage);
             const eff = rollArea > 0 ? Math.round((1 - (wasteArea / rollArea)) * 100) : 0;
 
             const stats = document.getElementById('opt-stats');
             stats.classList.remove('hidden');
-            stats.innerHTML = `<strong>${lmExact.toFixed(2)}m net required</strong> · <strong>${lmWithWastage.toFixed(2)}m incl 20% wastage</strong> (order ${lmRounded}m) · <strong>${(usedArea/1e6).toFixed(2)}m²</strong> used · <strong>${(wasteArea/1e6).toFixed(2)}m²</strong> waste · <strong>${eff}%</strong> efficiency`;
+            stats.innerHTML = `<strong>${totalLinearMeters.toFixed(2)}m linear required</strong> · <strong>Order ${orderAmount}m</strong> · <strong>${totalAreaM2.toFixed(2)}m²</strong> total area · <strong>${(wasteArea/1e6).toFixed(2)}m²</strong> waste · <strong>${eff}%</strong> efficiency`;
 
             const alert = document.getElementById('opt-alert');
             if (result.failed.length) {
@@ -2981,9 +2981,9 @@
 
         function optimiserRunBest(basePieces, rollW, rollH, overhang, allowRotation, superNest) {
             const strategies = [
+                arr => [...arr].sort((a, b) => (b.h + 2*overhang) - (a.h + 2*overhang)),
                 arr => [...arr].sort((a, b) => (b.w * b.h) - (a.w * a.h)),
                 arr => [...arr].sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h)),
-                arr => [...arr].sort((a, b) => b.h - a.h),
                 arr => [...arr].sort((a, b) => b.w - a.w)
             ];
             let best = null;
@@ -3148,7 +3148,7 @@
                 ctx.font = 'bold 12px Inter';
                 if (p.code) ctx.fillText(p.code, cx, cy - 12);
                 ctx.font = '11px Inter';
-                ctx.fillText(`${Optimiser.fromMm(p.w - (2 * overhang))}×${Optimiser.fromMm(p.h - (2 * overhang))} ${Optimiser.unit}`, cx, cy + 4);
+                ctx.fillText(`${Optimiser.fromMm(p.w)}×${Optimiser.fromMm(p.h)} mm`, cx, cy + 4);
                 ctx.fillStyle = '#94a3b8';
                 ctx.fillText(`${p.partType || 'Face'}${p.grainLock ? ' · Grain Lock' : ''}`, cx, cy + 18);
             });
@@ -3163,12 +3163,12 @@
         function optimiserRenderSummary(placed, overhang) {
             const tbody = document.getElementById('opt-summary-tbody');
             if (!tbody) return;
-            tbody.innerHTML = placed.map(p => `<tr class="border-b border-app-border/50"><td class="py-2 pr-2 text-cyan-300 font-semibold">${p.cutOrder || '-'}</td><td class="py-2 pr-2 text-cyan-300 font-semibold">${Utils.escapeHtml(p.code || '-')}</td><td class="py-2 pr-2 text-app-muted">${Utils.escapeHtml(p.partType || 'Face')}${p.grainLock ? ' · Grain' : ''}</td><td class="py-2 pr-2 text-white">${Optimiser.fromMm(p.w - (2*overhang))}×${Optimiser.fromMm(p.h - (2*overhang))} ${Optimiser.unit}</td><td class="py-2 pr-2 text-white">${Optimiser.fromMm(p.w)}×${Optimiser.fromMm(p.h)} ${Optimiser.unit}</td><td class="py-2 text-app-muted">${p.orientation}</td></tr>`).join('');
+            tbody.innerHTML = placed.map(p => `<tr class="border-b border-app-border/50"><td class="py-2 pr-2 text-cyan-300 font-semibold">${p.cutOrder || '-'}</td><td class="py-2 pr-2 text-cyan-300 font-semibold">${Utils.escapeHtml(p.code || '-')}</td><td class="py-2 pr-2 text-app-muted">${Utils.escapeHtml(p.partType || 'Face')}${p.grainLock ? ' · Grain' : ''}</td><td class="py-2 pr-2 text-white">${Optimiser.fromMm(p.w - (2*overhang))}×${Optimiser.fromMm(p.h - (2*overhang))} mm</td><td class="py-2 pr-2 text-white">${Optimiser.fromMm(p.w)}×${Optimiser.fromMm(p.h)} mm</td><td class="py-2 text-app-muted">${p.orientation}</td></tr>`).join('');
         }
 
         function optimiserExportCSV() {
             if (!Optimiser.lastResult || !Optimiser.lastResult.placed?.length) { showToast('Run optimize first'); return; }
-            const rows = [['Cut #', 'Code', 'Part', `Original (${Optimiser.unit})`, `With Overhang (${Optimiser.unit})`, 'Orientation', 'X(mm)', 'Y(mm)']];
+            const rows = [['Cut #', 'Code', 'Part', 'Original (mm)', 'With Overhang (mm)', 'Orientation', 'X(mm)', 'Y(mm)']];
             Optimiser.lastResult.placed.forEach(p => rows.push([
                 p.cutOrder || '',
                 p.code || '',
@@ -3217,7 +3217,7 @@
             if (alert) { alert.classList.add('hidden'); alert.innerHTML = ''; }
             if (summary) summary.innerHTML = '';
             optimiserRefreshPieces();
-            optimiserDraw([], Optimiser.toMm(1220), Optimiser.toMm(2000), Optimiser.toMm(50), []);
+            optimiserDraw([], 1220, 2000, 50, []);
         }
 
         // --- HANDLERS ---
